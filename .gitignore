@@ -134,10 +134,6 @@ logs
 tmp/
 temp/
 
-# Project specific
-# Uncomment if you want to ignore the data file
-# source/data.json
-
 # Backup files
 *.bak
 *.backup
@@ -148,3 +144,6 @@ temp/
 *.tar.gz
 *.rar
 *.7z
+
+# Data file
+source/data.json
