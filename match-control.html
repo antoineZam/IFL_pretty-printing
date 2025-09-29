@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tekken 8 IFL Tournament Control Panel</title>
+        <style>
+            body {            
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                background: #f0f2f5; 
+                padding: 20px; 
+                color: #1c1e21;
+            }
+
+            .container {
+                max-width: 700px;
+                margin: auto;
+                background: #626262;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+            h1, h2 {
+                text-align: center;
+                color:#1877f2;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            label {
+                display: block;
+                margin-bottom: 10px;
+                font-weight: 600;
+            }
+            input[type="text"] {
+                width: 90%;
+                padding: 10px;
+                border: 1px solid #dddfe2;
+                border-radius: 6px;
+                font-size: 16px;
+            }
+            .score-controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-align: center;
+            }
+            .player-score h3 {
+                margin-bottom: 10px;
+            }
+
+            button {
+                border: none;
+                padding: 10px 15px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: background 0.2s;
+            }
+            .score-btn {
+                background: #e4e6eb;
+                color: #1c1e21;
+                font-size: 18px;
+                margin: 5 5px;
+            }
+            .score-btn:hover {
+                background-color: #d8dbdf;
+            }
+            button.update {
+                background: #42b72a;
+                color: #fff;
+                width: 100%;
+                padding: 15px;
+                font-size: 16px;
+            }
+            button.update:hover {
+                background-color: #36a420;
+            }
+            button.reset {
+                background: #fa3e3e;
+                color: #fff;
+                display: block;
+                margin: 20px auto 0 auto;
+                padding: 15px 30px;
+                font-size: 16px;
+            }
+            button.reset:hover {
+                background-color: #e03838;
+            }
+            hr {
+                border: none;
+                border-top: 1px solid #dddfe2;
+                margin: 20px 0;
+
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Tekken 8 IFL Tournament Overlay Control Panel</h1>
+            <hr>
+            <div class="form-group">
+                <label for="round">Player 1 Team</label>
+                <input type="text" id="p1-team" name="p1-team" placeholder="Enter Player 1 Team">
+            </div>
+            <div class="form-group">
+                <label for="p1-name">Player 1 Name</label>
+                <input type="text" id="p1-name" name="p1-name" placeholder="Enter Player 1 Name">
+            </div>
+            <div class="form-group">
+                <label for="p2-team">Player 2 Team</label>
+                <input type="text" id="p2-team" name="p2-team" placeholder="Enter Player 2 Team">
+            </div>
+            <div class="form-group">
+                <label for="p2-name">Player 2 Name</label>
+                <input type="text" id="p2-name" name="p2-name" placeholder="Enter Player 2 Name">
+            </div>
+            <div class="form-group">
+                <label for="round">Round</label>
+                <input type="text" id="round" name="round" placeholder="Enter Round">
+            </div>
+            <button class="update" onclick="updateNamesAndRound()" id="update-btn">Update Player Names, Teams and Round informations</button>
+            <hr>
+
+            <h2>Score Controls</h2>
+            <div class="score-controls">
+                <div class="player-score">
+                    <h3>Player 1</h3>
+                    <div class="score-btn" onclick="updateScore('p1', 1)" id="p1-score-btn">+</div>
+                    <div class="score-btn" onclick="updateScore('p1', -1)" id="p1-score-btn">-</div>
+                </div>
+                <div class="player-score">
+                    <h3>Player 2</h3>
+                    <div class="score-btn" onclick="updateScore('p2', 1)" id="p2-score-btn">+</div>
+                    <div class="score-btn" onclick="updateScore('p2', -1)" id="p2-score-btn">-</div>
+                </div>
+            </div>
+            <button class="reset" onclick="resetScores()" id="reset-btn">Reset Scores</button>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let data = {};
+        socket.on('data-update', (serverData) => {
+           console.log('Retrieved data from server:', serverData);
+           data = serverData;
+
+           document.getElementById('p1-team').value = data.p1Team;
+           document.getElementById('p1-name').value = data.p1Name;
+           document.getElementById('p2-team').value = data.p2Team;
+           document.getElementById('p2-name').value = data.p2Name;
+           document.getElementById('round').value = data.round;
+        });
+
+        function sendUpdate() {
+            socket.emit('update-data', data);
+        }
+
+        function updateNamesAndRound() {
+            data.p1Team = document.getElementById('p1-team').value;
+            data.p1Name = document.getElementById('p1-name').value;
+            data.p2Team = document.getElementById('p2-team').value;
+            data.p2Name = document.getElementById('p2-name').value;
+            data.round = document.getElementById('round').value;
+            sendUpdate();
+        }
+
+        function updateScore(player, change) {
+            data[`${player}Score`] += change;
+            if (data[`${player}Score`] < 0) {
+                data[`${player}Score`] = 0;
+            }
+            sendUpdate();
+        }
+
+        function resetScores() {
+            data.p1Score = 0;
+            data.p2Score = 0;
+            sendUpdate();
+        }
+    </script>
+    </body>
+</html>

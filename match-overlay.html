@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tekken 8 IFL Tournament Overlay</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&display=swap');
+        body {
+            background-color: transparent;
+            font-family: 'Roboto Condensed', sans-serif;
+            color: #fff;
+            text-transform: uppercase;
+            margin: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .background-image {
+            position: absolute;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        #p1-name-bg {
+            background-image: url('https://rawcdn.githack.com/.../.png');
+            top: 40px;
+            left: 50px;
+            width: 500px;
+            height: 80px;
+        } /* Replace this URL with the correct one */
+
+        #p2-name-bg {
+            background-image: url('https://rawcdn.githack.com/.../.png');
+            top: 40px;
+            left: 50px;
+            width: 500px;
+            height: 80px;
+        } /* Replace this URL with the correct one */
+
+        #p1-score-bg {
+            background-image: url('https://rawcdn.githack.com/.../.png');
+            top: 40px;
+            left: 50px;
+            width: 500px;
+            height: 80px;
+        } /* Replace this URL with the correct one */
+
+        #p2-score-bg {
+            background-image: url('https://rawcdn.githack.com/.../.png');
+            top: 40px;
+            left: 50px;
+            width: 500px;
+            height: 80px;
+        } /* Replace this URL with the correct one */
+
+        #score-bg {
+            background-image: url('https://rawcdn.githack.com/.../.png');
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 50px;
+        }
+
+        .text-shadow {
+            text-shadow: 2px 2px 4px #000000;
+        }
+
+        .player-info {
+            position: absolute;
+            top: 50px; /* Adjust vertical alignment */
+            font-size: 48px;
+            font-weight: 700;
+            width: 460px; /* Make width slightly smaller than background */
+        }
+
+        .player-info .team {
+            color: #cccccc; /* Light grey for team names */
+            font-size: 36px; /* Slightly smaller than player name */
+        }
+
+        .player-info .name {
+            font-size: 48px; /* Main player name size */
+        }
+
+        #p1-info {
+            left: 70px; /* Adjust horizontal alignment */
+            text-align: left;
+        }
+
+        #p2-info {
+            right: 70px; /* Adjust horizontal alignment */
+            text-align: right;
+        }
+
+        .score {
+            position: absolute;
+            top: 45px; /* Adjust vertical alignment */
+            font-size: 60px;
+            width: 100px; /* Match the width of the background */
+            text-align: center;
+        }
+        
+        #p1-score {
+            left: 570px;
+        }
+        
+        #p2-score {
+            right: 570px;
+        }
+
+        #round {
+            position: absolute;
+            top: 25px; /* Adjust vertical alignment */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            text-align: center;
+            width: 600px; /* Match the width of the background */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="background-image" id="p1-team-bg"></div>
+        <div class="background-image" id="p1-name-bg"></div>
+        <div class="background-image" id="p1-score-bg"></div>
+        <div class="background-image" id="p2-team-bg"></div>
+        <div class="background-image" id="p2-name-bg"></div>
+        <div class="background-image" id="p2-score-bg"></div>
+        <div class="background-image" id="score-bg"></div>
+
+        <div class="player-info text-shadow" id="p1-info">
+            <span class="team" id="p1-team">Team 1</span> | <span class="name" id="p1-name">Player 1</span>
+        </div>
+        <div class="score text-shadow" id="p1-score">0</div>
+        <div class="player-info text-shadow" id="p2-info">
+            <span class="name" id="p2-name">Player 2</span> | <span class="team" id="p2-team">Team 2</span>
+        </div>
+        <div class="score text-shadow" id="p2-score">0</div>
+        <div class="round text-shadow" id="round">Winners Finals</div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.on('data-update', (data) => {
+            document.getElementById('p1-team').textContent = data.p1Team;
+            document.getElementById('p1-name').textContent = data.p1Name;
+            document.getElementById('p1-score').textContent = data.p1Score;
+            document.getElementById('p2-team').textContent = data.p2Team;
+            document.getElementById('p2-name').textContent = data.p2Name;
+            document.getElementById('p2-score').textContent = data.p2Score;
+            document.getElementById('round').textContent = data.round;
+        });
+    </script>
+</body>
+</html>
