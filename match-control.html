@@ -140,7 +140,27 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        // Get connection key from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const connectionKey = urlParams.get('key');
+        
+        if (!connectionKey) {
+            window.location.href = '/auth';
+            throw new Error('No connection key provided');
+        }
+
+        const socket = io({
+            auth: {
+                token: connectionKey
+            }
+        });
+
+        // Handle connection errors
+        socket.on('connect_error', (error) => {
+            console.error('Connection failed:', error.message);
+            alert('Authentication failed. Please check your connection key.');
+            window.location.href = '/auth';
+        });
         let data = {};
         socket.on('data-update', (serverData) => {
            console.log('Retrieved data from server:', serverData);

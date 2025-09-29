@@ -151,7 +151,28 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        // Get connection key from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const connectionKey = urlParams.get('key');
+        
+        if (!connectionKey) {
+            window.location.href = '/auth';
+            throw new Error('No connection key provided');
+        }
+
+        const socket = io({
+            auth: {
+                token: connectionKey
+            }
+        });
+
+        // Handle connection errors
+        socket.on('connect_error', (error) => {
+            console.error('Connection failed:', error.message);
+            // For overlay, just show error in console, don't redirect (OBS might be using this)
+            document.body.innerHTML = '<div style="color: red; text-align: center; font-size: 24px; margin-top: 50px;">Authentication Error: Invalid Connection Key</div>';
+        });
+
         socket.on('data-update', (data) => {
             document.getElementById('p1-team').textContent = data.p1Team;
             document.getElementById('p1-name').textContent = data.p1Name;

@@ -4,10 +4,28 @@ const socketIo = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 
+// Set default connection key if not provided
+const CONNECTION_KEY = process.env.CONNECTION_KEY || 'tournament2024';
+console.log('Connection key:', CONNECTION_KEY);
+
 const port = 3000;
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+
+// Middleware to parse JSON and URL-encoded data
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Authentication middleware for web pages
+function requireAuth(req, res, next) {
+  const authKey = req.query.key || req.body.key;
+  if (authKey === CONNECTION_KEY) {
+    next();
+  } else {
+    res.redirect('/auth');
+  }
+}
 
 const dataFilePath = './source/data.json';
 
@@ -53,28 +71,53 @@ function saveData(data) {
 
 let overlayData = loadData();
 
-// Serve the control panel and overlay files
-app.get('/match-control', (req, res) => {
+// Authentication page
+app.get('/auth', (req, res) => {
+  res.sendFile(__dirname + '/auth.html');
+});
+
+// Handle authentication form submission
+app.post('/auth', (req, res) => {
+  const key = req.body.key;
+  if (key === CONNECTION_KEY) {
+    res.redirect(`/match-control?key=${key}`);
+  } else {
+    res.redirect('/auth?error=1');
+  }
+});
+
+// Protected routes
+app.get('/match-control', requireAuth, (req, res) => {
   res.sendFile(__dirname + '/match-control.html');
 });
 
-app.get('/match-overlay', (req, res) => {
+app.get('/match-overlay', requireAuth, (req, res) => {
   res.sendFile(__dirname + '/match-overlay.html');
 });
 
+// Redirect root to auth
+app.get('/', (req, res) => {
+  res.redirect('/auth');
+});
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (token !== CONNECTION_KEY) {
+    next(new Error('Invalid connection key'));
+  } else {
+    next();
+  }
+});
 
 io.on('connection', (socket) => {
-  console.log('A user connected.');
+  console.log('A user connected successfully.');
 
-  // Send the current data to newly connected clients
   socket.emit('data-update', overlayData);
 
-  // Listen for updates from the control panel
   socket.on('update-data', (data) => {
     overlayData = data;
     saveData(overlayData);
     
-    // Broadcast the new data to all clients (the overlay)
     io.emit('data-update', overlayData);
     console.log('Data updated:', overlayData);
   });
