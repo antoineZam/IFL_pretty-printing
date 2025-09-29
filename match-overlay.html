@@ -80,6 +80,8 @@
             font-size: 48px;
             font-weight: 700;
             width: 460px; /* Make width slightly smaller than background */
+            display: flex;
+            align-items: baseline;
         }
 
         .player-info .team {
@@ -93,12 +95,24 @@
 
         #p1-info {
             left: 350px; /* Move closer to score */
-            text-align: left;
+            justify-content: flex-start;
         }
 
         #p2-info {
             right: 350px; /* Move closer to score */
-            text-align: right;
+            justify-content: flex-end;
+        }
+
+        #p2-info .name { order: 3; }
+        #p2-info .separator { order: 2; }
+        #p2-info .team { order: 1; }
+
+        .player-info .team:empty {
+            flex-grow: 1;
+        }
+
+        .player-info .team:empty + .separator {
+            display: none;
         }
 
         .score {
@@ -163,14 +177,14 @@
         <div class="flag" id="p2-flag"></div>
 
         <div class="player-info text-shadow" id="p1-info">
-            <span class="team" id="p1-team">Team 1</span> | <span class="name" id="p1-name">Player 1</span>
+            <span class="team" id="p1-team"></span><span class="separator"> | </span><span class="name" id="p1-name"></span>
         </div>
         <div class="score text-shadow" id="p1-score">0</div>
         <div class="player-info text-shadow" id="p2-info">
-            <span class="name" id="p2-name">Player 2</span> | <span class="team" id="p2-team">Team 2</span>
+            <span class="name" id="p2-name"></span><span class="separator"> | </span><span class="team" id="p2-team"></span>
         </div>
         <div class="score text-shadow" id="p2-score">0</div>
-        <div class="round text-shadow" id="round">Winners Finals</div>
+        <div class="round text-shadow" id="round"></div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -198,12 +212,14 @@
         });
 
         socket.on('data-update', (data) => {
-            document.getElementById('p1-team').textContent = data.p1Team;
+            document.getElementById('p1-team').textContent = data.p1Team || '';
             document.getElementById('p1-name').textContent = data.p1Name;
             document.getElementById('p1-score').textContent = data.p1Score;
-            document.getElementById('p2-team').textContent = data.p2Team;
+            
+            document.getElementById('p2-team').textContent = data.p2Team || '';
             document.getElementById('p2-name').textContent = data.p2Name;
             document.getElementById('p2-score').textContent = data.p2Score;
+            
             document.getElementById('round').textContent = data.round;
 
             const p1FlagEl = document.getElementById('p1-flag');

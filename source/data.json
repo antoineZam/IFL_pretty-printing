@@ -1,11 +1,11 @@
 {
-  "p1Name": "Hei",
-  "p2Name": "Hachi",
+  "p1Name": "Hachi",
+  "p2Name": "Hei",
   "p1Score": 0,
   "p2Score": 0,
   "round": "Winners Round 1",
-  "p1Team": "Mishima",
-  "p2Team": "IFF",
-  "p1Flag": "US",
-  "p2Flag": "SE"
+  "p1Team": "Noway",
+  "p2Team": "No team",
+  "p1Flag": "NO",
+  "p2Flag": "US"
 }
