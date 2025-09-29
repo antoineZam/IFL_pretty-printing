@@ -5,6 +5,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Tekken 8 IFL Tournament Control Panel</title>
         <style>
+            .player-section {
+                background: #e9e9e9;
+                padding: 15px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+            }
+            .player-section h3 {
+                margin-top: 0;
+                text-align: center;
+                color: #333;
+            }
             body {            
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
                 background: #f0f2f5; 
@@ -99,21 +110,35 @@
         <div class="container">
             <h1>Tekken 8 IFL Tournament Overlay Control Panel</h1>
             <hr>
-            <div class="form-group">
-                <label for="round">Player 1 Team</label>
-                <input type="text" id="p1-team" name="p1-team" placeholder="Enter Player 1 Team">
+            <div class="player-section">
+                <h3>Player 1</h3>
+                <div class="form-group">
+                    <label for="p1-flag">Player 1 Flag</label>
+                    <select id="p1-flag"></select>
+                </div>
+                <div class="form-group">
+                    <label for="round">Player 1 Team</label>
+                    <input type="text" id="p1-team" name="p1-team" placeholder="Enter Player 1 Team">
+                </div>
+                <div class="form-group">
+                    <label for="p1-name">Player 1 Name</label>
+                    <input type="text" id="p1-name" name="p1-name" placeholder="Enter Player 1 Name">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="p1-name">Player 1 Name</label>
-                <input type="text" id="p1-name" name="p1-name" placeholder="Enter Player 1 Name">
-            </div>
-            <div class="form-group">
+            <div class="player-section">
+                <h3>Player 2</h3>
+                <div class="form-group">
+                    <label for="p2-flag">Player 2 Flag</label>
+                    <select id="p2-flag"></select>
+                </div>
+                <div class="form-group">
                 <label for="p2-team">Player 2 Team</label>
                 <input type="text" id="p2-team" name="p2-team" placeholder="Enter Player 2 Team">
-            </div>
-            <div class="form-group">
-                <label for="p2-name">Player 2 Name</label>
-                <input type="text" id="p2-name" name="p2-name" placeholder="Enter Player 2 Name">
+                </div>
+                <div class="form-group">
+                    <label for="p2-name">Player 2 Name</label>
+                    <input type="text" id="p2-name" name="p2-name" placeholder="Enter Player 2 Name">
+                </div>
             </div>
             <div class="form-group">
                 <label for="round">Round</label>
@@ -161,13 +186,36 @@
             alert('Authentication failed. Please check your connection key.');
             window.location.href = '/auth';
         });
+
+
+        const countries = {
+            "": "No Flag", "US": "United States", "JP": "Japan", "KR": "South Korea", "FR": "France",
+            "DE": "Germany", "GB": "United Kingdom", "IT": "Italy", "ES": "Spain", "BR": "Brazil",
+            "PK": "Pakistan", "SA": "Saudi Arabia", "AE": "UAE", "CA": "Canada", "MX": "Mexico",
+            "CN": "China", "FI": "Finland", "SE": "Sweden", "NO": "Norway", "AU": "Australia"
+        };
+
+        function populateDropdowns() {
+            const p1FlagSelect = document.getElementById('p1-flag');
+            const p2FlagSelect = document.getElementById('p2-flag');
+            for (const code in countries) {
+                p1FlagSelect.add(new Option(countries[code], code));
+                p2FlagSelect.add(new Option(countries[code], code));
+            }
+        }
+        document.addEventListener('DOMContentLoaded', populateDropdowns);
+
         let data = {};
         socket.on('data-update', (serverData) => {
            console.log('Retrieved data from server:', serverData);
            data = serverData;
 
+           document.getElementById('p1-flag').value = data.p1Flag;
            document.getElementById('p1-team').value = data.p1Team;
            document.getElementById('p1-name').value = data.p1Name;
+           
+           
+           document.getElementById('p2-flag').value = data.p2Flag;
            document.getElementById('p2-team').value = data.p2Team;
            document.getElementById('p2-name').value = data.p2Name;
            document.getElementById('round').value = data.round;
@@ -178,8 +226,10 @@
         }
 
         function updateNamesAndRound() {
+            data.p1Flag = document.getElementById('p1-flag').value;
             data.p1Team = document.getElementById('p1-team').value;
             data.p1Name = document.getElementById('p1-name').value;
+            data.p2Flag = document.getElementById('p2-flag').value;
             data.p2Team = document.getElementById('p2-team').value;
             data.p2Name = document.getElementById('p2-name').value;
             data.round = document.getElementById('round').value;

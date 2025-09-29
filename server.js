@@ -45,8 +45,10 @@ function loadData() {
   } catch (error) {
     console.error('Error loading data:', error);
     const defaultData = {
+      p1Flag: 'fr',
       p1Team: 'Team 1',
       p1Name: 'Player 1',
+      p2Flag: 'rn',
       p2Team: 'Team 2',
       p2Name: 'Player 2',
       p1Score: 0,

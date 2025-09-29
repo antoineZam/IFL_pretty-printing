@@ -108,6 +108,14 @@
             width: 100px; /* Match the width of the background */
             text-align: center;
         }
+
+        .flag {
+            position: absolute;
+            width: 80px; /* Adjust size as needed */
+            height: 60px;  /* Adjust size as needed */
+            background-size: cover;
+            background-position: center;
+        }
         
         #p1-score {
             left: 570px;
@@ -117,6 +125,19 @@
             right: 570px;
         }
 
+        #p1-flag {
+            top: 40px;
+            left: 215px; /* Position next to the player info */
+            /* This polygon creates the angle for the left player */
+            clip-path: polygon(75% 100%, 100% 0, 0 0, 0 100%);
+        }
+
+        #p2-flag {
+            top: 40px;
+            right: 215px; /* Position next to the player info */
+            /* This polygon creates the opposite angle for the right player */
+            clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);
+        }
         #round {
             position: absolute;
             top: 25px; /* Adjust vertical alignment */
@@ -137,6 +158,9 @@
         <div class="background-image" id="p2-name-bg"></div>
         <div class="background-image" id="p2-score-bg"></div>
         <div class="background-image" id="score-bg"></div>
+
+        <div class="flag" id="p1-flag"></div>
+        <div class="flag" id="p2-flag"></div>
 
         <div class="player-info text-shadow" id="p1-info">
             <span class="team" id="p1-team">Team 1</span> | <span class="name" id="p1-name">Player 1</span>
@@ -181,6 +205,29 @@
             document.getElementById('p2-name').textContent = data.p2Name;
             document.getElementById('p2-score').textContent = data.p2Score;
             document.getElementById('round').textContent = data.round;
+
+            const p1FlagEl = document.getElementById('p1-flag');
+            const p2FlagEl = document.getElementById('p2-flag');
+        
+            console.log('Flag data received:', { p1Flag: data.p1Flag, p2Flag: data.p2Flag });
+            
+            if (data.p1Flag) {
+                const p1FlagUrl = `url(https://flagcdn.com/h240/${data.p1Flag.toLowerCase()}.png)`;
+                p1FlagEl.style.backgroundImage = p1FlagUrl;
+                console.log('P1 flag set to:', p1FlagUrl);
+            } else {
+                p1FlagEl.style.backgroundImage = 'none';
+                console.log('P1 flag cleared');
+            }
+            
+            if (data.p2Flag) {
+                const p2FlagUrl = `url(https://flagcdn.com/h240/${data.p2Flag.toLowerCase()}.png)`;
+                p2FlagEl.style.backgroundImage = p2FlagUrl;
+                console.log('P2 flag set to:', p2FlagUrl);
+            } else {
+                p2FlagEl.style.backgroundImage = 'none';
+                console.log('P2 flag cleared');
+            }
         });
     </script>
 </body>
