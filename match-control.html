@@ -77,6 +77,16 @@
             .score-btn:hover {
                 background-color: #d8dbdf;
             }
+            button.swap-btn {
+                background: #42b72a;
+                color: #fff;
+                width: 100%;
+                padding: 15px;
+                font-size: 16px;
+            }
+            button.swap-btn:hover {
+                background-color: #36a420;
+            }
             button.update {
                 background: #42b72a;
                 color: #fff;
@@ -140,6 +150,7 @@
                     <input type="text" id="p2-name" name="p2-name" placeholder="Enter Player 2 Name">
                 </div>
             </div>
+            <button class="swap-btn" onclick="swapPlayers()" id="swap-btn">Swap Player Informations</button>
             <div class="form-group">
                 <label for="round">Round</label>
                 <input type="text" id="round" name="round" placeholder="Enter Round">
@@ -234,6 +245,31 @@
             data.p2Name = document.getElementById('p2-name').value;
             data.round = document.getElementById('round').value;
             sendUpdate();
+        }
+
+        function swapPlayers() {
+            const p1Flag = document.getElementById('p1-flag').value;
+            const p1Team = document.getElementById('p1-team').value;
+            const p1Name = document.getElementById('p1-name').value;
+            const p2Flag = document.getElementById('p2-flag').value;
+            const p2Team = document.getElementById('p2-team').value;
+            const p2Name = document.getElementById('p2-name').value;
+
+            // Swap form values
+            document.getElementById('p1-flag').value = p2Flag;
+            document.getElementById('p1-team').value = p2Team;
+            document.getElementById('p1-name').value = p2Name;
+            document.getElementById('p2-flag').value = p1Flag;
+            document.getElementById('p2-team').value = p1Team;
+            document.getElementById('p2-name').value = p1Name;
+            
+            // Also swap scores in data object
+            const tempScore = data.p1Score;
+            data.p1Score = data.p2Score;
+            data.p2Score = tempScore;
+            
+            // Update data object with new form values and send update
+            updateNamesAndRound();
         }
 
         function updateScore(player, change) {
