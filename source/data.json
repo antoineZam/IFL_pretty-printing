@@ -1,11 +1,12 @@
 {
-  "p1Name": "Hachi",
-  "p2Name": "Hei",
+  "eventNumber": "10",
+  "p1Name": "CherryBerryMango",
+  "p2Name": "KEEBEEOMEGA",
   "p1Score": 0,
   "p2Score": 0,
-  "round": "Winners Round 1",
-  "p1Team": "Noway",
-  "p2Team": "No team",
+  "round": "Winners Finals",
+  "p1Team": "DRX",
+  "p2Team": "KRYPTIC",
   "p1Flag": "NO",
   "p2Flag": "US"
 }

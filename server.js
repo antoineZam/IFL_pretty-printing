@@ -13,6 +13,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Serve static files from the 'source' directory
+app.use('/source', express.static(path.join(__dirname, 'source')));
+
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -53,7 +56,8 @@ function loadData() {
       p2Name: 'Player 2',
       p1Score: 0,
       p2Score: 0,
-      round: 'Winners Round 1'
+      round: 'Winners Round 1',
+      eventNumber: '1'
     };
     // Save default data to file
     saveData(defaultData);

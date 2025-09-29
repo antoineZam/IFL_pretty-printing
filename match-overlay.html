@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tekken 8 IFL Tournament Overlay</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&display=swap');
+        @import url('https://fonts.google.com/specimen/Archivo');
         body {
             background-color: transparent;
             font-family: 'Roboto Condensed', sans-serif;
@@ -25,87 +25,74 @@
 
         .background-image {
             position: absolute;
-            background-size: contain;
+            top: 0;
+            left: 0;
+            width: 1920px;
+            height: 1080px;
             background-repeat: no-repeat;
         }
 
         #p1-name-bg {
-            background-image: url('https://rawcdn.githack.com/.../.png');
-            top: 40px;
-            left: 50px;
-            width: 500px;
-            height: 80px;
-        } /* Replace this URL with the correct one */
+            background-image: url('./source/overlay/IFL_overlays_p1.png');
+        } 
 
         #p2-name-bg {
-            background-image: url('https://rawcdn.githack.com/.../.png');
-            top: 40px;
-            left: 50px;
-            width: 500px;
-            height: 80px;
-        } /* Replace this URL with the correct one */
-
-        #p1-score-bg {
-            background-image: url('https://rawcdn.githack.com/.../.png');
-            top: 40px;
-            left: 50px;
-            width: 500px;
-            height: 80px;
-        } /* Replace this URL with the correct one */
-
-        #p2-score-bg {
-            background-image: url('https://rawcdn.githack.com/.../.png');
-            top: 40px;
-            left: 50px;
-            width: 500px;
-            height: 80px;
-        } /* Replace this URL with the correct one */
+            background-image: url('./source/overlay/IFL_overlays_p2.png');
+        } 
 
         #score-bg {
-            background-image: url('https://rawcdn.githack.com/.../.png');
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            height: 50px;
+            background-image: url('./source/overlay/IFL_overlays_tracker.png');
+        }
+
+        #logo-bg {
+            background-image: url('./source/overlay/IFL_overlays_logo.png');
+        }
+
+        #bottom-bar-bg {
+            background-image: url('./source/overlay/bottom_bar_elements.png');
         }
 
         .text-shadow {
-            text-shadow: 2px 2px 4px #000000;
+            text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
         }
 
         .player-info {
             position: absolute;
-            top: 30px; /* Adjust vertical alignment */
-            font-size: 48px;
-            font-weight: 700;
-            width: 460px; /* Make width slightly smaller than background */
+            top: 24px;
+            font-size: 24px;
+            font-weight: 500;
+            width: 550px;
             display: flex;
             align-items: baseline;
         }
 
         .player-info .team {
-            color: #cccccc; /* Light grey for team names */
-            font-size: 36px; /* Slightly smaller than player name */
+            top: 18px;
+            color: #cccccc;
+            font-size: 24px;
         }
 
         .player-info .name {
-            font-size: 48px; /* Main player name size */
+            font-size: 28px;
+        }
+
+        .separator {
+            margin: 0 5px;
         }
 
         #p1-info {
-            left: 350px; /* Move closer to score */
+            left: 230px;
             justify-content: flex-start;
         }
 
         #p2-info {
-            right: 350px; /* Move closer to score */
+            right: 240px;
             justify-content: flex-end;
         }
 
-        #p2-info .name { order: 3; }
+        #p2-info .name { order: 1; }
         #p2-info .separator { order: 2; }
-        #p2-info .team { order: 1; }
+        #p2-info .team { order: 3; }
 
         .player-info .team:empty {
             flex-grow: 1;
@@ -117,62 +104,68 @@
 
         .score {
             position: absolute;
-            top: 30px; /* Adjust vertical alignment */
-            font-size: 60px;
-            width: 100px; /* Match the width of the background */
+            top: 15px;
+            font-size: 45px;
+            width: 100px;
             text-align: center;
+        }
+        
+        #p1-score {
+            left: 605px;
+        }
+        
+        #p2-score {
+            right: 615px;
         }
 
         .flag {
             position: absolute;
-            width: 100px; /* Adjust size as needed */
-            height: 40px;  /* Adjust size as needed */
+            width: 80px;
+            height: 55px;
             background-size: cover;
             background-position: center;
         }
         
-        #p1-score {
-            left: 700px;
-        }
-        
-        #p2-score {
-            right: 700px;
-        }
-
         #p1-flag {
-            top: 40px;
-            left: 215px; /* Position next to the player info */
-            /* Diagonal cut from center bottom to top left */
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 100%);
+            top: 14px;
+            left: 134px;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 65% 99%);
+            border: white 1px solid;
         }
 
         #p2-flag {
-            top: 40px;
-            right: 215px; /* Position next to the player info */
-            /* Mirror of P1 - diagonal cut from center bottom to top right */
-            clip-path: polygon(0 0, 100% 0, 50% 100%, 0 100%);
+            top: 13px;
+            right: 141px;
+            clip-path: polygon(0 0, 100% 0, 65% 100%, 0 99%);
+            border: white 1px solid;
         }
-        #round {
+        #round { /*this one is done so far*/
             position: absolute;
-            top: 25px; /* Adjust vertical alignment */
+            top: 6px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 32px;
+            font-size: 16px;
             text-align: center;
-            width: 600px; /* Match the width of the background */
+            width: 600px;
+            word-spacing: 5px;
+        }
+        .event {
+            position: absolute;
+            bottom: 35px;
+            right: 475px;
+            font-size: 28px;
+            font-weight: 700;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="background-image" id="p1-team-bg"></div>
         <div class="background-image" id="p1-name-bg"></div>
-        <div class="background-image" id="p1-score-bg"></div>
-        <div class="background-image" id="p2-team-bg"></div>
         <div class="background-image" id="p2-name-bg"></div>
-        <div class="background-image" id="p2-score-bg"></div>
         <div class="background-image" id="score-bg"></div>
-
+        <div class="background-image" id="logo-bg"></div>
+        <div class="background-image" id="bottom-bar-bg"></div>
+        
         <div class="flag" id="p1-flag"></div>
         <div class="flag" id="p2-flag"></div>
 
@@ -185,6 +178,7 @@
         </div>
         <div class="score text-shadow" id="p2-score">0</div>
         <div class="round text-shadow" id="round"></div>
+        <div class="event text-shadow" id="event"></div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -221,6 +215,12 @@
             document.getElementById('p2-score').textContent = data.p2Score;
             
             document.getElementById('round').textContent = data.round;
+
+            if (data.eventNumber) {
+                document.getElementById('event').textContent = `IFL WEEK #${data.eventNumber}`;
+            } else {
+                document.getElementById('event').textContent = '';
+            }
 
             const p1FlagEl = document.getElementById('p1-flag');
             const p2FlagEl = document.getElementById('p2-flag');
