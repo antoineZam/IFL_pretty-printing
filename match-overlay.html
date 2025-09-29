@@ -111,8 +111,8 @@
 
         .flag {
             position: absolute;
-            width: 80px; /* Adjust size as needed */
-            height: 60px;  /* Adjust size as needed */
+            width: 100px; /* Adjust size as needed */
+            height: 40px;  /* Adjust size as needed */
             background-size: cover;
             background-position: center;
         }
@@ -128,15 +128,15 @@
         #p1-flag {
             top: 40px;
             left: 215px; /* Position next to the player info */
-            /* This polygon creates the angle for the left player */
-            clip-path: polygon(75% 100%, 100% 0, 0 0, 0 100%);
+            /* Diagonal cut from center bottom to top left */
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 100%);
         }
 
         #p2-flag {
             top: 40px;
             right: 215px; /* Position next to the player info */
-            /* This polygon creates the opposite angle for the right player */
-            clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);
+            /* Mirror of P1 - diagonal cut from center bottom to top right */
+            clip-path: polygon(0 0, 100% 0, 50% 100%, 0 100%);
         }
         #round {
             position: absolute;
