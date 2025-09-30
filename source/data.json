@@ -1,12 +1,12 @@
 {
   "eventNumber": "10",
-  "p1Name": "CherryBerryMango",
-  "p2Name": "KEEBEEOMEGA",
+  "p1Name": "KEEBEEOMEGA",
+  "p2Name": "CherryBerryMango",
   "p1Score": 0,
   "p2Score": 0,
   "round": "Winners Finals",
-  "p1Team": "DRX",
-  "p2Team": "KRYPTIC",
-  "p1Flag": "AE",
-  "p2Flag": "PK"
+  "p1Team": "KRYPTIC",
+  "p2Team": "DRX",
+  "p1Flag": "US",
+  "p2Flag": "AE"
 }
