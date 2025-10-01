@@ -95,7 +95,16 @@
         #p2-info .team { order: 3; }
 
         .player-info .team:empty {
-            flex-grow: 1;
+            display: none;
+        }
+
+        .player-info .team:empty ~ .name {
+            margin-left: -10px;
+        }
+
+        #p2-info .team:empty ~ .name {
+            margin-right: -10px;
+            margin-left: 0;
         }
 
         .player-info .team:empty + .separator {
@@ -174,7 +183,7 @@
         </div>
         <div class="score text-shadow" id="p1-score">0</div>
         <div class="player-info text-shadow" id="p2-info">
-            <span class="name" id="p2-name"></span><span class="separator"> | </span><span class="team" id="p2-team"></span>
+            <span class="team" id="p2-team"></span><span class="separator"> | </span><span class="name" id="p2-name"></span>
         </div>
         <div class="score text-shadow" id="p2-score">0</div>
         <div class="round text-shadow" id="round"></div>
