@@ -139,14 +139,20 @@
             top: 14px;
             left: 134px;
             clip-path: polygon(0 0, 100% 0, 100% 100%, 65% 99%);
-            border: white 1px solid;
+            filter: drop-shadow(1px 0 0 white)
+                    drop-shadow(-1px 0 0 white)
+                    drop-shadow(0 1px 0 white)
+                    drop-shadow(0 -1px 0 white);
         }
 
         #p2-flag {
             top: 13px;
             right: 141px;
             clip-path: polygon(0 0, 100% 0, 38% 100%, 0 99%);
-            border: white 1px solid;
+            filter: drop-shadow(1px 0 0 white)
+                    drop-shadow(-1px 0 0 white)
+                    drop-shadow(0 1px 0 white)
+                    drop-shadow(0 -1px 0 white);
         }
         #round { /*this one is done so far*/
             position: absolute;
