@@ -114,31 +114,31 @@ let tagTeamData = loadTagTeamData();
 function requireAuth(req, res, next) {
   const authKey = req.query.key || req.body.key;
   if (authKey === CONNECTION_KEY) next();
-  else res.redirect('/auth');
+  else res.redirect('/auth.html');
 }
 
-app.get('/auth', (req, res) => res.sendFile(path.join(__dirname, 'auth.html')));
+app.get('/auth.html', (req, res) => res.sendFile(path.join(__dirname, 'auth.html')));
 
 app.post('/auth', (req, res) => {
-  if (req.body.key === CONNECTION_KEY) res.redirect(`/ifl/match-control?key=${req.body.key}`);
-  else res.redirect('/auth?error=1');
+  if (req.body.key === CONNECTION_KEY) res.redirect(`/?key=${req.body.key}`);
+  else res.redirect('/auth.html?error=1');
 });
 
-app.get('/', (req, res) => res.redirect('/auth'));
+app.get('/', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // 1v1 Routes
-app.get('/ifl/match-control', requireAuth, (req, res) => {
+app.get('/ifl/match-control.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'ifl/match-control.html'));
 });
-app.get('/ifl/match-overlay', requireAuth, (req, res) => {
+app.get('/ifl/match-overlay.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'ifl/match-overlay.html'));
 });
 
 // Tag Team Routes
-app.get('/tag_tournament/tag-team-control', requireAuth, (req, res) => {
+app.get('/tag_tournament/tag-team-control.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'tag_tournament/tag-team-control.html'));
 });
-app.get('/tag_tournament/tag-team-overlay', requireAuth, (req, res) => {
+app.get('/tag_tournament/tag-team-overlay.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'tag_tournament/tag-team-overlay.html'));
 });
 

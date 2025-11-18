@@ -6,23 +6,23 @@
     <title>Tag Team Tournament Overlay</title>
     <style>
         @font-face {
-            font-family: 'Archivo Condensed Bold';
-            src: url('../source/fonts/Archivo/static/Archivo_Condensed-Bold.ttf') format('truetype');
+            font-family: 'Archivo Extra Condensed Bold';
+            src: url('../source/fonts/Archivo/static/Archivo_ExtraCondensed-Bold.ttf') format('truetype');
             font-weight: 700;
             font-style: normal;
         }
         
         @font-face {
-            font-family: 'Archivo Condensed SemiBold';
-            src: url('../source/fonts/Archivo/static/Archivo_Condensed-SemiBold.ttf') format('truetype');
+            font-family: 'Archivo Extra Condensed SemiBold';
+            src: url('../source/fonts/Archivo/static/Archivo_ExtraCondensed-SemiBold.ttf') format('truetype');
             font-weight: 600;
             font-style: normal;
         }
         
         @font-face {
-            font-family: 'Archivo Condensed Medium';
-            src: url('../source/fonts/Archivo/static/Archivo_Condensed-Medium.ttf') format('truetype');
-            font-weight: 500;
+            font-family: 'Archivo Condensed Bold';
+            src: url('../source/fonts/Archivo/static/Archivo_Condensed-Bold.ttf') format('truetype');
+            font-weight: 700;
             font-style: normal;
         }
         
@@ -32,10 +32,58 @@
             font-weight: 400;
             font-style: normal;
         }
+
+        @font-face {
+            font-family: 'Archivo Semi Condensed Bold';
+            src: url('../source/fonts/Archivo/static/Archivo_SemiCondensed-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Archivo Semi Condensed SemiBold';
+            src: url('../source/fonts/Archivo/static/Archivo_SemiCondensed-SemiBold.ttf') format('truetype');
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Archivo Semi Condensed Regular';
+            src: url('../source/fonts/Archivo/static/Archivo_SemiCondensed-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
         
+        @font-face {
+            font-family: 'Archivo Expanded Regular';
+            src: url('../source/fonts/Archivo/static/Archivo_Expanded-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Archivo Expanded Bold';
+            src: url('../source/fonts/Archivo/static/Archivo_Expanded-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Archivo Semi Expanded Bold';
+            src: url('../source/fonts/Archivo/static/Archivo_SemiExpanded-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Archivo Bold';
+            src: url('../source/fonts/Archivo/static/Archivo-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
         body {
             background-color: transparent;
-            font-family: 'Archivo Condensed Regular', sans-serif;
+            font-family: 'Archivo Extra Condensed Bold', sans-serif;
             color: #fff;
             text-transform: uppercase;
             margin: 0;
@@ -75,7 +123,7 @@
         /* Players Container - All 4 players displayed equally */
         .players-container {
             position: absolute;
-            top: 28px;
+            top: 1px;
             width: 100%;
             height: 100px;
         }
@@ -113,6 +161,7 @@
             gap: 8px;
             max-width: 250px;
             overflow: hidden;
+            justify-content: center;
         }
 
         /* Active player styling (default) */
@@ -120,6 +169,7 @@
             color: #ffffff;
             opacity: 0.5;
             font-size: 18px;
+            font-family: 'Archivo Extra Condensed SemiBold', sans-serif;
             font-weight: 600;
             white-space: nowrap;
         }
@@ -145,46 +195,41 @@
         .t1-p1-card {
             /* Team 1 Player 1 - writes from LEFT EDGE to anchor (stops 12px before anchor at 427px) */
             position: absolute;
-            left: 2;
+            top: 28px; /* Base position, will be adjusted by JS */
+            left: 195px;
             right: calc(100% - 415px);
-            flex-direction: row;
-            justify-content: flex-end;
-            text-align: right;
         }
 
         .t1-p2-card {
             /* Team 1 Player 2 - STARTS FROM anchor at 427px (starts 5px after) */
             position: absolute;
+            top: 28px; /* Base position, will be adjusted by JS */
             left: 432px;
-            flex-direction: row;
-            justify-content: flex-start;
-            max-width: 350px;
+            width: 258px;
         }
 
         .t2-p1-card {
             /* Team 2 Player 1 - writes from RIGHT EDGE to anchor (stops 13px before anchor at 423px from right) */
             position: absolute;
-            right: 5;
+            top: 28px; /* Base position, will be adjusted by JS */
+            right: 195px;
             left: calc(100% - 410px);
-            flex-direction: row;
-            justify-content: flex-end;
-            text-align: right;
         }
 
         .t2-p2-card {
             /* Team 2 Player 2 - STARTS FROM anchor at 423px (starts 5px after from right) */
             position: absolute;
+            top: 28px; /* Base position, will be adjusted by JS */
             right: 428px;
-            flex-direction: row;
-            justify-content: flex-start;
-            max-width: 350px;
+            width: 262px;
         }
 
         /* Scores */
         .score {
+            font-family: 'Archivo Expanded Regular', sans-serif;
             position: absolute;
             top: 0px;
-            font-size: 30px;
+            font-size: 27px;
             width: 100px;
             text-align: center;
             font-weight: 700;
@@ -208,6 +253,7 @@
             text-align: center;
             width: 600px;
             word-spacing: 5px;
+            letter-spacing: 2px;
             font-weight: 600;
         }
 
@@ -217,11 +263,6 @@
             color: #888;
             opacity: 0; /* Hidden by default, can be shown for debugging */
         }
-
-        /* Inactive players (hidden) */
-        .inactive {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -230,12 +271,12 @@
         
         <!-- Team 1 Players -->
         <div class="players-container text-shadow" id="team1-players">
-            <div class="player-card t1-p1-card">
+            <div class="player-card t1-p1-card" id="t1-p1-card">
                 <span class="player-sponsor" id="t1-p1-sponsor"></span>
                 <span class="player-name" id="t1-p1-name">Player 1</span>
             </div>
             <div class="anchor-line"></div>
-            <div class="player-card t1-p2-card">
+            <div class="player-card t1-p2-card" id="t1-p2-card">
                 <span class="player-sponsor" id="t1-p2-sponsor"></span>
                 <span class="player-name" id="t1-p2-name">Player 2</span>
             </div>
@@ -244,12 +285,12 @@
 
         <!-- Team 2 Players -->
         <div class="players-container text-shadow" id="team2-players">
-            <div class="player-card t2-p1-card">
+            <div class="player-card t2-p1-card" id="t2-p1-card">
                 <span class="player-sponsor" id="t2-p1-sponsor"></span>
                 <span class="player-name" id="t2-p1-name">Player 1</span>
             </div>
             <div class="anchor-line"></div>
-            <div class="player-card t2-p2-card">
+            <div class="player-card t2-p2-card" id="t2-p2-card">
                 <span class="player-sponsor" id="t2-p2-sponsor"></span>
                 <span class="player-name" id="t2-p2-name">Player 2</span>
             </div>
@@ -318,6 +359,51 @@
             return imageNumber;
         }
 
+        function adjustFontSize(elementId, text, baseSize = 27) {
+            const element = document.getElementById(elementId);
+            if (!element || !text) {
+                if(element) element.style.fontSize = ''; // Reset size
+                return baseSize;
+            }
+
+            const parent = element.parentElement;
+            const containerWidth = parent.clientWidth;
+            const targetWidth = containerWidth * 0.65;
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const baseFontSize = baseSize;
+            
+            let fontSize = baseFontSize;
+            context.font = `700 ${fontSize}px 'Archivo Extra Condensed Bold'`;
+            let textWidth = context.measureText(text).width;
+
+            // Decrease font size until it fits
+            while (textWidth > targetWidth && fontSize > 8) {
+                fontSize -= 0.5;
+                context.font = `700 ${fontSize}px 'Archivo Extra Condensed Bold'`;
+                textWidth = context.measureText(text).width;
+            }
+
+            element.style.fontSize = `${fontSize}px`;
+            return fontSize;
+        }
+
+        function adjustVerticalAlignment(cardId, nameId, baseTop = 26) {
+            const card = document.getElementById(cardId);
+            const nameEl = document.getElementById(nameId);
+            if (!card || !nameEl) return;
+            
+            // Estimate initial height based on a 27px font size
+            const initialHeight = 27; 
+            const currentHeight = nameEl.offsetHeight;
+            
+            // Calculate the offset needed to keep the vertical center aligned
+            const offset = (currentHeight - initialHeight) / 2;
+            card.style.top = `${baseTop - offset}px`;
+        }
+
+
         function updateOverlay(data) {
             console.log('updateOverlay called with data:', data);
             
@@ -327,9 +413,19 @@
             
             // Team 1 Player 1
             const t1p1 = team1.players[0] || { name: '', sponsor: '', active: true };
-            console.log('T1P1:', t1p1);
-            document.getElementById('t1-p1-name').textContent = t1p1.name || 'Player 1';
-            document.getElementById('t1-p1-sponsor').textContent = t1p1.sponsor || '';
+            const t1p1Name = t1p1.name || 'Player 1';
+            const t1p1Sponsor = t1p1.sponsor || '';
+            const t1p1SponsorEl = document.getElementById('t1-p1-sponsor');
+            document.getElementById('t1-p1-name').textContent = t1p1Name;
+            t1p1SponsorEl.textContent = t1p1Sponsor;
+            const t1p1NameSize = adjustFontSize('t1-p1-name', t1p1Name, 27);
+            if (t1p1Sponsor) {
+                t1p1SponsorEl.style.fontSize = `${Math.min(22, t1p1NameSize * 0.8)}px`;
+            } else {
+                t1p1SponsorEl.style.fontSize = '';
+            }
+            adjustVerticalAlignment('t1-p1-card', 't1-p1-name');
+
             const t1p1Card = document.querySelector('.t1-p1-card');
             if (t1p1.active) {
                 t1p1Card.classList.remove('inactive');
@@ -341,9 +437,19 @@
             
             // Team 1 Player 2
             const t1p2 = team1.players[1] || { name: '', sponsor: '', active: false };
-            console.log('T1P2:', t1p2);
-            document.getElementById('t1-p2-name').textContent = t1p2.name || 'Player 2';
-            document.getElementById('t1-p2-sponsor').textContent = t1p2.sponsor || '';
+            const t1p2Name = t1p2.name || 'Player 2';
+            const t1p2Sponsor = t1p2.sponsor || '';
+            const t1p2SponsorEl = document.getElementById('t1-p2-sponsor');
+            document.getElementById('t1-p2-name').textContent = t1p2Name;
+            t1p2SponsorEl.textContent = t1p2Sponsor;
+            const t1p2NameSize = adjustFontSize('t1-p2-name', t1p2Name, 27);
+            if (t1p2Sponsor) {
+                t1p2SponsorEl.style.fontSize = `${Math.min(22, t1p2NameSize * 0.8)}px`;
+            } else {
+                t1p2SponsorEl.style.fontSize = '';
+            }
+            adjustVerticalAlignment('t1-p2-card', 't1-p2-name');
+
             const t1p2Card = document.querySelector('.t1-p2-card');
             if (t1p2.active) {
                 t1p2Card.classList.remove('inactive');
@@ -359,9 +465,19 @@
             
             // Team 2 Player 1
             const t2p1 = team2.players[0] || { name: '', sponsor: '', active: true };
-            console.log('T2P1:', t2p1);
-            document.getElementById('t2-p1-name').textContent = t2p1.name || 'Player 1';
-            document.getElementById('t2-p1-sponsor').textContent = t2p1.sponsor || '';
+            const t2p1Name = t2p1.name || 'Player 1';
+            const t2p1Sponsor = t2p1.sponsor || '';
+            const t2p1SponsorEl = document.getElementById('t2-p1-sponsor');
+            document.getElementById('t2-p1-name').textContent = t2p1Name;
+            t2p1SponsorEl.textContent = t2p1Sponsor;
+            const t2p1NameSize = adjustFontSize('t2-p1-name', t2p1Name, 27);
+            if (t2p1Sponsor) {
+                t2p1SponsorEl.style.fontSize = `${Math.min(22, t2p1NameSize * 0.8)}px`;
+            } else {
+                t2p1SponsorEl.style.fontSize = '';
+            }
+            adjustVerticalAlignment('t2-p1-card', 't2-p1-name');
+
             const t2p1Card = document.querySelector('.t2-p1-card');
             if (t2p1.active) {
                 t2p1Card.classList.remove('inactive');
@@ -373,9 +489,19 @@
             
             // Team 2 Player 2
             const t2p2 = team2.players[1] || { name: '', sponsor: '', active: false };
-            console.log('T2P2:', t2p2);
-            document.getElementById('t2-p2-name').textContent = t2p2.name || 'Player 2';
-            document.getElementById('t2-p2-sponsor').textContent = t2p2.sponsor || '';
+            const t2p2Name = t2p2.name || 'Player 2';
+            const t2p2Sponsor = t2p2.sponsor || '';
+            const t2p2SponsorEl = document.getElementById('t2-p2-sponsor');
+            document.getElementById('t2-p2-name').textContent = t2p2Name;
+            t2p2SponsorEl.textContent = t2p2Sponsor;
+            const t2p2NameSize = adjustFontSize('t2-p2-name', t2p2Name, 27);
+            if (t2p2Sponsor) {
+                t2p2SponsorEl.style.fontSize = `${Math.min(22, t2p2NameSize * 0.8)}px`;
+            } else {
+                t2p2SponsorEl.style.fontSize = '';
+            }
+            adjustVerticalAlignment('t2-p2-card', 't2-p2-name');
+
             const t2p2Card = document.querySelector('.t2-p2-card');
             if (t2p2.active) {
                 t2p2Card.classList.remove('inactive');
@@ -407,4 +533,3 @@
     </script>
 </body>
 </html>
-
