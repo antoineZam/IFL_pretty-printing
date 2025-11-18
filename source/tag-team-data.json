@@ -1,0 +1,37 @@
+{
+  "team1": {
+    "name": "Team 1",
+    "tag": "T1",
+    "players": [
+      {
+        "name": "Omnis",
+        "sponsor": "IFF",
+        "active": false
+      },
+      {
+        "name": "Kuro",
+        "sponsor": "IFF",
+        "active": true
+      }
+    ],
+    "score": 2
+  },
+  "team2": {
+    "name": "Team 2",
+    "tag": "T2",
+    "players": [
+      {
+        "name": "KEEBEEOMEGA",
+        "sponsor": "KRYPTIC",
+        "active": false
+      },
+      {
+        "name": "CHERY BERRY MANGO",
+        "sponsor": "DRx",
+        "active": true
+      }
+    ],
+    "score": 2
+  },
+  "round": "Winners Round 1"
+}
