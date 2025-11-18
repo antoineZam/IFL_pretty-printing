@@ -146,4 +146,4 @@ temp/
 *.7z
 
 # Data file
-assets/data.json
+source/data.json
