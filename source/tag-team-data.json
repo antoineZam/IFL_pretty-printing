@@ -6,12 +6,12 @@
       {
         "name": "Omnis",
         "sponsor": "IFF",
-        "active": true
+        "active": false
       },
       {
         "name": "Kuro",
         "sponsor": "IFF",
-        "active": false
+        "active": true
       }
     ],
     "score": 2
@@ -23,12 +23,12 @@
       {
         "name": "KEEBEE",
         "sponsor": "KRYPTIC",
-        "active": true
+        "active": false
       },
       {
         "name": "CHERY BERRY ",
-        "sponsor": "DRV",
-        "active": false
+        "sponsor": "DRx",
+        "active": true
       }
     ],
     "score": 2

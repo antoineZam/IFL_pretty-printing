@@ -6,28 +6,28 @@
     <title>Tag Team Tournament Overlay</title>
     <style>
         @font-face {
-            font-family: 'Archivo Condensed';
+            font-family: 'Archivo Condensed Bold';
             src: url('../source/fonts/Archivo/static/Archivo_Condensed-Bold.ttf') format('truetype');
             font-weight: 700;
             font-style: normal;
         }
         
         @font-face {
-            font-family: 'Archivo Condensed';
+            font-family: 'Archivo Condensed SemiBold';
             src: url('../source/fonts/Archivo/static/Archivo_Condensed-SemiBold.ttf') format('truetype');
             font-weight: 600;
             font-style: normal;
         }
         
         @font-face {
-            font-family: 'Archivo Condensed';
+            font-family: 'Archivo Condensed Medium';
             src: url('../source/fonts/Archivo/static/Archivo_Condensed-Medium.ttf') format('truetype');
             font-weight: 500;
             font-style: normal;
         }
         
         @font-face {
-            font-family: 'Archivo Condensed';
+            font-family: 'Archivo Condensed Regular';
             src: url('../source/fonts/Archivo/static/Archivo_Condensed-Regular.ttf') format('truetype');
             font-weight: 400;
             font-style: normal;
@@ -35,7 +35,7 @@
         
         body {
             background-color: transparent;
-            font-family: 'Archivo Condensed', sans-serif;
+            font-family: 'Archivo Condensed Regular', sans-serif;
             color: #fff;
             text-transform: uppercase;
             margin: 0;
@@ -143,12 +143,12 @@
 
         /* Individual Player Positioning - Anchored to fixed positions */
         .t1-p1-card {
-            /* Team 1 Player 1 - writes TOWARDS anchor (stops 12px before anchor at 427px) */
+            /* Team 1 Player 1 - writes from LEFT EDGE to anchor (stops 12px before anchor at 427px) */
             position: absolute;
+            left: 2;
             right: calc(100% - 415px);
             flex-direction: row;
             justify-content: flex-end;
-            max-width: 350px;
             text-align: right;
         }
 
@@ -162,12 +162,12 @@
         }
 
         .t2-p1-card {
-            /* Team 2 Player 1 - writes TOWARDS anchor (stops 13px before anchor at 423px from right) */
+            /* Team 2 Player 1 - writes from RIGHT EDGE to anchor (stops 13px before anchor at 423px from right) */
             position: absolute;
+            right: 5;
             left: calc(100% - 410px);
             flex-direction: row;
             justify-content: flex-end;
-            max-width: 350px;
             text-align: right;
         }
 
