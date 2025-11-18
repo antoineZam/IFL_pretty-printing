@@ -13,8 +13,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Serve static files from the 'source' directory
-app.use('/source', express.static(path.join(__dirname, 'source')));
+// Serve static files from the 'assets' directory
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
@@ -30,11 +30,11 @@ function requireAuth(req, res, next) {
   }
 }
 
-const dataFilePath = './source/data.json';
+const dataFilePath = './assets/data.json';
 
-// Ensure the source directory exists
-if (!fs.existsSync('./source')) {
-  fs.mkdirSync('./source', { recursive: true });
+// Ensure the assets directory exists
+if (!fs.existsSync('./assets')) {
+  fs.mkdirSync('./assets', { recursive: true });
 }
 
 
