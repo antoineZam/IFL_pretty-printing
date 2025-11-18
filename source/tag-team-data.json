@@ -1,0 +1,36 @@
+{
+  "team1": {
+    "name": "Team 1",
+    "tag": "TEAM1",
+    "players": [
+      {
+        "sponsor": "IFF",
+        "name": "Omnis",
+        "active": true
+      },
+      {
+        "sponsor": "IFF",
+        "name": "Kuro",
+        "active": false
+      }
+    ],
+    "score": 3
+  },
+  "team2": {
+    "name": "Team 2",
+    "tag": "TEAM2",
+    "players": [
+      {
+        "sponsor": "IFF",
+        "name": "Toasty",
+        "active": true
+      },
+      {
+        "sponsor": "IFF",
+        "name": "Ted",
+        "active": false
+      }
+    ],
+    "score": 4
+  }
+}

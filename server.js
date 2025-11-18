@@ -31,6 +31,7 @@ function requireAuth(req, res, next) {
 }
 
 const dataFilePath = './source/data.json';
+const tagTeamDataFilePath = './source/tag-team-data.json';
 
 // Ensure the source directory exists
 if (!fs.existsSync('./source')) {
@@ -74,8 +75,53 @@ function saveData(data) {
   }
 }
 
+function loadTagTeamData() {
+  try {
+    const data = fs.readFileSync(tagTeamDataFilePath, 'utf8');
+    if (data.trim() === '') {
+      throw new Error('File is empty');
+    }
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error loading tag team data:', error);
+    const defaultData = {
+      team1: {
+        name: 'Team 1',
+        tag: '',
+        players: [
+          { name: 'Player 1', sponsor: '', active: true },
+          { name: 'Player 2', sponsor: '', active: false }
+        ],
+        score: 0
+      },
+      team2: {
+        name: 'Team 2',
+        tag: '',
+        players: [
+          { name: 'Player 3', sponsor: '', active: true },
+          { name: 'Player 4', sponsor: '', active: false }
+        ],
+        score: 0
+      },
+      round: 'Winners Round 1'
+    };
+    saveTagTeamData(defaultData);
+    return defaultData;
+  }
+}
+
+function saveTagTeamData(data) {
+  try {
+    fs.writeFileSync(tagTeamDataFilePath, JSON.stringify(data, null, 2));
+    console.log('Tag team data saved successfully to', tagTeamDataFilePath);
+  } catch (error) {
+    console.error('Error saving tag team data:', error);
+  }
+}
+
 
 let overlayData = loadData();
+let tagTeamData = loadTagTeamData();
 
 // Authentication page
 app.get('/auth', (req, res) => {
@@ -86,19 +132,23 @@ app.get('/auth', (req, res) => {
 app.post('/auth', (req, res) => {
   const key = req.body.key;
   if (key === CONNECTION_KEY) {
-    res.redirect(`/match-control?key=${key}`);
+    res.redirect(`/ifl/match-control?key=${key}`);
   } else {
     res.redirect('/auth?error=1');
   }
 });
 
 // Protected routes
-app.get('/match-control', requireAuth, (req, res) => {
-  res.sendFile(__dirname + '/match-control.html');
+app.get('/ifl/match-control', requireAuth, (req, res) => {
+  res.sendFile(__dirname + '/ifl/match-control.html');
 });
 
-app.get('/match-overlay', requireAuth, (req, res) => {
-  res.sendFile(__dirname + '/match-overlay.html');
+app.get('/ifl/match-overlay', requireAuth, (req, res) => {
+  res.sendFile(__dirname + '/ifl/match-overlay.html');
+});
+
+app.get('/tag_tournament/tag-team-control', requireAuth, (req, res) => {
+  res.sendFile(__dirname + '/tag_tournament/tag-team-control.html');
 });
 
 // Redirect root to auth
@@ -119,6 +169,7 @@ io.on('connection', (socket) => {
   console.log('A user connected successfully.');
 
   socket.emit('data-update', overlayData);
+  socket.emit('tag-team-data', tagTeamData);
 
   socket.on('update-data', (data) => {
     overlayData = data;
@@ -128,6 +179,14 @@ io.on('connection', (socket) => {
     console.log('Data updated:', overlayData);
   });
 
+  socket.on('tag-team-update', (data) => {
+    tagTeamData = data;
+    saveTagTeamData(tagTeamData);
+    
+    io.emit('tag-team-data', tagTeamData);
+    console.log('Tag team data updated:', tagTeamData);
+  });
+
   socket.on('disconnect', () => {
     console.log('A user disconnected.');
   });
@@ -135,6 +194,7 @@ io.on('connection', (socket) => {
 
 server.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
-  console.log(`Open Control Panel at: http://localhost:${port}/match-control`);
-  console.log(`Add Overlay to OBS from: http://localhost:${port}/match-overlay`);
+  console.log(`Open Control Panel at: http://localhost:${port}/ifl/match-control`);
+  console.log(`Open Tag Team Control at: http://localhost:${port}/tag_tournament/tag-team-control`);
+  console.log(`Add Overlay to OBS from: http://localhost:${port}/ifl/match-overlay`);
 });

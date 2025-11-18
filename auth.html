@@ -143,8 +143,8 @@
         <div class="info">
             <strong>After authentication, you can access:</strong>
             <div class="access-links">
-                <a href="/match-control?key=" id="control-link">Match Control Panel</a>
-                <a href="/match-overlay?key=" id="overlay-link">Match Overlay</a>
+                <a href="/ifl/match-control?key=" id="control-link">IFL Match Control Panel</a>
+                <a href="/ifl/match-overlay?key=" id="overlay-link">IFL Match Overlay</a>
             </div>
         </div>
     </div>
@@ -153,8 +153,8 @@
         // Auto-fill links when key is entered
         document.getElementById('key').addEventListener('input', function() {
             const key = this.value;
-            document.getElementById('control-link').href = `/match-control?key=${key}`;
-            document.getElementById('overlay-link').href = `/match-overlay?key=${key}`;
+            document.getElementById('control-link').href = `/ifl/match-control?key=${key}`;
+            document.getElementById('overlay-link').href = `/ifl/match-overlay?key=${key}`;
         });
     </script>
 </body>
