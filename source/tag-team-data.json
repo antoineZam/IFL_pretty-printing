@@ -1,36 +1,37 @@
 {
   "team1": {
     "name": "Team 1",
-    "tag": "TEAM1",
+    "tag": "T1",
     "players": [
       {
-        "sponsor": "IFF",
         "name": "Omnis",
+        "sponsor": "IFF",
         "active": true
       },
       {
-        "sponsor": "IFF",
         "name": "Kuro",
+        "sponsor": "IFF",
         "active": false
       }
     ],
-    "score": 3
+    "score": 2
   },
   "team2": {
     "name": "Team 2",
-    "tag": "TEAM2",
+    "tag": "T2",
     "players": [
       {
-        "sponsor": "IFF",
-        "name": "Toasty",
+        "name": "KEEBEE",
+        "sponsor": "KRYPTIC",
         "active": true
       },
       {
-        "sponsor": "IFF",
-        "name": "Ted",
+        "name": "CHERY BERRY ",
+        "sponsor": "DRV",
         "active": false
       }
     ],
-    "score": 4
-  }
+    "score": 2
+  },
+  "round": "Winners Round 1"
 }

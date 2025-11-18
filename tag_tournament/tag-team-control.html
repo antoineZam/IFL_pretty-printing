@@ -7,23 +7,25 @@
     <style>
         body {            
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: #f0f2f5; 
+            background: #0a0e27;
             padding: 20px; 
-            color: #1c1e21;
+            color: #ffffff;
         }
 
         .container {
             max-width: 900px;
             margin: auto;
-            background: #ffffff;
+            background: #1a1f3a;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
         h1, h2 {
             text-align: center;
-            color: #1877f2;
+            color: #ffd700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .teams-container {
@@ -34,16 +36,20 @@
         }
 
         .team-section {
-            background: #e9e9e9;
+            background: #252b47;
             padding: 20px;
             border-radius: 8px;
             flex: 1;
+            border: 2px solid #3a4167;
         }
 
         .team-section h3 {
             margin-top: 0;
             text-align: center;
-            color: #333;
+            color: #ffd700;
+            text-transform: uppercase;
+            font-size: 18px;
+            letter-spacing: 1px;
         }
 
         .form-group {
@@ -55,14 +61,22 @@
             margin-bottom: 5px;
             font-weight: 600;
             font-size: 14px;
+            color: #ffffff;
         }
 
         input[type="text"] {
             width: calc(100% - 20px);
             padding: 10px;
-            border: 1px solid #dddfe2;
+            border: 2px solid #3a4167;
             border-radius: 6px;
             font-size: 16px;
+            background: #1a1f3a;
+            color: #ffffff;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #ffd700;
         }
 
         .players-list {
@@ -75,14 +89,16 @@
             gap: 10px;
             margin-bottom: 10px;
             padding: 12px;
-            background: white;
+            background: #1a1f3a;
             border-radius: 6px;
             transition: all 0.3s;
+            border: 2px solid #3a4167;
         }
 
         .player-item.active {
-            background: #d4edda;
-            border: 2px solid #42b72a;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
         }
 
         .player-row {
@@ -125,21 +141,24 @@
             align-items: center;
             gap: 5px;
             padding: 6px 12px;
-            background: #e4e6eb;
+            background: #3a4167;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
             user-select: none;
+            border: 2px solid #3a4167;
         }
 
         .active-toggle:hover {
-            background: #d8dbdf;
+            background: #4a5177;
+            border-color: #ffd700;
         }
 
         .active-toggle.is-active {
-            background: #42b72a;
-            color: white;
+            background: #ffd700;
+            color: #0a0e27;
             font-weight: bold;
+            border-color: #ffd700;
         }
 
         .active-toggle input[type="radio"] {
@@ -161,40 +180,16 @@
             font-size: 14px;
         }
 
-        .btn-remove {
-            background: #fa3e3e;
-            color: white;
-            padding: 8px 12px;
-        }
-
-        .btn-remove:hover {
-            background-color: #e03838;
-        }
-
-        .btn-add {
-            background: #42b72a;
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .btn-add:hover {
-            background-color: #36a420;
-        }
-
-        .btn-add:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-        }
 
         .score-controls {
             display: flex;
             justify-content: space-around;
             align-items: center;
-            background: #e9e9e9;
+            background: #252b47;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
+            border: 2px solid #3a4167;
         }
 
         .team-score {
@@ -217,57 +212,66 @@
         }
 
         .score-btn {
-            background: #1877f2;
-            color: white;
+            background: #ffd700;
+            color: #0a0e27;
             font-size: 20px;
             padding: 10px 20px;
+            font-weight: bold;
         }
 
         .score-btn:hover {
-            background-color: #166fe5;
+            background-color: #ffed4e;
+            transform: scale(1.05);
         }
 
         .btn-update {
-            background: #42b72a;
-            color: white;
+            background: #ffd700;
+            color: #0a0e27;
             width: 100%;
             padding: 15px;
             font-size: 16px;
             margin-top: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .btn-update:hover {
-            background-color: #36a420;
+            background-color: #ffed4e;
+            transform: scale(1.02);
         }
 
         .btn-update:disabled {
-            background: #cccccc;
+            background: #3a4167;
+            color: #666;
             cursor: not-allowed;
         }
 
         .btn-reset {
-            background: #fa3e3e;
+            background: #e74c3c;
             color: white;
             display: block;
             margin: 10px auto 0 auto;
             padding: 12px 30px;
+            font-weight: bold;
         }
 
         .btn-reset:hover {
-            background-color: #e03838;
+            background-color: #c0392b;
         }
 
         hr {
             border: none;
-            border-top: 1px solid #dddfe2;
+            border-top: 2px solid #3a4167;
             margin: 30px 0;
         }
 
         .validation-error {
-            color: #fa3e3e;
+            color: #ff6b6b;
             font-size: 12px;
             margin-top: 5px;
             display: none;
+            font-weight: bold;
         }
 
         .validation-error.show {
@@ -280,12 +284,24 @@
 
         .info-text {
             font-size: 12px;
-            color: #666;
+            color: #999;
             font-style: italic;
         }
 
         .round-section {
             margin-bottom: 20px;
+            background: #252b47;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #3a4167;
+        }
+
+        .player-number {
+            color: #ffd700;
+        }
+
+        .score-display {
+            color: #ffd700;
         }
     </style>
 </head>
@@ -346,10 +362,9 @@
                 
                 <label>Players *</label>
                 <div class="players-list" id="team1-players">
-                    <!-- Players will be added here dynamically -->
+                    <!-- 2 players will always be displayed here -->
                 </div>
-                <button class="btn-add" id="team1-add-btn" onclick="addPlayer('team1')">+ Add Player</button>
-                <div class="validation-error" id="team1-error">Team must have exactly 2 players with names</div>
+                <div class="validation-error" id="team1-error">Both players must have names</div>
             </div>
 
             <!-- Team 2 -->
@@ -368,10 +383,9 @@
                 
                 <label>Players *</label>
                 <div class="players-list" id="team2-players">
-                    <!-- Players will be added here dynamically -->
+                    <!-- 2 players will always be displayed here -->
                 </div>
-                <button class="btn-add" id="team2-add-btn" onclick="addPlayer('team2')">+ Add Player</button>
-                <div class="validation-error" id="team2-error">Team must have exactly 2 players with names</div>
+                <div class="validation-error" id="team2-error">Both players must have names</div>
             </div>
         </div>
 
@@ -393,6 +407,12 @@
             auth: {
                 token: connectionKey
             }
+        });
+
+        // Handle connection
+        socket.on('connect', () => {
+            console.log('Socket connected successfully! Socket ID:', socket.id);
+            console.log('Waiting for tag-team-data from server...');
         });
 
         // Handle connection errors
@@ -418,21 +438,43 @@
             round: ''
         };
 
-        // Initialize with empty players on load
-        function initializeTeams() {
-            ['team1', 'team2'].forEach(team => {
-                if (data[team].players.length === 0) {
-                    data[team].players.push({ name: '', sponsor: '', active: false });
-                }
-                renderPlayers(team);
-            });
+        // Ensure team has exactly 2 players
+        function ensureTwoPlayers(team) {
+            if (!data[team].players) {
+                data[team].players = [];
+            }
+            
+            // Add players if less than 2
+            while (data[team].players.length < 2) {
+                data[team].players.push({ 
+                    name: '', 
+                    sponsor: '', 
+                    active: data[team].players.length === 0 // First player is active by default
+                });
+            }
+            
+            // Remove extra players if more than 2
+            if (data[team].players.length > 2) {
+                data[team].players = data[team].players.slice(0, 2);
+            }
         }
 
-        // Render players for a team
+        // Render players for a team (always 2 players)
         function renderPlayers(team) {
+            console.log(`Rendering players for ${team}:`, data[team].players);
             const playersList = document.getElementById(`${team}-players`);
+            
+            if (!playersList) {
+                console.error(`Could not find players list element for ${team}`);
+                return;
+            }
+            
+            // Ensure exactly 2 players exist
+            ensureTwoPlayers(team);
+            
             playersList.innerHTML = '';
             
+            // Always render exactly 2 players
             data[team].players.forEach((player, index) => {
                 const playerItem = document.createElement('div');
                 playerItem.className = player.active ? 'player-item active' : 'player-item';
@@ -460,28 +502,14 @@
                                    onchange="setActivePlayer('${team}', ${index})">
                             <span class="active-label">${player.active ? 'Active' : 'Inactive'}</span>
                         </label>
-                        <button class="btn-remove" onclick="removePlayer('${team}', ${index})">Remove</button>
                     </div>
                 `;
                 playersList.appendChild(playerItem);
             });
-
-            updateAddButton(team);
+            
+            console.log(`Rendered 2 players for ${team}`);
             validateTeam(team);
-        }
-
-        // Add a player to a team
-        function addPlayer(team) {
-            if (data[team].players.length < 2) {
-                data[team].players.push({ name: '', sponsor: '', active: false });
-                renderPlayers(team);
-            }
-        }
-
-        // Remove a player from a team
-        function removePlayer(team, index) {
-            data[team].players.splice(index, 1);
-            renderPlayers(team);
+            validateForm();
         }
 
         // Update player name
@@ -505,33 +533,26 @@
             data[team].players[index].active = true;
             renderPlayers(team);
             console.log(`Active player set for ${team}:`, data[team].players[index].name);
+            
+            // Automatically send update to overlay when active player changes
+            sendUpdate();
         }
 
-        // Update add button state
-        function updateAddButton(team) {
-            const addBtn = document.getElementById(`${team}-add-btn`);
-            addBtn.disabled = data[team].players.length >= 2;
-        }
-
-        // Validate team
+        // Validate team (both players must have names)
         function validateTeam(team) {
             const errorEl = document.getElementById(`${team}-error`);
             const players = data[team].players;
-            const hasExactlyTwoPlayers = players.length === 2;
-            const allPlayersHaveNames = players.every(p => p.name.trim() !== '');
             
-            const isValid = hasExactlyTwoPlayers && allPlayersHaveNames;
+            // Check if both players have names
+            const allPlayersHaveNames = players.length === 2 && players.every(p => p.name.trim() !== '');
             
-            if (players.length === 0 || (players.length === 1 && players[0].name.trim() === '')) {
+            if (allPlayersHaveNames) {
                 errorEl.classList.remove('show');
-            } else if (!isValid) {
-                errorEl.classList.add('show');
             } else {
-                errorEl.classList.remove('show');
+                errorEl.classList.add('show');
             }
-            
-            validateForm();
-            return isValid;
+
+            return allPlayersHaveNames;
         }
 
         // Validate entire form
@@ -569,7 +590,7 @@
         // Update all data
         function updateData() {
             if (!validateForm()) {
-                alert('Please ensure both teams have exactly 2 players with names and that team names are filled in.');
+                alert('Please ensure both players in each team have names and that team names are filled in.');
                 return;
             }
 
@@ -597,36 +618,57 @@
 
         // Load data from server
         socket.on('tag-team-data', (serverData) => {
+            console.log('=== TAG TEAM DATA RECEIVED ===');
             console.log('Retrieved tag team data from server:', serverData);
+            console.log('Team 1 players:', serverData?.team1?.players);
+            console.log('Team 2 players:', serverData?.team2?.players);
             data = serverData;
 
-            // Ensure all players have 'active' and 'sponsor' properties for backwards compatibility
+            // Ensure all teams have exactly 2 players with proper properties
             ['team1', 'team2'].forEach(team => {
-                if (data[team] && data[team].players) {
-                    let hasActivePlayer = false;
-                    data[team].players.forEach((player, index) => {
-                        // Add sponsor field if missing
-                        if (player.sponsor === undefined) {
-                            player.sponsor = '';
-                        }
-                        // Add active field if missing
-                        if (player.active === undefined) {
-                            player.active = index === 0; // Set first player as active by default
-                        }
-                        if (player.active) hasActivePlayer = true;
-                    });
-                    // If no player is active, set the first one as active
-                    if (!hasActivePlayer && data[team].players.length > 0) {
-                        data[team].players[0].active = true;
+                if (!data[team]) {
+                    data[team] = { name: '', tag: '', players: [], score: 0 };
+                }
+                
+                // Ensure exactly 2 players
+                ensureTwoPlayers(team);
+                
+                // Ensure all players have proper properties
+                let hasActivePlayer = false;
+                data[team].players.forEach((player, index) => {
+                    // Add sponsor field if missing
+                    if (player.sponsor === undefined) {
+                        player.sponsor = '';
                     }
+                    // Add active field if missing
+                    if (player.active === undefined) {
+                        player.active = index === 0; // Set first player as active by default
+                    }
+                    if (player.active) hasActivePlayer = true;
+                });
+                
+                // If no player is active, set the first one as active
+                if (!hasActivePlayer) {
+                    data[team].players[0].active = true;
                 }
             });
 
             // Update team names and tags
-            document.getElementById('team1-name').value = data.team1.name || '';
-            document.getElementById('team1-tag').value = data.team1.tag || '';
-            document.getElementById('team2-name').value = data.team2.name || '';
-            document.getElementById('team2-tag').value = data.team2.tag || '';
+            const team1NameEl = document.getElementById('team1-name');
+            const team1TagEl = document.getElementById('team1-tag');
+            const team2NameEl = document.getElementById('team2-name');
+            const team2TagEl = document.getElementById('team2-tag');
+            
+            if (!team1NameEl || !team2NameEl) {
+                console.error('ERROR: DOM elements not found! Retrying in 100ms...');
+                setTimeout(() => socket.emit('request-tag-team-data'), 100);
+                return;
+            }
+            
+            team1NameEl.value = data.team1.name || '';
+            team1TagEl.value = data.team1.tag || '';
+            team2NameEl.value = data.team2.name || '';
+            team2TagEl.value = data.team2.tag || '';
 
             // Update scores
             document.getElementById('team1-score').textContent = data.team1.score || 0;
@@ -640,8 +682,13 @@
             document.getElementById('team2-score-label').textContent = data.team2.name || 'Team 2';
 
             // Render players
+            console.log('Rendering team1 players:', data.team1.players);
+            console.log('Rendering team2 players:', data.team2.players);
             renderPlayers('team1');
             renderPlayers('team2');
+            
+            // Validate forms
+            validateForm();
         });
 
         // Add input listeners for validation and real-time tracking
@@ -667,9 +714,10 @@
             data.round = this.value;
         });
 
-        // Initialize on page load
+        // Initialize on page load - wait for server data
+        // The socket 'tag-team-data' event will handle rendering when data arrives
         document.addEventListener('DOMContentLoaded', () => {
-            initializeTeams();
+            console.log('Page loaded, waiting for server data...');
         });
     </script>
 </body>
