@@ -4,8 +4,8 @@
     "tag": "T1",
     "players": [
       {
-        "name": "Player 1",
-        "sponsor": "Sponsor 1",
+        "name": "Somepoorfella",
+        "sponsor": "",
         "active": false
       },
       {
@@ -21,14 +21,14 @@
     "tag": "T2",
     "players": [
       {
-        "name": "Player 3",
-        "sponsor": "Sponsor 3",
-        "active": false
+        "name": "Somepoorfella",
+        "sponsor": "",
+        "active": true
       },
       {
         "name": "Player 4",
         "sponsor": "Sponsor 4",
-        "active": true
+        "active": false
       }
     ],
     "score": 0

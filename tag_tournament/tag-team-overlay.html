@@ -359,36 +359,6 @@
             return imageNumber;
         }
 
-        function adjustFontSize(elementId, text, baseSize = 27) {
-            const element = document.getElementById(elementId);
-            if (!element || !text) {
-                if(element) element.style.fontSize = ''; // Reset size
-                return baseSize;
-            }
-
-            const parent = element.parentElement;
-            const containerWidth = parent.clientWidth;
-            const targetWidth = containerWidth * 0.65;
-
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            const baseFontSize = baseSize;
-            
-            let fontSize = baseFontSize;
-            context.font = `700 ${fontSize}px 'Archivo Extra Condensed Bold'`;
-            let textWidth = context.measureText(text).width;
-
-            // Decrease font size until it fits
-            while (textWidth > targetWidth && fontSize > 8) {
-                fontSize -= 0.5;
-                context.font = `700 ${fontSize}px 'Archivo Extra Condensed Bold'`;
-                textWidth = context.measureText(text).width;
-            }
-
-            element.style.fontSize = `${fontSize}px`;
-            return fontSize;
-        }
-
         function adjustVerticalAlignment(cardId, nameId, baseTop = 26) {
             const card = document.getElementById(cardId);
             const nameEl = document.getElementById(nameId);
@@ -403,6 +373,65 @@
             card.style.top = `${baseTop - offset}px`;
         }
 
+        function adjustPlayerCardSize(cardId, nameText, sponsorText) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            
+            const nameEl = card.querySelector('.player-name');
+            const sponsorEl = card.querySelector('.player-sponsor');
+            if (!nameEl || !sponsorEl) return;
+
+            // Set text content first
+            nameEl.textContent = nameText;
+            sponsorEl.textContent = sponsorText;
+
+            const containerWidth = card.clientWidth;
+            const targetWidth = containerWidth * 0.90; // Use 90% of container width to leave a small margin
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            let nameFontSize = 24; // Start with a base size
+            
+            const calculateTotalWidth = (currentNameSize) => {
+                let totalWidth = 0;
+                
+                // Name width
+                context.font = `700 ${currentNameSize}px 'Archivo Extra Condensed Bold'`;
+                totalWidth += context.measureText(nameText).width;
+                
+                // Sponsor width (if it exists)
+                if (sponsorText) {
+                    const sponsorFontSize = Math.min(22, currentNameSize * 0.8);
+                    context.font = `600 ${sponsorFontSize}px 'Archivo Extra Condensed SemiBold'`;
+                    totalWidth += context.measureText(sponsorText).width;
+                    totalWidth += 8; // account for flex gap
+                }
+                
+                return totalWidth;
+            };
+
+            let totalWidth = calculateTotalWidth(nameFontSize);
+
+            // If total width is too large, shrink font size until it fits
+            while (totalWidth > targetWidth && nameFontSize > 8) {
+                nameFontSize -= 0.5;
+                totalWidth = calculateTotalWidth(nameFontSize);
+            }
+            
+            // Set the final font sizes
+            nameEl.style.fontSize = `${nameFontSize}px`;
+            if (sponsorText) {
+                const finalSponsorSize = Math.min(22, nameFontSize * 0.8);
+                sponsorEl.style.fontSize = `${finalSponsorSize}px`;
+            } else {
+                sponsorEl.style.fontSize = '';
+            }
+
+            // After setting font size, adjust vertical alignment
+            adjustVerticalAlignment(cardId, nameEl.id);
+        }
+
 
         function updateOverlay(data) {
             console.log('updateOverlay called with data:', data);
@@ -415,16 +444,7 @@
             const t1p1 = team1.players[0] || { name: '', sponsor: '', active: true };
             const t1p1Name = t1p1.name || 'Player 1';
             const t1p1Sponsor = t1p1.sponsor || '';
-            const t1p1SponsorEl = document.getElementById('t1-p1-sponsor');
-            document.getElementById('t1-p1-name').textContent = t1p1Name;
-            t1p1SponsorEl.textContent = t1p1Sponsor;
-            const t1p1NameSize = adjustFontSize('t1-p1-name', t1p1Name, 27);
-            if (t1p1Sponsor) {
-                t1p1SponsorEl.style.fontSize = `${Math.min(22, t1p1NameSize * 0.8)}px`;
-            } else {
-                t1p1SponsorEl.style.fontSize = '';
-            }
-            adjustVerticalAlignment('t1-p1-card', 't1-p1-name');
+            adjustPlayerCardSize('t1-p1-card', t1p1Name, t1p1Sponsor);
 
             const t1p1Card = document.querySelector('.t1-p1-card');
             if (t1p1.active) {
@@ -439,16 +459,7 @@
             const t1p2 = team1.players[1] || { name: '', sponsor: '', active: false };
             const t1p2Name = t1p2.name || 'Player 2';
             const t1p2Sponsor = t1p2.sponsor || '';
-            const t1p2SponsorEl = document.getElementById('t1-p2-sponsor');
-            document.getElementById('t1-p2-name').textContent = t1p2Name;
-            t1p2SponsorEl.textContent = t1p2Sponsor;
-            const t1p2NameSize = adjustFontSize('t1-p2-name', t1p2Name, 27);
-            if (t1p2Sponsor) {
-                t1p2SponsorEl.style.fontSize = `${Math.min(22, t1p2NameSize * 0.8)}px`;
-            } else {
-                t1p2SponsorEl.style.fontSize = '';
-            }
-            adjustVerticalAlignment('t1-p2-card', 't1-p2-name');
+            adjustPlayerCardSize('t1-p2-card', t1p2Name, t1p2Sponsor);
 
             const t1p2Card = document.querySelector('.t1-p2-card');
             if (t1p2.active) {
@@ -467,16 +478,7 @@
             const t2p1 = team2.players[0] || { name: '', sponsor: '', active: true };
             const t2p1Name = t2p1.name || 'Player 1';
             const t2p1Sponsor = t2p1.sponsor || '';
-            const t2p1SponsorEl = document.getElementById('t2-p1-sponsor');
-            document.getElementById('t2-p1-name').textContent = t2p1Name;
-            t2p1SponsorEl.textContent = t2p1Sponsor;
-            const t2p1NameSize = adjustFontSize('t2-p1-name', t2p1Name, 27);
-            if (t2p1Sponsor) {
-                t2p1SponsorEl.style.fontSize = `${Math.min(22, t2p1NameSize * 0.8)}px`;
-            } else {
-                t2p1SponsorEl.style.fontSize = '';
-            }
-            adjustVerticalAlignment('t2-p1-card', 't2-p1-name');
+            adjustPlayerCardSize('t2-p1-card', t2p1Name, t2p1Sponsor);
 
             const t2p1Card = document.querySelector('.t2-p1-card');
             if (t2p1.active) {
@@ -491,16 +493,7 @@
             const t2p2 = team2.players[1] || { name: '', sponsor: '', active: false };
             const t2p2Name = t2p2.name || 'Player 2';
             const t2p2Sponsor = t2p2.sponsor || '';
-            const t2p2SponsorEl = document.getElementById('t2-p2-sponsor');
-            document.getElementById('t2-p2-name').textContent = t2p2Name;
-            t2p2SponsorEl.textContent = t2p2Sponsor;
-            const t2p2NameSize = adjustFontSize('t2-p2-name', t2p2Name, 27);
-            if (t2p2Sponsor) {
-                t2p2SponsorEl.style.fontSize = `${Math.min(22, t2p2NameSize * 0.8)}px`;
-            } else {
-                t2p2SponsorEl.style.fontSize = '';
-            }
-            adjustVerticalAlignment('t2-p2-card', 't2-p2-name');
+            adjustPlayerCardSize('t2-p2-card', t2p2Name, t2p2Sponsor);
 
             const t2p2Card = document.querySelector('.t2-p2-card');
             if (t2p2.active) {
