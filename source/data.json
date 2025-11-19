@@ -1,12 +1,12 @@
 {
-  "eventNumber": "10",
-  "p1Name": "KEEBEEOMEGA",
-  "p2Name": "CherryBerryMango",
+  "eventNumber": "16",
+  "p1Name": "Player 1",
+  "p2Name": "Player 2",
   "p1Score": 10,
   "p2Score": 8,
-  "round": "Winners Side Pools Round 4",
-  "p1Team": "",
-  "p2Team": "",
-  "p1Flag": "PT",
-  "p2Flag": "HR"
+  "round": "Winners Round 1",
+  "p1Team": "Team 1",
+  "p2Team": "Team 2",
+  "p1Flag": "US",
+  "p2Flag": "JP"
 }
