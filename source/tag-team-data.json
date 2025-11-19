@@ -14,7 +14,7 @@
         "active": true
       }
     ],
-    "score": 2
+    "score": 0
   },
   "team2": {
     "name": "Team 2",
@@ -31,7 +31,7 @@
         "active": true
       }
     ],
-    "score": 2
+    "score": 0
   },
   "round": "Winners Round 1"
 }
