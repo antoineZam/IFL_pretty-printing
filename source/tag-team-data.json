@@ -4,13 +4,13 @@
     "tag": "T1",
     "players": [
       {
-        "name": "Omnis",
-        "sponsor": "IFF",
+        "name": "Player 1",
+        "sponsor": "Sponsor 1",
         "active": false
       },
       {
-        "name": "Kuro",
-        "sponsor": "IFF",
+        "name": "Player 2",
+        "sponsor": "Sponsor 2",
         "active": true
       }
     ],
@@ -21,13 +21,13 @@
     "tag": "T2",
     "players": [
       {
-        "name": "KEEBEEOMEGA",
-        "sponsor": "KRYPTIC",
+        "name": "Player 3",
+        "sponsor": "Sponsor 3",
         "active": false
       },
       {
-        "name": "CHERY BERRY MANGO",
-        "sponsor": "DRx",
+        "name": "Player 4",
+        "sponsor": "Sponsor 4",
         "active": true
       }
     ],
