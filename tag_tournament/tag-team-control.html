@@ -260,6 +260,23 @@
             background-color: #c0392b;
         }
 
+        .btn-swap {
+            background: #4a5177;
+            color: #ffffff;
+            display: block;
+            margin: 20px auto;
+            padding: 12px 30px;
+            font-weight: bold;
+            border: 2px solid #3a4167;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-swap:hover {
+            background-color: #5a6187;
+            border-color: #DAA520;
+        }
+
         hr {
             border: none;
             border-top: 2px solid #3a4167;
@@ -389,6 +406,8 @@
             </div>
         </div>
 
+        <button class="btn-swap" onclick="swapTeams()">Swap Teams</button>
+
         <button class="btn-update" id="update-btn" onclick="updateData()">Update Tournament Data</button>
     </div>
 
@@ -438,6 +457,16 @@
             round: ''
         };
 
+        function swapTeams() {
+            // Swap all data properties
+            [data.team1, data.team2] = [data.team2, data.team1];
+
+            // Re-render the entire UI with the swapped data
+            updateUIFromData();
+            
+            console.log("Teams swapped:", data);
+        }
+
         // Ensure team has exactly 2 players
         function ensureTwoPlayers(team) {
             if (!data[team].players) {
@@ -457,6 +486,43 @@
             if (data[team].players.length > 2) {
                 data[team].players = data[team].players.slice(0, 2);
             }
+        }
+
+        // Renamed from the original `socket.on('tag-team-data')` content to be reusable
+        function updateUIFromData() {
+             // Update team names and tags
+            const team1NameEl = document.getElementById('team1-name');
+            const team1TagEl = document.getElementById('team1-tag');
+            const team2NameEl = document.getElementById('team2-name');
+            const team2TagEl = document.getElementById('team2-tag');
+            
+            if (!team1NameEl || !team2NameEl) {
+                console.error('ERROR: DOM elements not found! Cannot update UI.');
+                return;
+            }
+            
+            team1NameEl.value = data.team1.name || '';
+            team1TagEl.value = data.team1.tag || '';
+            team2NameEl.value = data.team2.name || '';
+            team2TagEl.value = data.team2.tag || '';
+
+            // Update scores
+            document.getElementById('team1-score').textContent = data.team1.score || 0;
+            document.getElementById('team2-score').textContent = data.team2.score || 0;
+
+            // Update round
+            document.getElementById('round-name').value = data.round || '';
+
+            // Update score labels
+            document.getElementById('team1-score-label').textContent = data.team1.name || 'Team 1';
+            document.getElementById('team2-score-label').textContent = data.team2.name || 'Team 2';
+
+            // Render players
+            renderPlayers('team1');
+            renderPlayers('team2');
+            
+            // Validate forms
+            validateForm();
         }
 
         // Render players for a team (always 2 players)
@@ -649,46 +715,13 @@
                 
                 // If no player is active, set the first one as active
                 if (!hasActivePlayer) {
-                    data[team].players[0].active = true;
+                    if (data[team].players[0]) {
+                        data[team].players[0].active = true;
+                    }
                 }
             });
 
-            // Update team names and tags
-            const team1NameEl = document.getElementById('team1-name');
-            const team1TagEl = document.getElementById('team1-tag');
-            const team2NameEl = document.getElementById('team2-name');
-            const team2TagEl = document.getElementById('team2-tag');
-            
-            if (!team1NameEl || !team2NameEl) {
-                console.error('ERROR: DOM elements not found! Retrying in 100ms...');
-                setTimeout(() => socket.emit('request-tag-team-data'), 100);
-                return;
-            }
-            
-            team1NameEl.value = data.team1.name || '';
-            team1TagEl.value = data.team1.tag || '';
-            team2NameEl.value = data.team2.name || '';
-            team2TagEl.value = data.team2.tag || '';
-
-            // Update scores
-            document.getElementById('team1-score').textContent = data.team1.score || 0;
-            document.getElementById('team2-score').textContent = data.team2.score || 0;
-
-            // Update round
-            document.getElementById('round-name').value = data.round || '';
-
-            // Update score labels
-            document.getElementById('team1-score-label').textContent = data.team1.name || 'Team 1';
-            document.getElementById('team2-score-label').textContent = data.team2.name || 'Team 2';
-
-            // Render players
-            console.log('Rendering team1 players:', data.team1.players);
-            console.log('Rendering team2 players:', data.team2.players);
-            renderPlayers('team1');
-            renderPlayers('team2');
-            
-            // Validate forms
-            validateForm();
+            updateUIFromData();
         });
 
         // Add input listeners for validation and real-time tracking
