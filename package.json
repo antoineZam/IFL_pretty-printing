@@ -4,10 +4,17 @@
   "description": "A clean overlay system for Tekken 8 tournaments.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "server": "node server.js",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^4.19.2",
     "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  By defining the fonts here with corrected paths, they will be available application-wide.
+  The URLs now point to the correct location within the 'public' directory.
+*/
+
+@font-face {
+    font-family: 'Archivo';
+    src: url('/source/fonts/Archivo-VariableFont_wdth,wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Extra Condensed Bold';
+    src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Extra Condensed SemiBold';
+    src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Condensed Bold';
+    src: url('/source/fonts/Archivo/static/Archivo_Condensed-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Condensed Regular';
+    src: url('/source/fonts/Archivo/static/Archivo_Condensed-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Semi Condensed Bold';
+    src: url('/source/fonts/Archivo/static/Archivo_SemiCondensed-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Semi Condensed SemiBold';
+    src: url('/source/fonts/Archivo/static/Archivo_SemiCondensed-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Semi Condensed Regular';
+    src: url('/source/fonts/Archivo/static/Archivo_SemiCondensed-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Expanded Regular';
+    src: url('/source/fonts/Archivo/static/Archivo_Expanded-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Expanded Bold';
+    src: url('/source/fonts/Archivo/static/Archivo_Expanded-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Semi Expanded Bold';
+    src: url('/source/fonts/Archivo/static/Archivo_SemiExpanded-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Bold';
+    src: url('/source/fonts/Archivo/static/Archivo-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}

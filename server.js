@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -6,24 +7,35 @@ const path = require('path');
 
 // Set default connection key
 const CONNECTION_KEY = process.env.CONNECTION_KEY;
-console.log('Connection key:', CONNECTION_KEY);
+
+if (!CONNECTION_KEY) {
+    console.error("FATAL ERROR: CONNECTION_KEY is not defined in your .env file.");
+    console.error("Please create a file named .env in the project root and add the following line:");
+    console.error("CONNECTION_KEY=your_secret_key_here");
+    process.exit(1); // Stop the server if the key is not configured
+}
+
+console.log('Connection key loaded successfully.');
 
 const port = 3000;
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Define absolute paths for safety
-const SOURCE_DIR = path.join(__dirname, 'source');
-const DATA_FILE = path.join(SOURCE_DIR, 'data.json');
-const TAG_TEAM_FILE = path.join(SOURCE_DIR, 'tag-team-data.json');
+// Serve React App in production
+app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
-// Serve static files
-app.use('/source', express.static(SOURCE_DIR));
+// Serve static files from 'source' directory, now inside client/public
+app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source')));
 
-// Middleware
+// Middleware to parse JSON bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Define absolute paths for safety
+const SOURCE_DIR = path.join(__dirname, 'client', 'public', 'source');
+const DATA_FILE = path.join(SOURCE_DIR, 'data.json');
+const TAG_TEAM_FILE = path.join(SOURCE_DIR, 'tag-team-data.json');
 
 // Ensure the source directory exists
 if (!fs.existsSync(SOURCE_DIR)) {
@@ -108,38 +120,13 @@ function saveTagTeamData(data) {
 let overlayData = loadData();
 let tagTeamData = loadTagTeamData();
 
-// --- ROUTES ---
-
-// Authentication
-function requireAuth(req, res, next) {
-  const authKey = req.query.key || req.body.key;
-  if (authKey === CONNECTION_KEY) next();
-  else res.redirect('/auth.html');
-}
-
-app.get('/auth.html', (req, res) => res.sendFile(path.join(__dirname, 'auth.html')));
-
-app.post('/auth', (req, res) => {
-  if (req.body.key === CONNECTION_KEY) res.redirect(`/?key=${req.body.key}`);
-  else res.redirect('/auth.html?error=1');
-});
-
-app.get('/', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
-// 1v1 Routes
-app.get('/ifl/match-control.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'ifl/match-control.html'));
-});
-app.get('/ifl/match-overlay.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'ifl/match-overlay.html'));
-});
-
-// Tag Team Routes
-app.get('/tag_tournament/tag-team-control.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'tag_tournament/tag-team-control.html'));
-});
-app.get('/tag_tournament/tag-team-overlay.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'tag_tournament/tag-team-overlay.html'));
+// --- API ROUTES ---
+app.post('/api/auth', (req, res) => {
+    if (req.body.key === CONNECTION_KEY) {
+        res.status(200).json({ success: true });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid connection key' });
+    }
 });
 
 // --- SOCKET.IO ---
@@ -172,6 +159,12 @@ io.on('connection', (socket) => {
     io.emit('tag-team-data', tagTeamData);
   });
 });
+
+// Catch-all to serve React app
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+});
+
 
 server.listen(port, () => {
   console.log(`\nServer running at http://localhost:${port}`);
