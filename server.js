@@ -36,6 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 const SOURCE_DIR = path.join(__dirname, 'client', 'public', 'source');
 const DATA_FILE = path.join(SOURCE_DIR, 'data.json');
 const TAG_TEAM_FILE = path.join(SOURCE_DIR, 'tag-team-data.json');
+const PLAYER_HISTORY_FILE = path.join(SOURCE_DIR, 'player-history.json');
 
 // Ensure the source directory exists
 if (!fs.existsSync(SOURCE_DIR)) {
@@ -116,9 +117,29 @@ function saveTagTeamData(data) {
   }
 }
 
+function loadPlayerHistory() {
+    try {
+        if (!fs.existsSync(PLAYER_HISTORY_FILE)) return [];
+        const rawData = fs.readFileSync(PLAYER_HISTORY_FILE, 'utf8');
+        return JSON.parse(rawData);
+    } catch (error) {
+        console.error('Error loading player history:', error);
+        return [];
+    }
+}
+
+function savePlayerHistory(data) {
+    try {
+        fs.writeFileSync(PLAYER_HISTORY_FILE, JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error('Error saving player history:', error);
+    }
+}
+
 // Load initial state
 let overlayData = loadData();
 let tagTeamData = loadTagTeamData();
+let playerHistory = loadPlayerHistory();
 
 // --- API ROUTES ---
 app.post('/api/auth', (req, res) => {
@@ -128,6 +149,48 @@ app.post('/api/auth', (req, res) => {
         res.status(401).json({ success: false, message: 'Invalid connection key' });
     }
 });
+
+app.get('/api/history', (req, res) => {
+    res.status(200).json(playerHistory);
+});
+
+app.post('/api/history', (req, res) => {
+    const newPlayers = req.body; // Expecting an array of players
+    let updated = false;
+
+    newPlayers.forEach(player => {
+        if (!player.name) return; // Skip if no name
+        const existingIndex = playerHistory.findIndex(p => p.name === player.name);
+        if (existingIndex > -1) {
+            // Update existing player
+            playerHistory[existingIndex] = { ...playerHistory[existingIndex], ...player };
+        } else {
+            // Add new player
+            playerHistory.push(player);
+        }
+        updated = true;
+    });
+    
+    if (updated) {
+        savePlayerHistory(playerHistory);
+    }
+    
+    res.status(200).json(playerHistory);
+});
+
+app.delete('/api/history', (req, res) => {
+    const { name } = req.body;
+    const initialLength = playerHistory.length;
+    playerHistory = playerHistory.filter(p => p.name !== name);
+
+    if (playerHistory.length < initialLength) {
+        savePlayerHistory(playerHistory);
+        res.status(200).json({ success: true, message: 'Player deleted.' });
+    } else {
+        res.status(404).json({ success: false, message: 'Player not found.' });
+    }
+});
+
 
 // --- SOCKET.IO ---
 

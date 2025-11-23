@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { countries } from '../utils/countries';
-import { Swords, RotateCcw} from 'lucide-react';
+import { Swords, RotateCcw, Trash2, Users } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { CyberInput } from '../components/ui/CyberInput';
 import { NeonButton } from '../components/ui/NeonButton';
@@ -20,12 +20,36 @@ interface PlayerData {
     eventNumber: string;
 }
 
+interface PlayerHistoryItem {
+    name: string;
+    team: string;
+    flag: string;
+}
+
 const IFLMatchControlPage = () => {
     const [searchParams] = useSearchParams();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [data, setData] = useState<PlayerData | null>(null);
+    const [playerHistory, setPlayerHistory] = useState<PlayerHistoryItem[]>([]);
+    
+    // State for autocomplete suggestions
+    const [p1Suggestions, setP1Suggestions] = useState<PlayerHistoryItem[]>([]);
+    const [p2Suggestions, setP2Suggestions] = useState<PlayerHistoryItem[]>([]);
+
 
     useEffect(() => {
+        const fetchPlayerHistory = async () => {
+            try {
+                const response = await fetch('/api/history');
+                const historyData = await response.json();
+                setPlayerHistory(historyData);
+            } catch (error) {
+                console.error("Failed to fetch player history:", error);
+            }
+        };
+
+        fetchPlayerHistory();
+
         const key = searchParams.get('key') || localStorage.getItem('connectionKey');
         if (!key) {
             window.location.href = '/auth';
@@ -52,7 +76,52 @@ const IFLMatchControlPage = () => {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         if (!data) return;
         const { id, value } = e.target;
-        setData({ ...data, [id]: value });
+        
+        const newData = { ...data, [id]: value };
+        setData(newData);
+
+        // Handle Autocomplete
+        if (id === 'p1Name' && value) {
+            const filtered = playerHistory.filter(p => p.name.toLowerCase().startsWith(value.toLowerCase()));
+            setP1Suggestions(filtered);
+        } else {
+            setP1Suggestions([]);
+        }
+
+        if (id === 'p2Name' && value) {
+            const filtered = playerHistory.filter(p => p.name.toLowerCase().startsWith(value.toLowerCase()));
+            setP2Suggestions(filtered);
+        } else {
+            setP2Suggestions([]);
+        }
+    };
+
+    const handleSuggestionClick = (player: 'p1' | 'p2', suggestion: PlayerHistoryItem) => {
+        if (!data) return;
+        if (player === 'p1') {
+            setData({ ...data, p1Name: suggestion.name, p1Team: suggestion.team, p1Flag: suggestion.flag });
+            setP1Suggestions([]);
+        } else {
+            setData({ ...data, p2Name: suggestion.name, p2Team: suggestion.team, p2Flag: suggestion.flag });
+            setP2Suggestions([]);
+        }
+    };
+
+    const deleteFromHistory = async (playerName: string) => {
+        try {
+            const response = await fetch('/api/history', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: playerName }),
+            });
+            if (response.ok) {
+                setPlayerHistory(prev => prev.filter(p => p.name !== playerName));
+            } else {
+                console.error("Failed to delete player from history");
+            }
+        } catch (error) {
+            console.error("Error deleting player:", error);
+        }
     };
 
     const sendUpdate = (updatedData: PlayerData) => {
@@ -62,6 +131,21 @@ const IFLMatchControlPage = () => {
     const updateAllInfo = () => {
         if (!data) return;
         sendUpdate(data);
+
+        // Save players to history
+        const playersToSave = [
+            { name: data.p1Name, team: data.p1Team, flag: data.p1Flag },
+            { name: data.p2Name, team: data.p2Team, flag: data.p2Flag },
+        ];
+        
+        fetch('/api/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(playersToSave),
+        })
+        .then(res => res.json())
+        .then(updatedHistory => setPlayerHistory(updatedHistory))
+        .catch(err => console.error("Failed to update history:", err));
     };
     
     const updateScore = (player: 'p1' | 'p2', change: number) => {
@@ -125,7 +209,22 @@ const IFLMatchControlPage = () => {
                         <h2 className="text-blue-500 font-bold mb-6 flex items-center gap-2">PLAYER 1 <span className="text-xs bg-blue-500/20 px-2 py-0.5 rounded">BLUE SIDE</span></h2>
                         
                         <div className="space-y-4 relative z-10">
-                            <CyberInput id="p1Name" label="Player Name" value={data.p1Name} onChange={handleInputChange} />
+                            <div className="relative">
+                                <CyberInput id="p1Name" label="Player Name" value={data.p1Name} onChange={handleInputChange} autoComplete="off" />
+                                {p1Suggestions.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden">
+                                        {p1Suggestions.map(s => (
+                                            <div 
+                                                key={s.name} 
+                                                onClick={() => handleSuggestionClick('p1', s)}
+                                                className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer"
+                                            >
+                                                {s.name} <span className="text-xs text-gray-500 ml-2">{s.team}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <CyberInput id="p1Team" label="Team / Tag" value={data.p1Team} onChange={handleInputChange} />
                                 <div className="flex flex-col gap-1.5">
@@ -184,7 +283,22 @@ const IFLMatchControlPage = () => {
                         <h2 className="text-red-500 font-bold mb-6 flex items-center justify-end gap-2"><span className="text-xs bg-red-500/20 px-2 py-0.5 rounded">RED SIDE</span> PLAYER 2</h2>
                         
                         <div className="space-y-4 relative z-10">
-                            <CyberInput id="p2Name" label="Player Name" value={data.p2Name} onChange={handleInputChange} style={{textAlign: 'right'}} />
+                             <div className="relative">
+                                <CyberInput id="p2Name" label="Player Name" value={data.p2Name} onChange={handleInputChange} style={{textAlign: 'right'}} autoComplete="off"/>
+                                {p2Suggestions.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden">
+                                        {p2Suggestions.map(s => (
+                                            <div 
+                                                key={s.name} 
+                                                onClick={() => handleSuggestionClick('p2', s)}
+                                                className="px-4 py-2 hover:bg-red-500/20 cursor-pointer text-right"
+                                            >
+                                                {s.name} <span className="text-xs text-gray-500 ml-2">{s.team}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-xs font-bold uppercase text-gray-500">Nationality</label>
@@ -217,6 +331,42 @@ const IFLMatchControlPage = () => {
                         >+</button>
                     </div>
                 </div>
+            </div>
+
+            {/* History Management Section */}
+            <div className="col-span-12 mt-12">
+                <GlassCard className="p-6 max-w-4xl mx-auto">
+                    <div className="flex items-center gap-4 mb-6">
+                        <Users className="text-gray-500" />
+                        <h3 className="text-xl font-bold text-white/80">Player History</h3>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto space-y-2 pr-2">
+                        {playerHistory.length > 0 ? playerHistory
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map(p => (
+                            <div key={p.name} className="flex items-center justify-between p-3 bg-surfaceHighlight/50 rounded-lg group">
+                                <div className="flex items-center gap-4">
+                                    <img src={`https://flagcdn.com/w40/${p.flag.toLowerCase()}.png`} alt={p.flag} className="w-8 h-auto" />
+                                    <div>
+                                        <div className="font-bold text-white">{p.name}</div>
+                                        <div className="text-xs text-gray-400">{p.team}</div>
+                                    </div>
+                                </div>
+                                <NeonButton 
+                                    variant="ghost" 
+                                    onClick={() => deleteFromHistory(p.name)} 
+                                    className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Trash2 size={16} />
+                                </NeonButton>
+                            </div>
+                        )) : (
+                            <div className="text-center text-gray-500 py-8">
+                                No players in history. Update a match to save a player.
+                            </div>
+                        )}
+                    </div>
+                </GlassCard>
             </div>
         </div>
     );
