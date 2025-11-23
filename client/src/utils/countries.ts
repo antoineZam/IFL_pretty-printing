@@ -6,5 +6,6 @@ export const countries = {
     "RO": "Romania", "PL": "Poland", "CZ": "Czech Republic", "HU": "Hungary", "NL": "Netherlands",
     "BE": "Belgium", "BG": "Bulgaria", "HR": "Croatia", "DK": "Denmark", "EE": "Estonia", "IE": "Ireland",
     "LV": "Latvia", "LT": "Lithuania", "MT": "Malta", "PT": "Portugal", "SK": "Slovakia", "SI": "Slovenia",
-    "CH": "Switzerland", 'IL': 'israel'
+    "CH": "Switzerland", 'IL': 'israel', 'TN': 'Tunisia', 'GR': 'Greece', 'RU': 'Russia', 'DZ': 'Algeria',
+    'TR': 'Turkey', 'EG': 'Egypt', 'MA': 'Morocco', 'KE': 'Kenya', 'ZA': 'South Africa', 'NG': 'Nigeria'
 };
