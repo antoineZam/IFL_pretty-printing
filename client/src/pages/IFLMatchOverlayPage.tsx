@@ -117,10 +117,3 @@ const IFLMatchOverlayPage = () => {
 };
 
 export default IFLMatchOverlayPage;
-
-// Helper for text shadow utility class
-const TextShadow = () => <style>{`.text-shadow { text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2); }`}</style>;
-// Note: In a real app, this would be in a global CSS file.
-// For Tailwind, you can create a text shadow utility.
-// e.g. in tailwind.config.js -> theme.extend.textShadow: { 'DEFAULT': '2px 2px 2px rgba(0,0,0,0.2)' }
-// and a plugin to use it. For simplicity, style tag is used here.
