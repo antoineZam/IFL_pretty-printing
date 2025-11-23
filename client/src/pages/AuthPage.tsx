@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, ChevronRight } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
@@ -10,6 +10,13 @@ const AuthPage = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
+    useEffect(() => {
+        // If user already has a key, redirect them to the dashboard
+        if (localStorage.getItem('connectionKey')) {
+            navigate('/');
+        }
+    }, [navigate]);
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         try {
@@ -20,7 +27,7 @@ const AuthPage = () => {
             });
             if (response.ok) {
                 localStorage.setItem('connectionKey', key);
-                navigate(`/?key=${key}`);
+                navigate(`/`);
             } else {
                 setError('Invalid connection key. Please try again.');
             }
@@ -40,7 +47,7 @@ const AuthPage = () => {
                         <Shield className="text-primary h-10 w-10" />
                     </div>
                     <h1 className="text-3xl font-archivo-expanded-bold text-white tracking-tighter">
-                        IFL <span className="text-primary">COMMAND</span>
+                        TDEU <span className="text-primary">COMMAND</span>
                     </h1>
                     <p className="text-gray-500 text-sm uppercase tracking-[0.2em] mt-2">Secure Broadcast System</p>
                 </div>

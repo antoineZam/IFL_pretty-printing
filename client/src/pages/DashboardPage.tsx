@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 
 const DashboardPage = () => {
     const [searchParams] = useSearchParams();
     const [key, setKey] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
+        
+        if (!connectionKey) {
+            navigate('/auth');
+            return;
+        }
+        
         setKey(connectionKey);
 
-        if (!connectionKey) {
-            // Optional: Redirect to auth page if no key is found
-            // navigate('/auth');
-        }
-    }, [searchParams]);
+    }, [searchParams, navigate]);
 
     const routes = [
         { name: "IFL Match Control", path: "/ifl/match-control" },

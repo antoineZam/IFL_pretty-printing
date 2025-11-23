@@ -10,8 +10,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/auth" element={<AuthPage />} />
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/auth" element={<AuthPage />} />
         <Route path="/ifl/match-control" element={<IFLMatchControlPage />} />
         <Route path="/ifl/match-overlay" element={<IFLMatchOverlayPage />} />
         <Route path="/tag/match-control" element={<TagTeamControlPage />} />
