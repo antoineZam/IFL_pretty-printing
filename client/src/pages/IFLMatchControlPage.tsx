@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { countries } from '../utils/countries';
-import { Swords, RotateCcw, Minus, Plus } from 'lucide-react';
+import { Swords, RotateCcw} from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { CyberInput } from '../components/ui/CyberInput';
 import { NeonButton } from '../components/ui/NeonButton';

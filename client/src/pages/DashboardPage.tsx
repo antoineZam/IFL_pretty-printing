@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { LayoutDashboard, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 
 const DashboardPage = () => {
