@@ -79,11 +79,7 @@ const IFLMatchOverlayPage = () => {
                 {/* Background Images */}
                 <div
                     className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
-                    style={{ backgroundImage: "url('/source/overlay/ifl/IFL_overlays_p1.png')" }}
-                />
-                <div
-                    className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
-                    style={{ backgroundImage: "url('/source/overlay/ifl/IFL_overlays_p2.png')" }}
+                    style={{ backgroundImage: "url('/source/overlay/ifl/IFL_overlays_filled.png')" }}
                 />
                 <div
                     className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
@@ -100,32 +96,32 @@ const IFLMatchOverlayPage = () => {
 
                 {/* Player 1 Flag (with recolour filter) */}
                 <div
-                    className="absolute top-[14px] left-[134px] w-[80px] h-[57px] bg-cover bg-center border border-white"
+                    className="absolute top-[14px] left-[138px] w-[81px] h-[55px] bg-cover bg-center"
                     style={{
                         backgroundImage: `linear-gradient(to bottom, rgba(10,15,30,0.36), transparent 35%, transparent 65%, rgba(10,15,30,0.36)), url(${p1FlagUrl})`,
-                        clipPath: 'polygon(0 0, 100% 0, 100% 100%, 66% 100%)',
+                        clipPath: 'polygon(0 0, 100% 0, 100% 100%, 63% 100%)',
                         filter: FLAG_FILTER,
                     }}
                 />
 
                 {/* Player 1 Info */}
-                <div className="absolute top-[24px] left-[230px] text-[24px] font-medium w-[550px] flex items-baseline text-shadow">
+                <div className="absolute top-[24px] left-[240px] text-[24px] font-medium w-[550px] flex items-baseline text-shadow">
                     {data.p1Team && (
                         <span className="text-[#cccccc] text-[20px]">{data.p1Team}</span>
                     )}
                     {data.p1Team && <span className="mx-[5px]">|</span>}
                     <span className="text-[24px]">{data.p1Name}</span>
                 </div>
-                <div className="absolute top-[8px] left-[603px] text-[45px] w-[100px] text-center text-shadow">
+                <div className="absolute top-[8px] left-[613px] text-[45px] w-[100px] text-center text-shadow">
                     {data.p1Score}
                 </div>
 
                 {/* Player 2 Flag (with recolour filter) */}
                 <div
-                    className="absolute top-[13px] right-[141px] w-[80px] h-[57px] bg-cover bg-center border border-white"
+                    className="absolute top-[14px] right-[136px] w-[82px] h-[55px] bg-cover bg-center"
                     style={{
                         backgroundImage: `linear-gradient(to bottom, rgba(10,15,30,0.36), transparent 35%, transparent 65%, rgba(10,15,30,0.36)), url(${p2FlagUrl})`,
-                        clipPath: 'polygon(0 0, 100% 0, 35% 100%, 0 100%)',
+                        clipPath: 'polygon(0 0, 100% 0, 38% 100%, 0 100%)',
                         filter: FLAG_FILTER,
                     }}
                 />
@@ -138,7 +134,7 @@ const IFLMatchOverlayPage = () => {
                         <span className="text-[#cccccc] text-[18px]">{data.p2Team}</span>
                     )}
                 </div>
-                <div className="absolute top-[8px] right-[610px] text-[45px] w-[100px] text-center text-shadow">
+                <div className="absolute top-[8px] right-[613px] text-[45px] w-[100px] text-center text-shadow">
                     {data.p2Score}
                 </div>
 
