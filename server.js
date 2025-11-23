@@ -211,6 +211,27 @@ io.on('connection', (socket) => {
   socket.on('update-data', (data) => {
     overlayData = data;
     saveData(overlayData);
+
+    // Also update player history from socket updates
+    const playersToSave = [
+        { name: data.p1Name, team: data.p1Team, flag: data.p1Flag },
+        { name: data.p2Name, team: data.p2Team, flag: data.p2Flag },
+    ].filter(p => p.name); // Only save players with names
+
+    if (playersToSave.length > 0) {
+        playersToSave.forEach(player => {
+            const existingIndex = playerHistory.findIndex(p => p.name === player.name);
+            if (existingIndex > -1) {
+                playerHistory[existingIndex] = { ...playerHistory[existingIndex], ...player };
+            } else {
+                playerHistory.push(player);
+            }
+        });
+        savePlayerHistory(playerHistory);
+        // Inform all clients about the history update
+        io.emit('history-update', playerHistory);
+    }
+
     io.emit('data-update', overlayData);
   });
 

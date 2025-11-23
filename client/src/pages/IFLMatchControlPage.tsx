@@ -68,6 +68,10 @@ const IFLMatchControlPage = () => {
             setData(serverData);
         });
 
+        newSocket.on('history-update', (updatedHistory: PlayerHistoryItem[]) => {
+            setPlayerHistory(updatedHistory);
+        });
+
         return () => {
             newSocket.disconnect();
         };

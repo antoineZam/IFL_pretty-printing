@@ -1,12 +1,12 @@
 {
   "eventNumber": "16",
-  "p1Name": "KEEBEE OMEGA",
-  "p2Name": "CHERRY BERRY MANGO",
+  "p1Name": "KEEBEEOMEGA",
+  "p2Name": "CHERRYBERRYMANGO",
   "p1Score": 3,
   "p2Score": 3,
   "round": "Winners Round 1",
   "p1Team": "KRYP",
   "p2Team": "DRX",
-  "p1Flag": "GB",
+  "p1Flag": "",
   "p2Flag": "KR"
 }

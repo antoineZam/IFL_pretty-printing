@@ -64,9 +64,7 @@ const IFLMatchOverlayPage = () => {
         return <div className="w-[1920px] h-[1080px] bg-transparent"></div>;
     }
 
-    // Create a placeholder SVG for when no flag is selected
-    const noFlagSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="57" viewBox="0 0 80 57"><rect width="80" height="57" fill="#374151"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#9ca3af">NO FLAG</text></svg>`;
-    const noFlagUrl = `data:image/svg+xml;base64,${btoa(noFlagSvg)}`;
+    const noFlagUrl = '/source/overlay/ifl/no-flag.png';
 
     const p1FlagUrl = data.p1Flag
         ? `https://flagcdn.com/h240/${data.p1Flag.toLowerCase()}.png`
