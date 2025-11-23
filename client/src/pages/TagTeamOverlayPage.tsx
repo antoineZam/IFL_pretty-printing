@@ -49,6 +49,13 @@ const TagTeamOverlayPage = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        document.body.style.backgroundColor = 'transparent';
+        return () => {
+            document.body.style.backgroundColor = ''; // Reverts to the default style
+        };
+    }, []);
+
+    useEffect(() => {
         const key = searchParams.get('key');
         if (!key) {
             setError('No connection key');

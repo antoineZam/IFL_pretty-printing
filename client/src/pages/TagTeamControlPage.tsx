@@ -1,190 +1,213 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Repeat, Minus, Plus } from 'lucide-react';
+import { Swords, RotateCcw, Users } from 'lucide-react'; // Added Users icon
+import GlassCard from '../components/ui/GlassCard';
+import { CyberInput } from '../components/ui/CyberInput';
+import { NeonButton } from '../components/ui/NeonButton';
 
 interface Player {
     name: string;
     sponsor: string;
-    active: boolean;
 }
 
 interface Team {
     name: string;
-    tag: string;
-    players: Player[];
+    p1: Player;
+    p2: Player;
     score: number;
+    activePlayer: number;
 }
 
 interface TagTeamData {
+    caster1: string;
+    caster2: string;
     team1: Team;
     team2: Team;
-    round: string;
 }
 
+const initialData: TagTeamData = {
+    caster1: 'Caster 1',
+    caster2: 'Caster 2',
+    team1: { name: 'TEAM 1', p1: { name: 'Player 1', sponsor: 'Sponsor' }, p2: { name: 'Player 2', sponsor: 'Sponsor' }, score: 0, activePlayer: 0 },
+    team2: { name: 'TEAM 2', p1: { name: 'Player 3', sponsor: 'Sponsor' }, p2: { name: 'Player 4', sponsor: 'Sponsor' }, score: 0, activePlayer: 0 },
+};
+
 const TagTeamControlPage = () => {
-    const [searchParams] = useSearchParams();
     const [socket, setSocket] = useState<Socket | null>(null);
-    const [data, setData] = useState<TagTeamData | null>(null);
+    const [data, setData] = useState<TagTeamData>(initialData);
 
     useEffect(() => {
-        const key = searchParams.get('key') || localStorage.getItem('connectionKey');
-        if (!key) {
-            window.location.href = '/auth';
-            return;
-        }
-
-        const newSocket = io({ auth: { token: key } });
+        const newSocket = io();
         setSocket(newSocket);
-
-        newSocket.on('connect_error', () => {
-            alert('Authentication failed.');
-            window.location.href = '/auth';
+        
+        newSocket.on('connect', () => {
+            console.log('Connected to server');
+            newSocket.emit('requestTagTeamData');
         });
 
-        newSocket.on('tag-team-data', (serverData: TagTeamData) => {
-            setData(serverData);
+        newSocket.on('updateTagTeamData', (newData: TagTeamData) => {
+            setData(newData);
         });
 
-        return () => newSocket.disconnect();
-    }, [searchParams]);
+        newSocket.on('initialTagTeamData', (initialData: TagTeamData) => {
+            setData(initialData);
+        });
+
+        return () => {
+            newSocket.disconnect();
+        };
+    }, []);
 
     const sendUpdate = (updatedData: TagTeamData) => {
-        socket?.emit('tag-team-update', updatedData);
+        socket?.emit('updateTagTeamData', updatedData);
     };
 
-    const handleTeamInfoChange = (team: 'team1' | 'team2', field: 'name' | 'tag', value: string) => {
-        if (!data) return;
-        const updatedData = { ...data, [team]: { ...data[team], [field]: value } };
-        setData(updatedData);
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        const parts = id.split('.');
+
+        if (parts.length === 1) { // caster1, caster2
+            setData(prev => ({ ...prev, [id]: value }));
+        } else if (parts.length === 2) { // team1.name
+            const [team, field] = parts as ['team1' | 'team2', 'name'];
+            setData(prev => ({
+                ...prev,
+                [team]: { ...prev[team], [field]: value }
+            }));
+        } else if (parts.length === 3) { // team1.p1.name
+            const [team, player, field] = parts as ['team1' | 'team2', 'p1' | 'p2', 'name' | 'sponsor'];
+            setData(prev => ({
+                ...prev,
+                [team]: {
+                    ...prev[team],
+                    [player]: { ...prev[team][player], [field]: value }
+                }
+            }));
+        }
     };
 
-    const handlePlayerInfoChange = (team: 'team1' | 'team2', playerIndex: number, field: 'name' | 'sponsor', value: string) => {
-        if (!data) return;
-        const updatedPlayers = [...data[team].players];
-        updatedPlayers[playerIndex] = { ...updatedPlayers[playerIndex], [field]: value };
-        const updatedData = { ...data, [team]: { ...data[team], players: updatedPlayers } };
-        setData(updatedData);
-    };
-    
-    const setActivePlayer = (team: 'team1' | 'team2', playerIndex: number) => {
-        if (!data) return;
-        const updatedPlayers = data[team].players.map((p, i) => ({ ...p, active: i === playerIndex }));
-        const updatedData = { ...data, [team]: { ...data[team], players: updatedPlayers } };
-        setData(updatedData);
-        sendUpdate(updatedData);
+    const handleActivePlayerChange = (team: 'team1' | 'team2', playerIndex: number) => {
+        setData(prev => ({
+            ...prev,
+            [team]: { ...prev[team], activePlayer: playerIndex }
+        }));
     };
 
-    const updateScore = (team: 'team1' | 'team2', change: number) => {
-        if (!data) return;
-        const currentScore = data[team].score;
-        const newScore = Math.max(0, currentScore + change);
-        const updatedData = { ...data, [team]: { ...data[team], score: newScore } };
-        setData(updatedData);
-        sendUpdate(updatedData);
-    };
-    
-    const resetScores = () => {
-        if (!data) return;
-        const updatedData = {
-            ...data,
-            team1: { ...data.team1, score: 0 },
-            team2: { ...data.team2, score: 0 },
-        };
-        setData(updatedData);
-        sendUpdate(updatedData);
+    const updateScore = (team: 'team1' | 'team2', delta: number) => {
+        setData(prev => {
+            const newScore = Math.max(0, prev[team].score + delta);
+            return {
+                ...prev,
+                [team]: { ...prev[team], score: newScore }
+            };
+        });
     };
 
     const swapTeams = () => {
-        if (!data) return;
-        setData({ ...data, team1: data.team2, team2: data.team1 });
+        setData(prev => ({
+            ...prev,
+            team1: prev.team2,
+            team2: prev.team1
+        }));
     };
 
     const updateAllInfo = () => {
-        if (!data) return;
         sendUpdate(data);
     };
 
-    if (!data) return <div className="bg-[#0a0e27] min-h-screen flex items-center justify-center text-white">Loading...</div>;
-
+    const resetScores = () => {
+        setData(prev => ({
+            ...prev,
+            team1: { ...prev.team1, score: 0 },
+            team2: { ...prev.team2, score: 0 }
+        }));
+    };
+    
     return (
-        <div className="bg-[#0a0e27] min-h-screen p-4 md:p-8 text-white font-archivo">
-            <div className="max-w-5xl mx-auto bg-[#1a1f3a] p-6 rounded-xl shadow-2xl border-2 border-[#3a4167]">
-                <h1 className="text-3xl font-bold text-center text-[#DAA520] uppercase tracking-wider mb-6">Tag Team Control</h1>
-                {/* Global and Score Controls */}
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                    {/* Score Controls */}
-                    <div className="bg-[#252b47] p-6 rounded-lg border-2 border-[#3a4167]">
-                        <h2 className="text-xl font-bold text-center text-[#DAA520] uppercase tracking-wider mb-4">Scores</h2>
-                        <div className="flex justify-around items-start">
-                            {['team1', 'team2'].map((t) => (
-                                <div key={t} className="text-center">
-                                    <h3 className="text-lg font-semibold mb-2">{data[t as keyof TagTeamData].name || t}</h3>
-                                    <div className="text-5xl font-bold text-[#DAA520] mb-3">{data[t as keyof TagTeamData].score}</div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => updateScore(t as 'team1' | 'team2', 1)} className="bg-[#DAA520] text-[#0a0e27] p-3 rounded-md hover:bg-[#F0C350] transition-transform hover:scale-105"><Plus /></button>
-                                        <button onClick={() => updateScore(t as 'team1' | 'team2', -1)} className="bg-[#DAA520] text-[#0a0e27] p-3 rounded-md hover:bg-[#F0C350] transition-transform hover:scale-105"><Minus /></button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                         <div className="text-center mt-4">
-                            <button onClick={resetScores} className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm flex items-center gap-2 mx-auto">
-                                <Repeat size={16} /> Reset
-                            </button>
-                        </div>
-                    </div>
-                    {/* Round Info */}
-                     <div className="bg-[#252b47] p-6 rounded-lg border-2 border-[#3a4167]">
-                        <h2 className="text-xl font-bold text-center text-[#DAA520] uppercase tracking-wider mb-4">Round Info</h2>
-                        <label htmlFor="round" className="block mb-1 font-semibold">Round Name</label>
-                        <input type="text" id="round" value={data.round} onChange={(e) => setData({ ...data, round: e.target.value })} className="w-full p-2 bg-[#1a1f3a] border-2 border-[#3a4167] rounded-md focus:outline-none focus:border-[#DAA520]" />
-                    </div>
+        <div className="min-h-screen p-6 pb-24 max-w-[1600px] mx-auto text-white">
+            {/* Top Bar */}
+            <div className="flex justify-between items-end mb-8">
+                <h1 className="text-2xl font-archivo-expanded-bold text-white/80">TAG TEAM CONTROLLER</h1>
+                <div className="flex gap-4">
+                    <NeonButton variant="ghost" onClick={resetScores} className="text-sm">
+                        <RotateCcw size={16} /> Reset Scores
+                    </NeonButton>
+                    <NeonButton variant="ghost" onClick={swapTeams} className="text-sm text-blue-400 hover:text-blue-300">
+                        <Swords size={16} /> Swap Teams
+                    </NeonButton>
                 </div>
+            </div>
 
-                {/* Team Configuration */}
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                    {(['team1', 'team2'] as const).map((teamKey) => (
-                        <div key={teamKey} className="bg-[#252b47] p-6 rounded-lg border-2 border-[#3a4167]">
-                            <h3 className="text-lg font-bold text-center text-[#DAA520] uppercase mb-4">{teamKey === 'team1' ? 'Team 1' : 'Team 2'}</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label htmlFor={`${teamKey}-name`} className="block mb-1 font-semibold">Name</label>
-                                    <input type="text" id={`${teamKey}-name`} value={data[teamKey].name} onChange={(e) => handleTeamInfoChange(teamKey, 'name', e.target.value)} className="w-full p-2 bg-[#1a1f3a] border-2 border-[#3a4167] rounded-md"/>
-                                </div>
-                                 <div>
-                                    <label htmlFor={`${teamKey}-tag`} className="block mb-1 font-semibold">Tag</label>
-                                    <input type="text" id={`${teamKey}-tag`} value={data[teamKey].tag} onChange={(e) => handleTeamInfoChange(teamKey, 'tag', e.target.value)} className="w-full p-2 bg-[#1a1f3a] border-2 border-[#3a4167] rounded-md"/>
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="block font-semibold">Players</label>
-                                    {data[teamKey].players.map((player, index) => (
-                                        <div key={index} className={`p-3 rounded-lg transition-colors ${player.active ? 'bg-[#DAA520]/20 border-2 border-[#DAA520]' : 'bg-[#1a1f3a] border-2 border-[#3a4167]'}`}>
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex-1 space-y-2">
-                                                    <input type="text" placeholder={`Player ${index + 1}`} value={player.name} onChange={(e) => handlePlayerInfoChange(teamKey, index, 'name', e.target.value)} className="w-full p-2 bg-[#0a0e27] border-2 border-[#3a4167] rounded-md"/>
-                                                    <input type="text" placeholder="Sponsor" value={player.sponsor} onChange={(e) => handlePlayerInfoChange(teamKey, index, 'sponsor', e.target.value)} className="w-full p-2 bg-[#0a0e27] border-2 border-[#3a4167] rounded-md"/>
-                                                </div>
-                                                 <button onClick={() => setActivePlayer(teamKey, index)} className={`px-3 py-1 text-sm rounded-md ${player.active ? 'bg-[#DAA520] text-black' : 'bg-gray-500'}`}>
-                                                    {player.active ? 'Active' : 'Set Active'}
-                                                 </button>
-                                            </div>
-                                        </div>
-                                    ))}
+            <div className="grid grid-cols-12 gap-8">
+                {/* Team 1 Column */}
+                <div className="col-span-12 lg:col-span-5 space-y-6">
+                    <GlassCard className="p-6 border-l-4 border-l-blue-500 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 text-9xl font-bold text-blue-500 pointer-events-none">T1</div>
+                        <h2 className="text-blue-500 font-bold mb-6">TEAM 1</h2>
+                        <div className="space-y-4">
+                            <CyberInput id="team1.name" label="Team Name" value={data.team1.name} onChange={handleInputChange} />
+                            <hr className="border-white/10 my-4" />
+                            <CyberInput id="team1.p1.name" label="Player 1 Name" value={data.team1.p1.name} onChange={handleInputChange} />
+                            <CyberInput id="team1.p1.sponsor" label="Player 1 Sponsor" value={data.team1.p1.sponsor} onChange={handleInputChange} />
+                            <hr className="border-white/10 my-4" />
+                            <CyberInput id="team1.p2.name" label="Player 2 Name" value={data.team1.p2.name} onChange={handleInputChange} />
+                            <CyberInput id="team1.p2.sponsor" label="Player 2 Sponsor" value={data.team1.p2.sponsor} onChange={handleInputChange} />
+                            <div className="pt-2">
+                                <label className="block text-xs font-bold uppercase text-gray-400 mb-2">Active Player</label>
+                                <div className="flex gap-4 bg-surface p-2 rounded-md">
+                                    <label className={`flex-1 text-center cursor-pointer p-2 rounded ${data.team1.activePlayer === 0 ? 'bg-blue-500 text-white' : 'hover:bg-white/10'}`}><input type="radio" name="team1_active" checked={data.team1.activePlayer === 0} onChange={() => handleActivePlayerChange('team1', 0)} className="hidden"/> P1</label>
+                                    <label className={`flex-1 text-center cursor-pointer p-2 rounded ${data.team1.activePlayer === 1 ? 'bg-blue-500 text-white' : 'hover:bg-white/10'}`}><input type="radio" name="team1_active" checked={data.team1.activePlayer === 1} onChange={() => handleActivePlayerChange('team1', 1)} className="hidden"/> P2</label>
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    </GlassCard>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => updateScore('team1', -1)} className="h-20 w-20 rounded-xl bg-surfaceHighlight border border-white/5 text-gray-400 hover:bg-red-900/20 hover:text-red-500 transition-colors text-2xl">-</button>
+                        <div className="flex-1 h-20 bg-black/40 rounded-xl border border-blue-500/30 flex items-center justify-center text-6xl font-bold text-white font-mono shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]">{data.team1.score}</div>
+                        <button onClick={() => updateScore('team1', 1)} className="h-20 w-20 rounded-xl bg-white text-black hover:bg-gray-200 transition-colors text-4xl font-bold">+</button>
+                    </div>
                 </div>
-                
-                {/* Action Buttons */}
-                <div className="flex flex-col md:flex-row gap-4">
-                    <button onClick={swapTeams} className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                        <Repeat size={20} /> Swap Teams
+
+                {/* Center Info Column */}
+                <div className="col-span-12 lg:col-span-2 flex flex-col gap-6">
+                    <GlassCard className="p-4 flex-1 flex flex-col justify-center gap-4 text-center">
+                        <h3 className="text-xs font-bold uppercase text-gray-500">Global Details</h3>
+                        <CyberInput id="caster1" label="Caster 1" value={data.caster1} onChange={handleInputChange} className="text-center" />
+                        <CyberInput id="caster2" label="Caster 2" value={data.caster2} onChange={handleInputChange} className="text-center" />
+                    </GlassCard>
+                    <button onClick={updateAllInfo} className="h-32 w-full bg-white rounded-xl flex flex-col items-center justify-center gap-2 text-black font-bold uppercase tracking-widest hover:bg-black hover:text-white hover:scale-105 transition-all duration-200">
+                        <span className="text-2xl">Update</span>
+                        <span className="text-xs opacity-60">Push to Stream</span>
                     </button>
-                    <button onClick={updateAllInfo} className="flex-1 bg-[#DAA520] text-[#0a0e27] px-6 py-3 rounded-md hover:bg-[#F0C350] font-bold uppercase tracking-wider transition-colors">
-                        Update All Information
-                    </button>
+                </div>
+
+                {/* Team 2 Column */}
+                <div className="col-span-12 lg:col-span-5 space-y-6">
+                     <GlassCard className="p-6 border-r-4 border-r-red-500 relative overflow-hidden text-right">
+                        <div className="absolute top-0 left-0 p-4 opacity-10 text-9xl font-bold text-red-500 pointer-events-none">T2</div>
+                        <h2 className="text-red-500 font-bold mb-6 text-right">TEAM 2</h2>
+                        <div className="space-y-4">
+                            <CyberInput id="team2.name" label="Team Name" value={data.team2.name} onChange={handleInputChange} className="text-right" />
+                            <hr className="border-white/10 my-4" />
+                            <CyberInput id="team2.p1.name" label="Player 1 Name" value={data.team2.p1.name} onChange={handleInputChange} className="text-right" />
+                            <CyberInput id="team2.p1.sponsor" label="Player 1 Sponsor" value={data.team2.p1.sponsor} onChange={handleInputChange} className="text-right" />
+                            <hr className="border-white/10 my-4" />
+                            <CyberInput id="team2.p2.name" label="Player 2 Name" value={data.team2.p2.name} onChange={handleInputChange} className="text-right" />
+                            <CyberInput id="team2.p2.sponsor" label="Player 2 Sponsor" value={data.team2.p2.sponsor} onChange={handleInputChange} className="text-right" />
+                             <div className="pt-2">
+                                <label className="block text-xs font-bold uppercase text-gray-400 mb-2 text-right">Active Player</label>
+                                <div className="flex gap-4 bg-surface p-2 rounded-md">
+                                    <label className={`flex-1 text-center cursor-pointer p-2 rounded ${data.team2.activePlayer === 0 ? 'bg-red-500 text-white' : 'hover:bg-white/10'}`}><input type="radio" name="team2_active" checked={data.team2.activePlayer === 0} onChange={() => handleActivePlayerChange('team2', 0)} className="hidden"/> P1</label>
+                                    <label className={`flex-1 text-center cursor-pointer p-2 rounded ${data.team2.activePlayer === 1 ? 'bg-red-500 text-white' : 'hover:bg-white/10'}`}><input type="radio" name="team2_active" checked={data.team2.activePlayer === 1} onChange={() => handleActivePlayerChange('team2', 1)} className="hidden"/> P2</label>
+                                </div>
+                            </div>
+                        </div>
+                    </GlassCard>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => updateScore('team2', -1)} className="h-20 w-20 rounded-xl bg-surfaceHighlight border border-white/5 text-gray-400 hover:bg-red-900/20 hover:text-red-500 transition-colors text-2xl">-</button>
+                        <div className="flex-1 h-20 bg-black/40 rounded-xl border border-red-500/30 flex items-center justify-center text-6xl font-bold text-white font-mono shadow-[inset_0_0_20px_rgba(220,38,38,0.2)]">{data.team2.score}</div>
+                        <button onClick={() => updateScore('team2', 1)} className="h-20 w-20 rounded-xl bg-white text-black hover:bg-gray-200 transition-colors text-4xl font-bold">+</button>
+                    </div>
                 </div>
             </div>
         </div>
