@@ -76,9 +76,9 @@ const IFLMatchOverlayPage = () => {
                 
                 {/* Player 1 Info */}
                 <div 
-                    className="absolute top-[14px] left-[134px] w-[80px] h-[57px] bg-cover bg-center border border-white" 
+                    className="absolute top-[14px] left-[134px] w-[80px] h-[57px] bg-cover bg-center border border-white saturate-[.75]" 
                     style={{ 
-                        backgroundImage: `url(${p1FlagUrl})`, 
+                        backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.36), transparent 35%, transparent 65%, rgba(0,0,0,0.36)), url(${p1FlagUrl})`, 
                         clipPath: 'polygon(0 0, 100% 0, 100% 100%, 65% 100%)' 
                     }} 
                 />
@@ -91,9 +91,9 @@ const IFLMatchOverlayPage = () => {
 
                 {/* Player 2 Info */}
                  <div 
-                    className="absolute top-[13px] right-[141px] w-[80px] h-[57px] bg-cover bg-center border border-white" 
+                    className="absolute top-[13px] right-[141px] w-[80px] h-[57px] bg-cover bg-center border border-white saturate-[.75]" 
                     style={{ 
-                        backgroundImage: `url(${p2FlagUrl})`, 
+                        backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.36), transparent 35%, transparent 65%, rgba(0,0,0,0.36)), url(${p2FlagUrl})`, 
                         clipPath: 'polygon(0 0, 100% 0, 38% 100%, 0 100%)' 
                     }} 
                 />
