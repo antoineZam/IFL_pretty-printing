@@ -34,9 +34,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Define absolute paths for safety
 const SOURCE_DIR = path.join(__dirname, 'client', 'public', 'source');
-const DATA_FILE = path.join(SOURCE_DIR, 'data.json');
-const TAG_TEAM_FILE = path.join(SOURCE_DIR, 'tag-team-data.json');
-const PLAYER_HISTORY_FILE = path.join(SOURCE_DIR, 'player-history.json');
+const DATA_FILE = path.join(SOURCE_DIR, 'data/ifl-data.json');
+const TAG_TEAM_FILE = path.join(SOURCE_DIR, 'data/tag-team-data.json');
+const PLAYER_HISTORY_FILE = path.join(SOURCE_DIR, 'data/player-history.json');
+
+// Run It Back files
+const RIB_MATCH_CARDS_FILE = path.join(SOURCE_DIR, 'data/run-it-back/match-cards.json');
+const RIB_PLAYER_STATS_FILE = path.join(SOURCE_DIR, 'data/run-it-back/player-stats.json');
+const RIB_STREAM_DATA_FILE = path.join(SOURCE_DIR, 'data/run-it-back/stream-data.json');
 
 // Ensure the source directory exists
 if (!fs.existsSync(SOURCE_DIR)) {
@@ -136,10 +141,100 @@ function savePlayerHistory(data) {
     }
 }
 
+// --- RUN IT BACK DATA MANAGEMENT ---
+
+function loadRIBMatchCards() {
+    try {
+        if (!fs.existsSync(RIB_MATCH_CARDS_FILE)) throw new Error('File does not exist');
+        const rawData = fs.readFileSync(RIB_MATCH_CARDS_FILE, 'utf8');
+        if (!rawData.trim()) throw new Error('File is empty');
+        return JSON.parse(rawData);
+    } catch (error) {
+        console.log('Creating new Run It Back match cards file...');
+        const defaultData = {
+            eventTitle: "THE RUNBACK",
+            eventSubtitle: "THE FINAL CHAPTER",
+            partNumber: "01",
+            mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
+            matches: [],
+            singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
+            sponsors: { presenter: "", association: "" }
+        };
+        saveRIBMatchCards(defaultData);
+        return defaultData;
+    }
+}
+
+function saveRIBMatchCards(data) {
+    try {
+        fs.writeFileSync(RIB_MATCH_CARDS_FILE, JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error('Error saving RIB match cards:', error);
+    }
+}
+
+function loadRIBPlayerStats() {
+    try {
+        if (!fs.existsSync(RIB_PLAYER_STATS_FILE)) throw new Error('File does not exist');
+        const rawData = fs.readFileSync(RIB_PLAYER_STATS_FILE, 'utf8');
+        if (!rawData.trim()) throw new Error('File is empty');
+        return JSON.parse(rawData);
+    } catch (error) {
+        console.log('Creating new Run It Back player stats file...');
+        const defaultData = { players: [] };
+        saveRIBPlayerStats(defaultData);
+        return defaultData;
+    }
+}
+
+function saveRIBPlayerStats(data) {
+    try {
+        fs.writeFileSync(RIB_PLAYER_STATS_FILE, JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error('Error saving RIB player stats:', error);
+    }
+}
+
+function loadRIBStreamData() {
+    try {
+        if (!fs.existsSync(RIB_STREAM_DATA_FILE)) throw new Error('File does not exist');
+        const rawData = fs.readFileSync(RIB_STREAM_DATA_FILE, 'utf8');
+        if (!rawData.trim()) throw new Error('File is empty');
+        return JSON.parse(rawData);
+    } catch (error) {
+        console.log('Creating new Run It Back stream data file...');
+        const defaultData = { matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0 };
+        saveRIBStreamData(defaultData);
+        return defaultData;
+    }
+}
+
+function saveRIBStreamData(data) {
+    try {
+        fs.writeFileSync(RIB_STREAM_DATA_FILE, JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error('Error saving RIB stream data:', error);
+    }
+}
+
 // Load initial state
 let overlayData = loadData();
 let tagTeamData = loadTagTeamData();
 let playerHistory = loadPlayerHistory();
+let ribMatchCards = loadRIBMatchCards();
+let ribPlayerStats = loadRIBPlayerStats();
+let ribStreamData = loadRIBStreamData();
+
+// Run It Back overlay visibility state
+let ribOverlayState = {
+    showMatchCard: false,
+    showPlayerStats: false,
+    showPartOne: false,
+    showStreamOverlay: false,
+    selectedMatchIndex: 0,
+    selectedPlayerIndex: 0,
+    animationTrigger: 0
+};
 
 // --- API ROUTES ---
 app.post('/api/auth', (req, res) => {
@@ -191,6 +286,51 @@ app.delete('/api/history', (req, res) => {
     }
 });
 
+// --- RUN IT BACK API ROUTES ---
+
+app.get('/api/rib/match-cards', (req, res) => {
+    res.status(200).json(ribMatchCards);
+});
+
+app.post('/api/rib/match-cards', (req, res) => {
+    ribMatchCards = req.body;
+    saveRIBMatchCards(ribMatchCards);
+    io.emit('rib-match-cards-update', ribMatchCards);
+    res.status(200).json(ribMatchCards);
+});
+
+app.get('/api/rib/player-stats', (req, res) => {
+    res.status(200).json(ribPlayerStats);
+});
+
+app.post('/api/rib/player-stats', (req, res) => {
+    ribPlayerStats = req.body;
+    saveRIBPlayerStats(ribPlayerStats);
+    io.emit('rib-player-stats-update', ribPlayerStats);
+    res.status(200).json(ribPlayerStats);
+});
+
+app.get('/api/rib/stream-data', (req, res) => {
+    res.status(200).json(ribStreamData);
+});
+
+app.post('/api/rib/stream-data', (req, res) => {
+    ribStreamData = req.body;
+    saveRIBStreamData(ribStreamData);
+    io.emit('rib-stream-data-update', ribStreamData);
+    res.status(200).json(ribStreamData);
+});
+
+app.get('/api/rib/overlay-state', (req, res) => {
+    res.status(200).json(ribOverlayState);
+});
+
+app.post('/api/rib/overlay-state', (req, res) => {
+    ribOverlayState = { ...ribOverlayState, ...req.body };
+    io.emit('rib-overlay-state-update', ribOverlayState);
+    res.status(200).json(ribOverlayState);
+});
+
 
 // --- SOCKET.IO ---
 
@@ -206,6 +346,12 @@ io.on('connection', (socket) => {
   // Send current state immediately on connection
   socket.emit('data-update', overlayData);
   socket.emit('tag-team-data', tagTeamData);
+  
+  // Send Run It Back state
+  socket.emit('rib-match-cards-update', ribMatchCards);
+  socket.emit('rib-player-stats-update', ribPlayerStats);
+  socket.emit('rib-stream-data-update', ribStreamData);
+  socket.emit('rib-overlay-state-update', ribOverlayState);
 
   // Handle 1v1 Updates
   socket.on('update-data', (data) => {
@@ -241,6 +387,34 @@ io.on('connection', (socket) => {
     tagTeamData = data;
     saveTagTeamData(tagTeamData);
     io.emit('tag-team-data', tagTeamData);
+  });
+
+  // Handle Run It Back Updates
+  socket.on('rib-match-cards-update', (data) => {
+    console.log('Received RIB Match Cards Update');
+    ribMatchCards = data;
+    saveRIBMatchCards(ribMatchCards);
+    io.emit('rib-match-cards-update', ribMatchCards);
+  });
+
+  socket.on('rib-player-stats-update', (data) => {
+    console.log('Received RIB Player Stats Update');
+    ribPlayerStats = data;
+    saveRIBPlayerStats(ribPlayerStats);
+    io.emit('rib-player-stats-update', ribPlayerStats);
+  });
+
+  socket.on('rib-stream-data-update', (data) => {
+    console.log('Received RIB Stream Data Update');
+    ribStreamData = data;
+    saveRIBStreamData(ribStreamData);
+    io.emit('rib-stream-data-update', ribStreamData);
+  });
+
+  socket.on('rib-overlay-state-update', (data) => {
+    console.log('Received RIB Overlay State Update');
+    ribOverlayState = { ...ribOverlayState, ...data };
+    io.emit('rib-overlay-state-update', ribOverlayState);
   });
 });
 

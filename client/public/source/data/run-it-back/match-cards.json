@@ -1,0 +1,56 @@
+{
+  "eventTitle": "THE RUNBACK",
+  "eventSubtitle": "THE FINAL CHAPTER",
+  "partNumber": "01",
+  "mainEvent": {
+    "p1Name": "Kuro Loaf",
+    "p1Title": "IFF8 & IFF7 CHAMPION",
+    "p1Character": "jin",
+    "p2Name": "MainManSWE",
+    "p2Title": "THE FINAL BOSS",
+    "p2Character": "kazuya"
+  },
+  "matches": [
+    {
+      "id": 1,
+      "p1Name": "Omnis",
+      "p1Title": "CHALLENGER",
+      "p1Character": "reina",
+      "p2Name": "Crimson",
+      "p2Title": "IFF6 CHAMPION",
+      "p2Character": "jun"
+    },
+    {
+      "id": 2,
+      "p1Name": "Penny",
+      "p1Title": "CHALLENGER",
+      "p1Character": "alisa",
+      "p2Name": "Jinora",
+      "p2Title": "CHALLENGER",
+      "p2Character": "nina"
+    },
+    {
+      "id": 3,
+      "p1Name": "Omnis",
+      "p1Title": "CHALLENGER",
+      "p1Character": "reina",
+      "p2Name": "Crimson",
+      "p2Title": "IFF6 CHAMPION",
+      "p2Character": "jun"
+    }
+  ],
+  "singleMatch": {
+    "matchTitle": "THE RUNBACK",
+    "format": "FIRST TO 3",
+    "p1Name": "KURO LOAF",
+    "p1Title": "THE DEFENDER",
+    "p1Character": "jin",
+    "p2Name": "TED LOAF",
+    "p2Title": "THE AVENGER",
+    "p2Character": "lee"
+  },
+  "sponsors": {
+    "presenter": "THE HOUSE OF LOAF",
+    "association": "THE IRON FROOT FEDERATION"
+  }
+}
