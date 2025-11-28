@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, ChevronRight } from 'lucide-react';
+import { ExternalLink, ChevronRight, Lock } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 
 const DashboardPage = () => {
     const [searchParams] = useSearchParams();
     const [key, setKey] = useState<string | null>(null);
+    const [ribUnlocked, setRibUnlocked] = useState(false);
+    const [ribKeyRequired, setRibKeyRequired] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -17,8 +19,41 @@ const DashboardPage = () => {
         }
         
         setKey(connectionKey);
+        
+        // Check RIB access
+        checkRibAccess();
 
     }, [searchParams, navigate]);
+
+    const checkRibAccess = async () => {
+        try {
+            // Check if RIB key is required
+            const requiredRes = await fetch('/api/rib-auth/required');
+            const requiredData = await requiredRes.json();
+            
+            if (!requiredData.required) {
+                setRibKeyRequired(false);
+                setRibUnlocked(true);
+                return;
+            }
+
+            // Check if we have a valid stored key
+            const storedKey = localStorage.getItem('ribAccessKey');
+            if (storedKey) {
+                const res = await fetch('/api/rib-auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: storedKey })
+                });
+                
+                if (res.ok) {
+                    setRibUnlocked(true);
+                }
+            }
+        } catch (err) {
+            console.error('Error checking RIB access:', err);
+        }
+    };
 
     const iflRoutes = [
         { name: "IFL Match Control", path: "/ifl/match-control" },
@@ -80,11 +115,33 @@ const DashboardPage = () => {
             </section>
 
             {/* Run It Back Section */}
-            <section>
+            <section className="relative">
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                     <span className="w-1 h-6 bg-red-500 rounded-full"></span>
                     Run It Back
+                    {ribKeyRequired && !ribUnlocked && (
+                        <span className="ml-2 px-2 py-1 bg-red-500/20 border border-red-500/30 rounded text-xs text-red-400 flex items-center gap-1">
+                            <Lock size={12} /> Locked
+                        </span>
+                    )}
                 </h2>
+                
+                {/* Blur overlay when locked */}
+                {ribKeyRequired && !ribUnlocked && (
+                    <div className="absolute inset-0 top-12 z-10 backdrop-blur-md bg-black/40 rounded-xl flex items-center justify-center">
+                        <div className="text-center p-8">
+                            <Lock size={48} className="text-red-500 mx-auto mb-4" />
+                            <h3 className="text-xl font-bold text-white mb-2">Section Locked</h3>
+                            <p className="text-gray-400 mb-4">This section requires an additional access key</p>
+                            <Link 
+                                to="/rib/match-control"
+                                className="inline-block px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                            >
+                                Enter Access Key
+                            </Link>
+                        </div>
+                    </div>
+                )}
                 
                 {/* Quick Access to Control Panel */}
                 <Link 

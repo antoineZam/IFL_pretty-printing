@@ -8,7 +8,11 @@
     "p1Character": "jin",
     "p2Name": "MainManSWE",
     "p2Title": "THE FINAL BOSS",
-    "p2Character": "kazuya"
+    "p2Character": "kazuya",
+    "p1Score": 2,
+    "p2Score": 3,
+    "winner": "p2",
+    "completed": true
   },
   "matches": [
     {
@@ -18,7 +22,13 @@
       "p1Character": "reina",
       "p2Name": "Crimson",
       "p2Title": "IFF6 CHAMPION",
-      "p2Character": "jun"
+      "p2Character": "jun",
+      "p1Score": 3,
+      "p2Score": 2,
+      "winner": "p1",
+      "completed": true,
+      "p1Flag": "FR",
+      "p2Flag": "IE"
     },
     {
       "id": 2,

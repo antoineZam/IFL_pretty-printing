@@ -14,7 +14,10 @@ import {
     ChevronRight,
     Plus,
     Minus,
-    Settings
+    Settings,
+    Download,
+    Save,
+    Trophy
 } from 'lucide-react';
 import { countries } from '../utils/countries';
 
@@ -22,22 +25,35 @@ interface MatchCardData {
     eventTitle: string;
     eventSubtitle: string;
     partNumber: string;
+    winScore: number;
     mainEvent: {
         p1Name: string;
         p1Title: string;
         p1Character: string;
+        p1Flag?: string;
+        p1Score: number;
         p2Name: string;
         p2Title: string;
         p2Character: string;
+        p2Flag?: string;
+        p2Score: number;
+        winner: 'p1' | 'p2' | null;
+        completed: boolean;
     };
     matches: Array<{
         id: number;
         p1Name: string;
         p1Title: string;
         p1Character: string;
+        p1Flag?: string;
+        p1Score: number;
         p2Name: string;
         p2Title: string;
         p2Character: string;
+        p2Flag?: string;
+        p2Score: number;
+        winner: 'p1' | 'p2' | null;
+        completed: boolean;
     }>;
     singleMatch: {
         matchTitle: string;
@@ -45,9 +61,15 @@ interface MatchCardData {
         p1Name: string;
         p1Title: string;
         p1Character: string;
+        p1Flag?: string;
+        p1Score: number;
         p2Name: string;
         p2Title: string;
         p2Character: string;
+        p2Flag?: string;
+        p2Score: number;
+        winner: 'p1' | 'p2' | null;
+        completed: boolean;
     };
     sponsors: {
         presenter: string;
@@ -226,6 +248,134 @@ export default function RIBMatchControlPage() {
         return player ? player.name : 'No player selected';
     };
 
+    // Load stream data from selected match card
+    const loadFromMatchCard = () => {
+        if (!matchCards) return;
+        
+        let p1Name = '';
+        let p2Name = '';
+        let p1Flag = '';
+        let p2Flag = '';
+        let p1Score = 0;
+        let p2Score = 0;
+        let matchTitle = '';
+        
+        if (overlayState.selectedMatchIndex === 0) {
+            // Main Event
+            p1Name = matchCards.mainEvent.p1Name;
+            p2Name = matchCards.mainEvent.p2Name;
+            p1Flag = matchCards.mainEvent.p1Flag || '';
+            p2Flag = matchCards.mainEvent.p2Flag || '';
+            p1Score = matchCards.mainEvent.p1Score || 0;
+            p2Score = matchCards.mainEvent.p2Score || 0;
+            matchTitle = 'Main Event';
+        } else {
+            // Regular match
+            const match = matchCards.matches[overlayState.selectedMatchIndex - 1];
+            if (match) {
+                p1Name = match.p1Name;
+                p2Name = match.p2Name;
+                p1Flag = match.p1Flag || '';
+                p2Flag = match.p2Flag || '';
+                p1Score = match.p1Score || 0;
+                p2Score = match.p2Score || 0;
+                matchTitle = `Match ${overlayState.selectedMatchIndex}`;
+            }
+        }
+        
+        updateStreamData({
+            matchTitle,
+            p1Name,
+            p2Name,
+            p1Flag,
+            p2Flag,
+            p1Score,
+            p2Score
+        });
+    };
+
+    // Save scores and flags to match card and determine winner
+    const saveScoresToMatchCard = () => {
+        if (!matchCards || !socket) return;
+        
+        const winScore = matchCards.winScore || 3;
+        const p1Score = streamData.p1Score;
+        const p2Score = streamData.p2Score;
+        const p1Flag = streamData.p1Flag;
+        const p2Flag = streamData.p2Flag;
+        
+        // Determine winner (first to reach winScore)
+        let winner: 'p1' | 'p2' | null = null;
+        let completed = false;
+        
+        if (p1Score >= winScore) {
+            winner = 'p1';
+            completed = true;
+        } else if (p2Score >= winScore) {
+            winner = 'p2';
+            completed = true;
+        }
+        
+        const updatedMatchCards = { ...matchCards };
+        
+        if (overlayState.selectedMatchIndex === 0) {
+            // Update Main Event
+            updatedMatchCards.mainEvent = {
+                ...updatedMatchCards.mainEvent,
+                p1Score,
+                p2Score,
+                p1Flag,
+                p2Flag,
+                winner,
+                completed
+            };
+        } else {
+            // Update regular match
+            const matchIndex = overlayState.selectedMatchIndex - 1;
+            if (updatedMatchCards.matches[matchIndex]) {
+                updatedMatchCards.matches[matchIndex] = {
+                    ...updatedMatchCards.matches[matchIndex],
+                    p1Score,
+                    p2Score,
+                    p1Flag,
+                    p2Flag,
+                    winner,
+                    completed
+                };
+            }
+        }
+        
+        setMatchCards(updatedMatchCards);
+        socket.emit('rib-match-cards-update', updatedMatchCards);
+    };
+
+    // Get current match status
+    const getCurrentMatchStatus = () => {
+        if (!matchCards) return { completed: false, winner: null };
+        
+        if (overlayState.selectedMatchIndex === 0) {
+            return {
+                completed: matchCards.mainEvent.completed,
+                winner: matchCards.mainEvent.winner,
+                p1Score: matchCards.mainEvent.p1Score,
+                p2Score: matchCards.mainEvent.p2Score
+            };
+        } else {
+            const match = matchCards.matches[overlayState.selectedMatchIndex - 1];
+            if (match) {
+                return {
+                    completed: match.completed,
+                    winner: match.winner,
+                    p1Score: match.p1Score,
+                    p2Score: match.p2Score
+                };
+            }
+        }
+        return { completed: false, winner: null, p1Score: 0, p2Score: 0 };
+    };
+
+    const matchStatus = getCurrentMatchStatus();
+
     return (
         <div className="min-h-screen bg-black text-white p-6">
             {/* Header */}
@@ -335,7 +485,7 @@ export default function RIBMatchControlPage() {
                         <p className="text-lg font-medium">{getSelectedMatchName()}</p>
                     </div>
                     
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 mb-4">
                         <button
                             onClick={() => selectMatch('prev')}
                             className="flex-1 flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
@@ -351,6 +501,15 @@ export default function RIBMatchControlPage() {
                             <ChevronRight size={20} />
                         </button>
                     </div>
+                    
+                    {/* Load from Match Card Button */}
+                    <button
+                        onClick={loadFromMatchCard}
+                        className="w-full flex items-center justify-center gap-2 p-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    >
+                        <Download size={18} />
+                        Load to Stream Overlay
+                    </button>
 
                     {/* Player Selection for Stats */}
                     <div className="mt-6 pt-6 border-t border-gray-700">
@@ -502,8 +661,23 @@ export default function RIBMatchControlPage() {
                         </div>
                     </div>
 
-                    {/* Reset Scores */}
-                    <div className="mt-6 flex justify-center">
+                    {/* Match Status */}
+                    {matchStatus.completed && (
+                        <div className="mt-6 p-4 bg-green-900/30 border border-green-500/50 rounded-lg">
+                            <div className="flex items-center justify-center gap-2 text-green-400">
+                                <Trophy size={20} />
+                                <span className="font-bold">
+                                    Match Complete - Winner: {matchStatus.winner === 'p1' ? streamData.p1Name : streamData.p2Name}
+                                </span>
+                            </div>
+                            <p className="text-center text-green-400/70 text-sm mt-1">
+                                Final Score: {matchStatus.p1Score} - {matchStatus.p2Score}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="mt-6 flex justify-center gap-4">
                         <button
                             onClick={() => updateStreamData({ p1Score: 0, p2Score: 0 })}
                             className="flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
@@ -511,7 +685,27 @@ export default function RIBMatchControlPage() {
                             <RotateCcw size={18} />
                             Reset Scores
                         </button>
+                        <button
+                            onClick={saveScoresToMatchCard}
+                            className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                        >
+                            <Save size={18} />
+                            Save Scores to Match Card
+                        </button>
                     </div>
+
+                    {/* Saved Scores Info */}
+                    {matchCards && (
+                        <div className="mt-4 text-center text-sm text-gray-500">
+                            <p>Win condition: First to {matchCards.winScore || 3}</p>
+                            {matchStatus.p1Score !== undefined && matchStatus.p2Score !== undefined && (
+                                <p className="mt-1">
+                                    Saved scores: {matchStatus.p1Score} - {matchStatus.p2Score}
+                                    {matchStatus.completed && ` (${matchStatus.winner === 'p1' ? 'P1' : 'P2'} wins)`}
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -7,6 +7,7 @@ const path = require('path');
 
 // Set default connection key
 const CONNECTION_KEY = process.env.CONNECTION_KEY;
+const RIB_ACCESS_KEY = process.env.RIB_ACCESS_KEY;
 
 if (!CONNECTION_KEY) {
     console.error("FATAL ERROR: CONNECTION_KEY is not defined in your .env file.");
@@ -15,7 +16,15 @@ if (!CONNECTION_KEY) {
     process.exit(1); // Stop the server if the key is not configured
 }
 
+if (!RIB_ACCESS_KEY) {
+    console.warn("WARNING: RIB_ACCESS_KEY is not defined in your .env file.");
+    console.warn("Run It Back section will be accessible without additional authentication.");
+}
+
 console.log('Connection key loaded successfully.');
+if (RIB_ACCESS_KEY) {
+    console.log('RIB access key loaded successfully.');
+}
 
 const port = 3000;
 const app = express();
@@ -243,6 +252,26 @@ app.post('/api/auth', (req, res) => {
     } else {
         res.status(401).json({ success: false, message: 'Invalid connection key' });
     }
+});
+
+// RIB Access Key Authentication
+app.post('/api/rib-auth', (req, res) => {
+    // If no RIB key is configured, allow access
+    if (!RIB_ACCESS_KEY) {
+        res.status(200).json({ success: true, message: 'No RIB key required' });
+        return;
+    }
+    
+    if (req.body.key === RIB_ACCESS_KEY) {
+        res.status(200).json({ success: true });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid RIB access key' });
+    }
+});
+
+// Check if RIB key is required
+app.get('/api/rib-auth/required', (req, res) => {
+    res.status(200).json({ required: !!RIB_ACCESS_KEY });
 });
 
 app.get('/api/history', (req, res) => {
