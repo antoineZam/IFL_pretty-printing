@@ -127,14 +127,6 @@ export default function RIBPlayerStatsOverlay() {
                 className="absolute top-[30px] left-[80px] right-[80px] flex justify-between text-[11px] text-[#8a8070] tracking-[0.15em]"
                 style={{ animation: `fadeIn 0.6s ease-out 0.2s both` }}
             >
-                <div>
-                    <p>PROUDLY PRESENTED</p>
-                    <p>BY {matchCards?.sponsors.presenter || 'THE HOUSE OF LOAF'}</p>
-                </div>
-                <div className="text-right">
-                    <p>IN ASSOCIATION WITH</p>
-                    <p>{matchCards?.sponsors.association || 'THE IRON FROOT FEDERATION'}</p>
-                </div>
             </div>
 
             {/* Stats Panel */}

@@ -12,6 +12,7 @@ import RIBSingleMatchOverlay from './pages/RIBSingleMatchOverlay';
 import RIBPlayerStatsOverlay from './pages/RIBPlayerStatsOverlay';
 import RIBPartOneOverlay from './pages/RIBPartOneOverlay';
 import RIBStreamOverlay from './pages/RIBStreamOverlay';
+import RIBUnifiedOverlay from './pages/RIBUnifiedOverlay';
 // Access Guard
 import RIBAccessGuard from './components/RIBAccessGuard';
 
@@ -28,6 +29,7 @@ function App() {
         {/* Run It Back routes - Protected by RIB Access Key */}
         <Route path="/rib/match-control" element={<RIBAccessGuard><RIBMatchControlPage /></RIBAccessGuard>} />
         <Route path="/rib/match-cards-editor" element={<RIBAccessGuard><RIBMatchCardsEditorPage /></RIBAccessGuard>} />
+        <Route path="/rib/overlay" element={<RIBUnifiedOverlay />} />
         <Route path="/rib/single-match-overlay" element={<RIBSingleMatchOverlay />} />
         <Route path="/rib/player-stats-overlay" element={<RIBPlayerStatsOverlay />} />
         <Route path="/rib/part-one-overlay" element={<RIBPartOneOverlay />} />

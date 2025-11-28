@@ -9,10 +9,12 @@
     "p2Name": "MainManSWE",
     "p2Title": "THE FINAL BOSS",
     "p2Character": "kazuya",
-    "p1Score": 2,
-    "p2Score": 3,
-    "winner": "p2",
-    "completed": true
+    "p1Score": 3,
+    "p2Score": 2,
+    "winner": "p1",
+    "completed": true,
+    "p1Flag": "FR",
+    "p2Flag": "IL"
   },
   "matches": [
     {
@@ -52,12 +54,12 @@
   "singleMatch": {
     "matchTitle": "THE RUNBACK",
     "format": "FIRST TO 3",
-    "p1Name": "KURO LOAF",
+    "p1Name": "JINORA",
     "p1Title": "THE DEFENDER",
-    "p1Character": "jin",
-    "p2Name": "TED LOAF",
+    "p1Character": "anna",
+    "p2Name": "PENNY",
     "p2Title": "THE AVENGER",
-    "p2Character": "lee"
+    "p2Character": "nina"
   },
   "sponsors": {
     "presenter": "THE HOUSE OF LOAF",

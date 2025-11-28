@@ -32,7 +32,7 @@ export default function RIBStreamOverlay() {
 
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
-        
+
         const connectionKey = localStorage.getItem('connectionKey');
         const newSocket: Socket = io({
             auth: { token: connectionKey || '' }
@@ -57,124 +57,103 @@ export default function RIBStreamOverlay() {
         return <div className="w-[1920px] h-[1080px]" />;
     }
 
+    const noFlagUrl = '/source/overlay/ifl/no-flag.png';
+
     const p1FlagUrl = streamData.p1Flag 
-        ? `/source/overlay/flags/${streamData.p1Flag.toLowerCase()}.png`
-        : '/source/overlay/ifl/no-flag.png';
+        ? `https://flagcdn.com/h240/${streamData.p1Flag.toLowerCase()}.png`
+        : noFlagUrl;
     const p2FlagUrl = streamData.p2Flag 
-        ? `/source/overlay/flags/${streamData.p2Flag.toLowerCase()}.png`
-        : '/source/overlay/ifl/no-flag.png';
+        ? `https://flagcdn.com/h240/${streamData.p2Flag.toLowerCase()}.png`
+        : noFlagUrl;
 
     return (
         <div className="w-[1920px] h-[1080px] relative overflow-hidden font-['Archivo']">
-            {/* Top Scoreboard */}
+            {/* Base Overlay Image */}
+            <img 
+                key={`overlay-${animKey}`}
+                src="/source/overlay/run_it_back/match_overlay/runitback_overlay.png"
+                alt="Overlay"
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ animation: `fadeIn 0.3s ease-out` }}
+            />
+
+            {/* Player 1 Flag - positioned over the left circle */}
             <div 
-                key={`scoreboard-${animKey}`}
-                className="absolute top-0 left-1/2 -translate-x-1/2 flex"
-                style={{ animation: `slideDown 0.5s ease-out` }}
+                key={`p1flag-${animKey}`}
+                className="absolute top-[21px] left-[202px] w-[46px] h-[46px] rounded-full overflow-hidden z-10"
+                style={{ 
+                    backgroundImage: `url(${p1FlagUrl})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    animation: `fadeIn 0.4s ease-out 0.1s both`
+                }}
+            />
+
+            {/* Player 1 Name */}
+            <div 
+                key={`p1name-${animKey}`}
+                className="absolute top-[28px] left-[400px] w-[280px] h-[30px] flex items-center"
+                style={{ animation: `slideInLeft 0.4s ease-out 0.1s both`, fontFamily: 'Gotham Book, Gotham, sans-serif' }}
             >
-                {/* Player 1 Section */}
-                <div className="flex items-center">
-                    {/* Flag */}
-                    <div 
-                        className="w-[50px] h-[50px] rounded-full overflow-hidden border-2 border-white shadow-lg"
-                        style={{ 
-                            backgroundImage: `url(${p1FlagUrl})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center'
-                        }}
-                    />
-                    
-                    {/* Name Bar */}
-                    <div 
-                        className="bg-white/95 backdrop-blur-sm h-[50px] flex items-center px-6 -ml-2"
-                        style={{ 
-                            clipPath: 'polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)',
-                            minWidth: '200px'
-                        }}
-                    >
-                        <span className="text-[#2a2520] text-[24px] font-bold tracking-tight">
-                            {streamData.p1Name}
-                        </span>
-                    </div>
-                    
-                    {/* Score */}
-                    <div 
-                        className="bg-[#c45c4c] h-[50px] w-[60px] flex items-center justify-center -ml-3"
-                        style={{ clipPath: 'polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)' }}
-                    >
-                        <span className="text-white text-[28px] font-bold">{streamData.p1Score}</span>
-                    </div>
-                </div>
-
-                {/* Match Title in Center */}
-                <div className="w-[200px] flex items-center justify-center">
-                    {streamData.matchTitle && (
-                        <div className="bg-white/95 backdrop-blur-sm px-4 py-2 rounded">
-                            <span className="text-[#2a2520] text-[14px] font-bold tracking-wider uppercase">
-                                {streamData.matchTitle}
-                            </span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Player 2 Section */}
-                <div className="flex items-center flex-row-reverse">
-                    {/* Flag */}
-                    <div 
-                        className="w-[50px] h-[50px] rounded-full overflow-hidden border-2 border-white shadow-lg"
-                        style={{ 
-                            backgroundImage: `url(${p2FlagUrl})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center'
-                        }}
-                    />
-                    
-                    {/* Name Bar */}
-                    <div 
-                        className="bg-white/95 backdrop-blur-sm h-[50px] flex items-center justify-end px-6 -mr-2"
-                        style={{ 
-                            clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 100%, 10px 100%)',
-                            minWidth: '200px'
-                        }}
-                    >
-                        <span className="text-[#2a2520] text-[24px] font-bold tracking-tight">
-                            {streamData.p2Name}
-                        </span>
-                    </div>
-                    
-                    {/* Score */}
-                    <div 
-                        className="bg-[#c45c4c] h-[50px] w-[60px] flex items-center justify-center -mr-3"
-                        style={{ clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 100%, 10px 100%)' }}
-                    >
-                        <span className="text-white text-[28px] font-bold">{streamData.p2Score}</span>
-                    </div>
-                </div>
+                <span className="text-[#3a3a3a] text-[24px] font-bold tracking-tight">
+                    {streamData.p1Name}
+                </span>
             </div>
 
-            {/* Bottom Logo */}
+            {/* Player 1 Score */}
             <div 
-                key={`logo-${animKey}`}
-                className="absolute bottom-[30px] left-1/2 -translate-x-1/2"
-                style={{ animation: `fadeInUp 0.6s ease-out 0.2s both` }}
+                key={`p1score-${animKey}`}
+                className="absolute top-[20px] left-[620px] w-[50px] h-[45px] flex items-center justify-center"
+                style={{ animation: `fadeIn 0.4s ease-out 0.2s both`, fontFamily: 'Gotham Bold, Gotham, sans-serif' }}
             >
-                <div className="flex items-center gap-2 text-[#c45c4c]">
-                    <div className="w-8 h-8 bg-[#c45c4c] rounded flex items-center justify-center">
-                        <span className="text-white text-[10px] font-bold">◀◀</span>
-                    </div>
-                    <span className="text-[28px] font-black tracking-tight">RUNITBACK</span>
-                </div>
+                <span className="text-[#c45c4c] text-[40px] font-bold">{streamData.p1Score}</span>
+            </div>
+
+            {/* Player 2 Flag - positioned over the right circle */}
+            <div 
+                key={`p2flag-${animKey}`}
+                className="absolute top-[21px] right-[204px] w-[46px] h-[46px] rounded-full overflow-hidden z-10"
+                style={{
+                    backgroundImage: `url(${p2FlagUrl})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    animation: `fadeIn 0.4s ease-out 0.1s both`
+                }}
+            />
+
+            {/* Player 2 Name */}
+            <div 
+                key={`p2name-${animKey}`}
+                className="absolute top-[28px] right-[400px] w-[280px] h-[30px] flex items-center justify-end"
+                style={{ animation: `slideInRight 0.4s ease-out 0.1s both`, fontFamily: 'Gotham Book, Gotham, sans-serif' }}
+            >
+                <span className="text-[#3a3a3a] text-[24px] font-bold tracking-tight">
+                    {streamData.p2Name}
+                </span>
+            </div>
+
+            {/* Player 2 Score */}
+            <div 
+                key={`p2score-${animKey}`}
+                className="absolute top-[20px] right-[625px] w-[50px] h-[45px] flex items-center justify-center"
+                style={{ animation: `fadeIn 0.4s ease-out 0.2s both`, fontFamily: 'Gotham Bold, Gotham, sans-serif' }}
+            >
+                <span className="text-[#c45c4c] text-[40px] font-bold">{streamData.p2Score}</span>
             </div>
 
             {/* Animations */}
             <style>{`
-                @keyframes slideDown {
-                    from { transform: translate(-50%, -100%); }
-                    to { transform: translate(-50%, 0); }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
                 }
-                @keyframes fadeInUp {
-                    from { transform: translate(-50%, 20px); opacity: 0; }
-                    to { transform: translate(-50%, 0); opacity: 1; }
+                @keyframes slideInLeft {
+                    from { transform: translateX(-20px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideInRight {
+                    from { transform: translateX(20px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
                 }
             `}</style>
         </div>

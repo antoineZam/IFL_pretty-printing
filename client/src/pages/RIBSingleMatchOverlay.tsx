@@ -86,129 +86,175 @@ export default function RIBSingleMatchOverlay() {
 
     return (
         <div className="w-[1920px] h-[1080px] relative overflow-hidden font-['Archivo']">
-            {/* Background */}
-            <div 
-                className="absolute inset-0 bg-gradient-to-br from-[#f5f0e8] to-[#e8e0d5]"
-                style={{ animation: `fadeIn 0.5s ease-out` }}
+            {/* Background - VS Background with branding */}
+            <img 
+                key={`bg-${animKey}`}
+                src="/source/overlay/run_it_back/player_vs/vs_background.png"
+                alt="Background"
+                className="absolute"
+                style={{ 
+                    width: '1920px', 
+                    height: '1080px',
+                    animation: `fadeIn 0.4s ease-out` 
+                }}
             />
 
-            {/* Large watermark text */}
+            {/* Match Title - Centered at top */}
             <div 
-                key={`watermark-${animKey}`}
-                className="absolute bottom-0 left-0 right-0 text-[280px] font-black text-[#d4c4b0]/30 leading-none tracking-tighter select-none"
+                key={`title-${animKey}`}
+                className="absolute top-[120px] left-0 right-0 text-center"
                 style={{ 
-                    animation: `slideUp 0.8s ease-out`,
-                    fontFamily: 'Archivo Black, sans-serif'
+                    animation: `fadeIn 0.5s ease-out 0.2s both`,
+                    zIndex: 3
                 }}
             >
-                {match.p1Name.split(' ').pop()?.toUpperCase()}
-                <span className="ml-8">{match.p2Name.split(' ').pop()?.charAt(0).toUpperCase()}</span>
+                <h1
+                    className="text-[#3a3530] text-[36px] font-black tracking-[0.05em] uppercase"
+                    style={{ fontFamily: 'Gotham Bold, Gotham, sans-serif' }}
+                >
+                    {match.matchTitle}
+                </h1>
+                <p 
+                    className="text-[#7a8080] text-[28px] tracking-[0.1em] uppercase mt-1 font-normal"
+                    style={{ fontFamily: 'D-DIN Exp Bold, sans-serif' }}
+                >
+                    {match.format}
+                </p>
             </div>
 
-            {/* Player 1 Character */}
+            {/* Player 1 Name - Large text at bottom background */}
+            <div 
+                key={`p1name-bg-${animKey}`}
+                className="absolute left-[-1400px] bottom-[-10px] overflow-hidden pointer-events-none"
+                style={{ 
+                    animation: `fadeIn 0.5s ease-out 0.1s both`,
+                    zIndex: 0
+                }}
+            >
+                <span 
+                    className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                    style={{ 
+                        fontSize: '400px',
+                        fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                        letterSpacing: '-0.03em',
+                        lineHeight: '0.8',
+                        transform: 'scaleX(0.7)'
+                    }}
+                >
+                    {match.p1Name}
+                </span>
+            </div>
+
+            {/* Player 2 Name - Large text at bottom background */}
+            <div
+                key={`p2name-bg-${animKey}`}
+                className="absolute right-[-1050px] bottom-[-10px] overflow-hidden pointer-events-none"
+                style={{ 
+                    animation: `fadeIn 0.5s ease-out 0.1s both`,
+                    zIndex: 0
+                }}
+            >
+                <span 
+                    className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                    style={{ 
+                        fontSize: '400px',
+                        fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                        letterSpacing: '-0.03em',
+                        lineHeight: '0.8',
+                        transform: 'scaleX(0.7)'
+                    }}
+                >
+                    {match.p2Name}
+                </span>
+            </div>
+
+            {/* Player 1 Character - Flipped, on left edge */}
             <div 
                 key={`p1-${animKey}`}
-                className="absolute left-0 bottom-0 h-[900px] w-[600px]"
+                className="absolute left-[-200px] bottom-[-675px]"
                 style={{ 
-                    animation: `slideInLeft 0.6s ease-out`,
+                    animation: `slideInLeft 0.6s ease-out 0.2s both`,
+                    zIndex: 2
                 }}
             >
                 <img 
                     src={p1CharImg} 
                     alt={match.p1Character}
-                    className="h-full w-full object-contain object-bottom"
+                    className="object-contain object-bottom"
+                    style={{
+                        height: '1650px',
+                        filter: 'drop-shadow(4px 4px 11px rgba(0,0,0,0.4))',
+                        transform: 'scaleX(-1)'
+                    }}
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
             </div>
 
-            {/* Player 2 Character */}
+            {/* Player 2 Character - On right edge */}
             <div 
                 key={`p2-${animKey}`}
-                className="absolute right-0 bottom-0 h-[900px] w-[600px]"
+                className="absolute right-[-200px] bottom-[-675px]"
                 style={{ 
-                    animation: `slideInRight 0.6s ease-out`,
+                    animation: `slideInRight 0.6s ease-out 0.2s both`,
+                    zIndex: 2
                 }}
             >
                 <img 
                     src={p2CharImg} 
                     alt={match.p2Character}
-                    className="h-full w-full object-contain object-bottom"
+                    className="object-contain object-bottom"
+                    style={{ 
+                        height: '1650px',
+                        filter: 'drop-shadow(-4px 4px 11px rgba(0,0,0,0.4))'
+                    }}
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
             </div>
 
-            {/* Center Card */}
+            {/* Player Info - P1 Side */}
             <div 
-                key={`card-${animKey}`}
-                className="absolute top-[80px] left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm shadow-2xl"
+                key={`p1info-${animKey}`}
+                className="absolute top-[310px] left-[500px] text-right"
                 style={{ 
-                    width: '700px',
-                    animation: `fadeInDown 0.7s ease-out`,
+                    animation: `fadeIn 0.6s ease-out 0.3s both`,
+                    zIndex: 3
                 }}
             >
-                {/* Title Section */}
-                <div className="text-center py-6">
-                    <h2 className="text-[#8a8070] text-[18px] tracking-[0.3em] font-medium">
-                        {match.matchTitle}
-                    </h2>
-                    <p className="text-[#8a8070] text-[14px] tracking-[0.2em]">
-                        {match.format}
-                    </p>
-                </div>
-
-                {/* VS Section */}
-                <div className="flex items-center justify-center gap-8 py-8">
-                    {/* Player 1 */}
-                    <div className="text-right">
-                        <p className="text-[#c45c4c] text-[14px] tracking-[0.2em] font-medium mb-1">
-                            {match.p1Title}
-                        </p>
-                        <h3 className="text-[#c45c4c] text-[42px] font-black tracking-tight leading-none">
-                            {match.p1Name}
-                        </h3>
-                    </div>
-
-                    {/* VS Badge */}
-                    <div className="bg-[#c45c4c] text-white px-4 py-2 text-[16px] font-bold rounded">
-                        VS
-                    </div>
-
-                    {/* Player 2 */}
-                    <div className="text-left">
-                        <p className="text-[#c45c4c] text-[14px] tracking-[0.2em] font-medium mb-1">
-                            {match.p2Title}
-                        </p>
-                        <h3 className="text-[#c45c4c] text-[42px] font-black tracking-tight leading-none">
-                            {match.p2Name}
-                        </h3>
-                    </div>
-                </div>
+                <p 
+                    className="text-[#7a8080] text-[24px] tracking-[0.2em] font-normal mb-2"
+                    style={{ fontFamily: 'D-DIN Bold, sans-serif' }}
+                >
+                    {match.p1Title}
+                </p>
+                <h3 
+                    className="text-[#e63030] text-[92px] font-bold tracking-tight leading-none"
+                    style={{ fontFamily: 'D-DIN Condensed, sans-serif' }}
+                >
+                    {match.p1Name}
+                </h3>
             </div>
 
-            {/* Bottom Branding */}
+            {/* Player Info - P2 Side */}
             <div 
-                key={`brand-${animKey}`}
-                className="absolute bottom-[80px] left-1/2 -translate-x-1/2 text-center"
-                style={{ animation: `fadeInUp 0.8s ease-out 0.3s both` }}
+                key={`p2info-${animKey}`}
+                className="absolute top-[310px] right-[550px] text-left"
+                style={{ 
+                    animation: `fadeIn 0.6s ease-out 0.3s both`,
+                    zIndex: 3
+                }}
             >
-                <div className="flex items-center gap-3 text-[#c45c4c]">
-                    <div className="w-8 h-8 bg-[#c45c4c] rounded flex items-center justify-center">
-                        <span className="text-white text-[10px] font-bold">◀◀</span>
-                    </div>
-                    <span className="text-[32px] font-black tracking-tight">RUNITBACK</span>
-                    <span className="text-[32px] font-light text-[#8a8070]">PART {matchCards.partNumber}</span>
-                </div>
-                
-                <div className="flex justify-center gap-16 mt-4 text-[10px] text-[#8a8070] tracking-[0.15em]">
-                    <div>
-                        <p>PROUDLY PRESENTED</p>
-                        <p>BY {matchCards.sponsors.presenter}</p>
-                    </div>
-                    <div>
-                        <p>IN ASSOCIATION WITH</p>
-                        <p>{matchCards.sponsors.association}</p>
-                    </div>
-                </div>
+                <p 
+                    className="text-[#7a8080] text-[24px] tracking-[0.2em] font-normal mb-2"
+                    style={{ fontFamily: 'D-DIN Condensed Bold, sans-serif' }}
+                >
+                    {match.p2Title}
+                </p>
+                <h3 
+                    className="text-[#e63030] text-[92px] font-bold tracking-tight leading-none"
+                    style={{ fontFamily: 'D-DIN Condensed, sans-serif' }}
+                >
+                    {match.p2Name}
+                </h3>
             </div>
 
             {/* Animations */}
@@ -217,28 +263,15 @@ export default function RIBSingleMatchOverlay() {
                     from { opacity: 0; }
                     to { opacity: 1; }
                 }
-                @keyframes slideUp {
-                    from { transform: translateY(100px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
                 @keyframes slideInLeft {
-                    from { transform: translateX(-100px); opacity: 0; }
+                    from { transform: translateX(-150px); opacity: 0; }
                     to { transform: translateX(0); opacity: 1; }
                 }
                 @keyframes slideInRight {
-                    from { transform: translateX(100px); opacity: 0; }
+                    from { transform: translateX(150px); opacity: 0; }
                     to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes fadeInDown {
-                    from { transform: translate(-50%, -30px); opacity: 0; }
-                    to { transform: translate(-50%, 0); opacity: 1; }
-                }
-                @keyframes fadeInUp {
-                    from { transform: translate(-50%, 30px); opacity: 0; }
-                    to { transform: translate(-50%, 0); opacity: 1; }
                 }
             `}</style>
         </div>
     );
 }
-

@@ -86,7 +86,7 @@ const DashboardPage = () => {
             <section className="mb-12">
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                     <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
-                    IFL Overlays
+                    TDEU Overlays
                 </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {iflRoutes.map((route, idx) => (
