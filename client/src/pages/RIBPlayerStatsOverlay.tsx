@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
 interface PlayerStats {
@@ -37,7 +38,12 @@ interface OverlayState {
     animationTrigger: number;
 }
 
-export default function RIBPlayerStatsOverlay() {
+interface Props {
+    forceShow?: boolean;
+}
+
+export default function RIBPlayerStatsOverlay({ forceShow = false }: Props) {
+    const [searchParams] = useSearchParams();
     const [playerStats, setPlayerStats] = useState<PlayerStatsData | null>(null);
     const [overlayState, setOverlayState] = useState<OverlayState | null>(null);
     const [animKey, setAnimKey] = useState(0);
@@ -45,7 +51,7 @@ export default function RIBPlayerStatsOverlay() {
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
         
-        const connectionKey = localStorage.getItem('connectionKey');
+        const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
         const newSocket: Socket = io({
             auth: { token: connectionKey || '' }
         });
@@ -65,11 +71,13 @@ export default function RIBPlayerStatsOverlay() {
         };
     }, []);
 
-    if (!playerStats || !overlayState || !overlayState.showPlayerStats) {
+    const shouldShow = forceShow || (overlayState && overlayState.showPlayerStats);
+    
+    if (!playerStats || !shouldShow) {
         return <div className="w-[1920px] h-[1080px]" />;
     }
 
-    const player = playerStats.players[overlayState.selectedPlayerIndex];
+    const player = playerStats.players[overlayState?.selectedPlayerIndex ?? 0];
     if (!player) {
         return <div className="w-[1920px] h-[1080px]" />;
     }

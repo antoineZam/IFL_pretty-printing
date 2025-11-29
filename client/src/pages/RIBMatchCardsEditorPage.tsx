@@ -26,6 +26,7 @@ interface Match {
     p2Score: number;
     winner: 'p1' | 'p2' | null;
     completed: boolean;
+    isMainEvent?: boolean;
 }
 
 interface MatchCardData {
@@ -138,11 +139,24 @@ export default function RIBMatchCardsEditorPage() {
         });
     };
 
-    const handleMatchChange = (index: number, field: string, value: string) => {
+    const handleMatchChange = (index: number, field: string, value: string | boolean) => {
         setSaved(false);
         setMatchCards(prev => {
             const newMatches = [...prev.matches];
-            newMatches[index] = { ...newMatches[index], [field]: value };
+            // Handle isMainEvent specially - ensure only one main event at a time
+            if (field === 'isMainEvent') {
+                const isMain = Boolean(value);
+                // If setting this as main event, unset all others
+                if (isMain) {
+                    newMatches.forEach((m, i) => {
+                        newMatches[i] = { ...m, isMainEvent: i === index };
+                    });
+                } else {
+                    newMatches[index] = { ...newMatches[index], isMainEvent: false };
+                }
+            } else {
+                newMatches[index] = { ...newMatches[index], [field]: value };
+            }
             return { ...prev, matches: newMatches };
         });
     };
@@ -492,22 +506,33 @@ export default function RIBMatchCardsEditorPage() {
 
                         {/* Regular Matches */}
                         {matchCards.matches.map((match, index) => (
-                            <div key={match.id} className={`bg-gray-800 rounded-lg p-4 ${match.completed ? 'border border-green-500/30' : ''}`}>
+                            <div key={match.id} className={`rounded-lg p-4 ${match.isMainEvent ? 'bg-gradient-to-r from-amber-900/40 to-amber-800/20 border border-amber-500/50' : 'bg-gray-800'} ${match.completed ? 'border border-green-500/30' : ''}`}>
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
-                                        <h4 className="font-medium">Match {index + 1}</h4>
+                                        <h4 className="font-medium">{match.isMainEvent ? '⭐ Main Event' : `Match ${index + 1}`}</h4>
                                         {match.completed && (
                                             <span className="text-xs px-2 py-1 bg-green-600/30 text-green-400 rounded">
                                                 {match.p1Score} - {match.p2Score} • {match.winner === 'p1' ? match.p1Name : match.p2Name} wins
                                             </span>
                                         )}
                                     </div>
-                                    <button
-                                        onClick={() => removeMatch(index)}
-                                        className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={match.isMainEvent || false}
+                                                onChange={(e) => handleMatchChange(index, 'isMainEvent', e.target.checked)}
+                                                className="w-4 h-4 accent-amber-500"
+                                            />
+                                            <span className="text-xs text-amber-400">Main Event</span>
+                                        </label>
+                                        <button
+                                            onClick={() => removeMatch(index)}
+                                            className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-4">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
 interface MatchCardData {
@@ -48,7 +49,12 @@ interface OverlayState {
     animationTrigger: number;
 }
 
-export default function RIBSingleMatchOverlay() {
+interface Props {
+    forceShow?: boolean;
+}
+
+export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
+    const [searchParams] = useSearchParams();
     const [matchCards, setMatchCards] = useState<MatchCardData | null>(null);
     const [overlayState, setOverlayState] = useState<OverlayState | null>(null);
     const [animKey, setAnimKey] = useState(0);
@@ -56,7 +62,7 @@ export default function RIBSingleMatchOverlay() {
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
         
-        const connectionKey = localStorage.getItem('connectionKey');
+        const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
         const newSocket: Socket = io({
             auth: { token: connectionKey || '' }
         });
@@ -76,7 +82,9 @@ export default function RIBSingleMatchOverlay() {
         };
     }, []);
 
-    if (!matchCards || !overlayState || !overlayState.showMatchCard) {
+    const shouldShow = forceShow || (overlayState && overlayState.showMatchCard);
+    
+    if (!matchCards || !shouldShow) {
         return <div className="w-[1920px] h-[1080px]" />;
     }
 

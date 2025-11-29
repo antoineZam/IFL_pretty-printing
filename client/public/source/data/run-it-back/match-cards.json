@@ -2,23 +2,40 @@
   "eventTitle": "THE RUNBACK",
   "eventSubtitle": "THE FINAL CHAPTER",
   "partNumber": "01",
+  "winScore": 3,
   "mainEvent": {
-    "p1Name": "Kuro Loaf",
-    "p1Title": "IFF8 & IFF7 CHAMPION",
-    "p1Character": "jin",
-    "p2Name": "MainManSWE",
-    "p2Title": "THE FINAL BOSS",
-    "p2Character": "kazuya",
+    "p1Name": "",
+    "p1Title": "",
+    "p1Character": "",
+    "p2Name": "",
+    "p2Title": "",
+    "p2Character": "",
     "p1Score": 3,
-    "p2Score": 2,
+    "p2Score": 0,
     "winner": "p1",
     "completed": true,
-    "p1Flag": "FR",
-    "p2Flag": "IL"
+    "p1Flag": "HR",
+    "p2Flag": "IE"
   },
   "matches": [
     {
       "id": 1,
+      "p1Name": "Kuro Loaf",
+      "p1Title": "IFF8 & IFF7 CHAMPION",
+      "p1Character": "kazuya",
+      "p2Name": "MainManSWE",
+      "p2Title": "THE FINAL BOSS",
+      "p2Character": "kazuya",
+      "p1Score": 3,
+      "p2Score": 2,
+      "winner": "p1",
+      "completed": true,
+      "p1Flag": "FR",
+      "p2Flag": "IL",
+      "isMainEvent": true
+    },
+    {
+      "id": 2,
       "p1Name": "Omnis",
       "p1Title": "CHALLENGER",
       "p1Character": "reina",
@@ -30,25 +47,36 @@
       "winner": "p1",
       "completed": true,
       "p1Flag": "FR",
-      "p2Flag": "IE"
+      "p2Flag": "IE",
+      "isMainEvent": false
     },
     {
-      "id": 2,
+      "id": 3,
       "p1Name": "Penny",
       "p1Title": "CHALLENGER",
       "p1Character": "alisa",
       "p2Name": "Jinora",
       "p2Title": "CHALLENGER",
-      "p2Character": "nina"
+      "p2Character": "nina",
+      "p1Score": 0,
+      "p2Score": 0,
+      "winner": null,
+      "completed": false,
+      "isMainEvent": false
     },
     {
-      "id": 3,
+      "id": 4,
       "p1Name": "Omnis",
       "p1Title": "CHALLENGER",
       "p1Character": "reina",
       "p2Name": "Crimson",
       "p2Title": "IFF6 CHAMPION",
-      "p2Character": "jun"
+      "p2Character": "jun",
+      "p1Score": 0,
+      "p2Score": 0,
+      "winner": null,
+      "completed": false,
+      "isMainEvent": false
     }
   ],
   "singleMatch": {

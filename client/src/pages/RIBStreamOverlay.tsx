@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
 interface StreamData {
@@ -21,7 +22,12 @@ interface OverlayState {
     animationTrigger: number;
 }
 
-export default function RIBStreamOverlay() {
+interface Props {
+    forceShow?: boolean;
+}
+
+export default function RIBStreamOverlay({ forceShow = false }: Props) {
+    const [searchParams] = useSearchParams();
     const [streamData, setStreamData] = useState<StreamData>({
         matchTitle: '',
         p1Name: '', p1Flag: '', p1Score: 0,
@@ -33,7 +39,7 @@ export default function RIBStreamOverlay() {
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
 
-        const connectionKey = localStorage.getItem('connectionKey');
+        const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
         const newSocket: Socket = io({
             auth: { token: connectionKey || '' }
         });
@@ -53,16 +59,18 @@ export default function RIBStreamOverlay() {
         };
     }, []);
 
-    if (!overlayState || !overlayState.showStreamOverlay) {
+    const shouldShow = forceShow || (overlayState && overlayState.showStreamOverlay);
+
+    if (!shouldShow) {
         return <div className="w-[1920px] h-[1080px]" />;
     }
 
     const noFlagUrl = '/source/overlay/ifl/no-flag.png';
 
-    const p1FlagUrl = streamData.p1Flag 
+    const p1FlagUrl = streamData.p1Flag
         ? `https://flagcdn.com/h240/${streamData.p1Flag.toLowerCase()}.png`
         : noFlagUrl;
-    const p2FlagUrl = streamData.p2Flag 
+    const p2FlagUrl = streamData.p2Flag
         ? `https://flagcdn.com/h240/${streamData.p2Flag.toLowerCase()}.png`
         : noFlagUrl;
 
@@ -81,7 +89,7 @@ export default function RIBStreamOverlay() {
             <div 
                 key={`p1flag-${animKey}`}
                 className="absolute top-[21px] left-[202px] w-[46px] h-[46px] rounded-full overflow-hidden z-10"
-                style={{ 
+                style={{
                     backgroundImage: `url(${p1FlagUrl})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
@@ -89,13 +97,13 @@ export default function RIBStreamOverlay() {
                 }}
             />
 
-            {/* Player 1 Name */}
+            {/* Player 1 Name - left aligned to edge of flag with padding */}
             <div 
                 key={`p1name-${animKey}`}
-                className="absolute top-[28px] left-[400px] w-[280px] h-[30px] flex items-center"
+                className="absolute top-[28px] left-[280px] h-[30px] flex items-center"
                 style={{ animation: `slideInLeft 0.4s ease-out 0.1s both`, fontFamily: 'Gotham Book, Gotham, sans-serif' }}
             >
-                <span className="text-[#3a3a3a] text-[24px] font-bold tracking-tight">
+                <span className="text-[#3a3a3a] text-[28px] font-bold tracking-tight">
                     {streamData.p1Name}
                 </span>
             </div>
@@ -121,13 +129,13 @@ export default function RIBStreamOverlay() {
                 }}
             />
 
-            {/* Player 2 Name */}
+            {/* Player 2 Name - right aligned to edge of flag with padding */}
             <div 
                 key={`p2name-${animKey}`}
-                className="absolute top-[28px] right-[400px] w-[280px] h-[30px] flex items-center justify-end"
+                className="absolute top-[28px] right-[280px] h-[30px] flex items-center justify-end"
                 style={{ animation: `slideInRight 0.4s ease-out 0.1s both`, fontFamily: 'Gotham Book, Gotham, sans-serif' }}
             >
-                <span className="text-[#3a3a3a] text-[24px] font-bold tracking-tight">
+                <span className="text-[#3a3a3a] text-[28px] font-bold tracking-tight">
                     {streamData.p2Name}
                 </span>
             </div>
