@@ -64,6 +64,7 @@ const DashboardPage = () => {
 
     const ribRoutes = [
         { name: "RIB Match Control", path: "/rib/match-control" },
+        { name: "RIB Unified Overlay", path: "/rib/unified-overlay", primary: true },
         { name: "RIB Single Match Overlay", path: "/rib/single-match-overlay" },
         { name: "RIB Player Stats Overlay", path: "/rib/player-stats-overlay" },
         { name: "RIB Part One Overlay", path: "/rib/part-one-overlay" },
@@ -143,19 +144,34 @@ const DashboardPage = () => {
                     </div>
                 )}
                 
-                {/* Quick Access to Control Panel */}
-                <Link 
-                    to="/rib/match-control"
-                    className="mb-6 block bg-gradient-to-r from-red-600/20 to-red-900/20 border border-red-500/30 rounded-xl p-4 hover:border-red-500/50 transition-all group"
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-xl font-bold text-red-400">RIB Control Panel</h3>
-                            <p className="text-gray-400 text-sm">Manage overlays, match cards, and player stats</p>
+                {/* Quick Access Links */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <Link 
+                        to="/rib/match-control"
+                        className="block bg-gradient-to-r from-red-600/20 to-red-900/20 border border-red-500/30 rounded-xl p-4 hover:border-red-500/50 transition-all group"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-red-400">RIB Control Panel</h3>
+                                <p className="text-gray-400 text-sm">Manage overlays, match cards, and player stats</p>
+                            </div>
+                            <ChevronRight size={24} className="text-red-400 group-hover:translate-x-1 transition-transform" />
                         </div>
-                        <ChevronRight size={24} className="text-red-400 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                </Link>
+                    </Link>
+                    <Link 
+                        to={`/rib/unified-overlay?key=${key}`}
+                        target="_blank"
+                        className="block bg-gradient-to-r from-orange-600/20 to-red-900/20 border border-orange-500/30 rounded-xl p-4 hover:border-orange-500/50 transition-all group"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-orange-400">RIB Unified Overlay</h3>
+                                <p className="text-gray-400 text-sm">Single display for all RIB overlays (for OBS)</p>
+                            </div>
+                            <ExternalLink size={20} className="text-orange-400 group-hover:scale-110 transition-transform" />
+                        </div>
+                    </Link>
+                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {ribRoutes.filter(r => r.path !== '/rib/match-control').map((route, idx) => (

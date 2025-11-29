@@ -27,13 +27,6 @@ interface PlayerStatsData {
     players: PlayerStats[];
 }
 
-interface MatchCardData {
-    sponsors: {
-        presenter: string;
-        association: string;
-    };
-}
-
 interface OverlayState {
     showMatchCard: boolean;
     showPlayerStats: boolean;
@@ -46,7 +39,6 @@ interface OverlayState {
 
 export default function RIBPlayerStatsOverlay() {
     const [playerStats, setPlayerStats] = useState<PlayerStatsData | null>(null);
-    const [matchCards, setMatchCards] = useState<MatchCardData | null>(null);
     const [overlayState, setOverlayState] = useState<OverlayState | null>(null);
     const [animKey, setAnimKey] = useState(0);
 
@@ -59,7 +51,6 @@ export default function RIBPlayerStatsOverlay() {
         });
 
         newSocket.on('rib-player-stats-update', (data: PlayerStatsData) => setPlayerStats(data));
-        newSocket.on('rib-match-cards-update', (data: MatchCardData) => setMatchCards(data));
         newSocket.on('rib-overlay-state-update', (data: OverlayState) => {
             setOverlayState(prev => {
                 if (prev && data.animationTrigger !== prev.animationTrigger) {
