@@ -8,94 +8,6 @@ import RIBPartOneOverlay from './RIBPartOneOverlay';
 import RIBPlayerStatsOverlay from './RIBPlayerStatsOverlay';
 import RIBStreamOverlay from './RIBStreamOverlay';
 
-// --- Interfaces (Copied from child components to ensure types) ---
-
-interface MatchCardData {
-    eventTitle: string;
-    eventSubtitle: string;
-    partNumber: string;
-    mainEvent: {
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p1Flag?: string;
-        p1Score?: number;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-        p2Flag?: string;
-        p2Score?: number;
-        winner?: string | null;
-        completed?: boolean;
-    };
-    matches: Array<{
-        id: number;
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p1Flag?: string;
-        p1Score?: number;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-        p2Flag?: string;
-        p2Score?: number;
-        winner?: string | null;
-        completed?: boolean;
-        isMainEvent?: boolean;
-    }>;
-    singleMatch: {
-        matchTitle: string;
-        format: string;
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-    };
-    sponsors: {
-        presenter: string;
-        association: string;
-    };
-}
-
-interface PlayerStats {
-    name: string;
-    character: string;
-    division: string;
-    iff8Ranking: string;
-    iff8Record: string;
-    iff8RecordDetails: string;
-    iffHistory: string;
-    rank: string;
-    prowess: number;
-    rankedMatches: {
-        wins: number;
-        loses: number;
-        wlRate: string;
-    };
-    playerMatches: {
-        wins: number;
-        loses: number;
-        wlRate: string;
-    };
-}
-
-interface PlayerStatsData {
-    players: PlayerStats[];
-}
-
-interface StreamData {
-    matchTitle: string;
-    p1Name: string;
-    p1Flag: string;
-    p1Score: number;
-    p2Name: string;
-    p2Flag: string;
-    p2Score: number;
-}
-
 interface OverlayState {
     showMatchCard: boolean;
     showPlayerStats: boolean;
@@ -108,8 +20,6 @@ interface OverlayState {
 
 export default function RIBUnifiedOverlay() {
     const [searchParams] = useSearchParams();
-    
-    // Global State Container
     const [overlayState, setOverlayState] = useState<OverlayState>({
         showMatchCard: false,
         showPlayerStats: false,
@@ -119,10 +29,6 @@ export default function RIBUnifiedOverlay() {
         selectedPlayerIndex: 0,
         animationTrigger: 0
     });
-
-    const [matchCards, setMatchCards] = useState<MatchCardData | null>(null);
-    const [playerStats, setPlayerStats] = useState<PlayerStatsData | null>(null);
-    const [streamData, setStreamData] = useState<StreamData | null>(null);
 
     useEffect(() => {
         // Force transparent background
@@ -141,74 +47,65 @@ export default function RIBUnifiedOverlay() {
             console.log('[UnifiedOverlay] Socket connected');
         });
 
-        newSocket.on('connect_error', (err) => {
-            console.error('[UnifiedOverlay] Socket connection error:', err.message);
-        });
-
-        // Listen for ALL data types to keep state ready
         newSocket.on('rib-overlay-state-update', (data: OverlayState) => {
             console.log('[UnifiedOverlay] Received overlay state:', data);
             setOverlayState(data);
         });
 
-        newSocket.on('rib-match-cards-update', (data: MatchCardData) => {
-            setMatchCards(data);
-        });
-
-        newSocket.on('rib-player-stats-update', (data: PlayerStatsData) => {
-            setPlayerStats(data);
-        });
-
-        newSocket.on('rib-stream-data-update', (data: StreamData) => {
-            setStreamData(data);
-        });
-
         return () => {
             newSocket.disconnect();
         };
-    }, []);
+    }, [searchParams]);
 
-    // Render the selected overlay component with forceShow AND inject the data
-    if (overlayState.showMatchCard) {
-        return (
-            <RIBSingleMatchOverlay 
-                forceShow={true} 
-                externalData={matchCards}
-                externalOverlayState={overlayState}
-            />
-        );
-    }
-    
-    if (overlayState.showPartOne) {
-        return (
-            <RIBPartOneOverlay 
-                forceShow={true} 
-                externalData={matchCards}
-                externalOverlayState={overlayState}
-            />
-        );
-    }
-    
-    if (overlayState.showPlayerStats) {
-        return (
-            <RIBPlayerStatsOverlay 
-                forceShow={true} 
-                externalData={playerStats}
-                externalOverlayState={overlayState}
-            />
-        );
-    }
-    
-    if (overlayState.showStreamOverlay) {
-        return (
-            <RIBStreamOverlay 
-                forceShow={true} 
-                externalData={streamData}
-                externalOverlayState={overlayState}
-            />
-        );
-    }
+    // We keep ALL components mounted so they maintain their own socket connections and data state.
+    // We simply toggle their visibility using CSS. 
+    // forceShow={true} is passed to ensure they render their content internally, 
+    // while this parent component controls whether that content is actually visible on screen.
 
-    // No overlay active - transparent container
-    return <div className="w-[1920px] h-[1080px]" />;
+    // Debug: Check if any overlay is active
+    const anyOverlayActive = overlayState.showMatchCard || overlayState.showPlayerStats || 
+                             overlayState.showPartOne || overlayState.showStreamOverlay;
+
+    return (
+        <div className="w-[1920px] h-[1080px] relative">
+            {/* Debug indicator - remove in production */}
+            {!anyOverlayActive && (
+                <div className="absolute top-4 left-4 text-white bg-black/50 px-4 py-2 rounded z-50 text-sm">
+                    Waiting for overlay selection... (No overlay active)
+                </div>
+            )}
+
+            {/* Match Card Overlay */}
+            <div 
+                className="absolute inset-0"
+                style={{ display: overlayState.showMatchCard ? 'block' : 'none' }}
+            >
+                <RIBSingleMatchOverlay forceShow={true} />
+            </div>
+
+            {/* Part One Overlay */}
+            <div 
+                className="absolute inset-0"
+                style={{ display: overlayState.showPartOne ? 'block' : 'none' }}
+            >
+                <RIBPartOneOverlay forceShow={true} />
+            </div>
+
+            {/* Player Stats Overlay */}
+            <div 
+                className="absolute inset-0"
+                style={{ display: overlayState.showPlayerStats ? 'block' : 'none' }}
+            >
+                <RIBPlayerStatsOverlay forceShow={true} />
+            </div>
+
+            {/* Stream Overlay (In-Game) */}
+            <div 
+                className="absolute inset-0"
+                style={{ display: overlayState.showStreamOverlay ? 'block' : 'none' }}
+            >
+                <RIBStreamOverlay forceShow={true} />
+            </div>
+        </div>
+    );
 }
