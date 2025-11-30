@@ -92,6 +92,15 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
     const p1CharImg = `/source/overlay/run_it_back/characters/${match.p1Character}.png`;
     const p2CharImg = `/source/overlay/run_it_back/characters/${match.p2Character}.png`;
 
+    // Geometry Calculations for Clip Paths
+    // Green Line: Left 246px, 6deg rotation
+    // Cyan Line: Right 450px (x=1470), 5.2deg rotation
+    const greenClipPolyBlur = 'polygon(0 0, 359px 0, 246px 1080px, 0 1080px)'; // Left of line
+    const greenClipPolySharp = 'polygon(359px 0, 100% 0, 100% 100%, 246px 100%)'; // Right of line
+    
+    const cyanClipPolySharp = 'polygon(0 0, 1568px 0, 1470px 1080px, 0 1080px)'; // Left of line
+    const cyanClipPolyBlur = 'polygon(1568px 0, 100% 0, 100% 100%, 1470px 100%)'; // Right of line
+
     return (
         <div className="w-[1920px] h-[1080px] relative overflow-hidden font-['Archivo']">
             {/* Background - VS Background with branding */}
@@ -130,7 +139,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                 </p>
             </div>
 
-            {/* DEBUG: Visible diagonal line for P1 blur transition */}
+            {/* DEBUG LINES - Kept for reference */}
             <div 
                 className="absolute pointer-events-none"
                 style={{
@@ -138,99 +147,12 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                     top: '0',
                     bottom: '0',
                     width: '1px',
-                    background: 'linear-gradient(to bottom, #00ff00, #00ff00)',
+                    background: 'transparent',
                     zIndex: 100,
                     transform: 'rotate(6deg)',
                     transformOrigin: 'bottom center'
                 }}
             />
-
-            {/* =================================================================================
-               PLAYER 1 NAME (LEFT SIDE)
-               Logic: Two layers. 
-               1. Blurred layer masked to show only on the RIGHT (opponent side).
-               2. Sharp layer masked to show only on the LEFT (player side).
-               ================================================================================= */}
-
-            {/* P1 SHARP LAYER - Full text, no mask, base layer */}
-            <div 
-                key={`p1name-sharp-${animKey}`}
-                className="absolute bottom-[-12px] overflow-visible pointer-events-none"
-                style={{ 
-                    right: '57%',
-                    textAlign: 'right',
-                    zIndex: 1,
-                    animation: `fadeIn 1s ease-out 0.1s both`,
-                }}
-            >
-                <span
-                    className="font-black uppercase whitespace-nowrap text-[#e63030]"
-                    style={{ 
-                        fontSize: '450px',
-                        fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
-                        letterSpacing: '-0.03em',
-                        lineHeight: '0.8',
-                        transform: 'scaleX(0.7)',
-                        display: 'inline-block'
-                    }}
-                >
-                    {match.p1Name}
-                </span>
-            </div>
-
-            {/* P1 BLURRED LAYER - Overlays left portion with blur (0-85%), blur line near center */}
-            <div 
-                key={`p1name-blur-${animKey}`}
-                className="absolute bottom-[-12px] overflow-visible pointer-events-none"
-                style={{ 
-                    right: '57%',
-                    textAlign: 'right',
-                    zIndex: 2,
-                    animation: `fadeIn 1s ease-out 0.1s both`,
-                }}
-            >
-                <span
-                    className="font-black uppercase whitespace-nowrap text-[#e63030]"
-                    style={{ 
-                        fontSize: '450px',
-                        fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
-                        letterSpacing: '-0.03em',
-                        lineHeight: '0.8',
-                        transform: 'scaleX(0.7)',
-                        display: 'inline-block',
-                        filter: 'blur(12px)',
-                        // Blur visible from 0-80%, fade out 80-90%, hidden 90%+
-                        WebkitMaskImage: 'linear-gradient(to right, black 0%, black 80%, transparent 90%)',
-                        maskImage: 'linear-gradient(to right, black 0%, black 80%, transparent 90%)'
-                    }}
-                >
-                    {match.p1Name}
-                </span>
-            </div>
-
-            {/* =================================================================================
-               PLAYER 2 NAME (RIGHT SIDE)
-               Logic: Two layers.
-               1. Blurred layer masked to show only on the LEFT (opponent side).
-               2. Sharp layer masked to show only on the RIGHT (player side).
-               ================================================================================= */}
-
-            {/* DEBUG: Visible diagonal line for P2 blur transition (MAGENTA) */}
-            <div 
-                className="absolute pointer-events-none"
-                style={{
-                    right: '246px',
-                    top: '0',
-                    bottom: '0',
-                    width: '1px',
-                    background: '#ff00ff',
-                    zIndex: 100,
-                    transform: 'rotate(5.2deg)',
-                    transformOrigin: 'bottom center'
-                }}
-            />
-
-            {/* DEBUG: Second line for P2 mask transition (CYAN) */}
             <div 
                 className="absolute pointer-events-none"
                 style={{
@@ -238,77 +160,152 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                     top: '0',
                     bottom: '0',
                     width: '1px',
-                    background: '#00ffff',
+                    background: 'transparent',
                     zIndex: 100,
                     transform: 'rotate(5.2deg)',
                     transformOrigin: 'bottom center'
                 }}
             />
 
-            {/* P2 BLURRED LAYER (Bottom) */}
-            <div
-                key={`p2name-blur-${animKey}`}
-                className="absolute bottom-[-12px] overflow-visible pointer-events-none"
-                style={{ 
-                    left: '57%',
-                    textAlign: 'left',
-                    zIndex: 0,
-                    animation: `fadeIn 0.5s ease-out 0.1s both`,
-                }}
+            {/* =================================================================================
+               PLAYER 1 NAME (LEFT SIDE)
+               Using Clip-Path Containers to split the text exactly at the Green Line
+               ================================================================================= */}
+
+            {/* P1 BLURRED LAYER (Outside/Left of Green Line) */}
+            <div 
+                className="absolute inset-0 pointer-events-none z-[1]"
+                style={{ clipPath: greenClipPolyBlur }}
             >
-                <span 
-                    className="font-black uppercase whitespace-nowrap text-[#e63030]"
-                    style={{
-                        fontSize: '450px',
-                        fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
-                        letterSpacing: '-0.03em',
-                        lineHeight: '0.8',
-                        transform: 'scaleX(0.7)',
-                        display: 'inline-block',
-                        filter: 'blur(12px)',
-                        // MASK: Visible on Left -> Transparent on Right
-                        WebkitMaskImage: 'linear-gradient(105deg, black 5%, transparent 15%)',
-                        maskImage: 'linear-gradient(105deg, black 5%, transparent 15%)'
+                <div 
+                    key={`p1name-blur-${animKey}`}
+                    className="absolute bottom-[-12px] overflow-visible"
+                    style={{ 
+                        right: '48%',
+                        textAlign: 'right',
+                        opacity: 0.3, // Reduced opacity
+                        filter: 'blur(8px)', // Blur effect
+                        animation: `fadeIn 1s ease-out 0.1s both`,
                     }}
                 >
-                    {match.p2Name}
-                </span>
+                    <span
+                        className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                        style={{ 
+                            fontSize: '450px',
+                            fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                            letterSpacing: '-0.03em',
+                            lineHeight: '0.8',
+                            transform: 'scaleX(0.7)',
+                            display: 'inline-block'
+                        }}
+                    >
+                        {match.p1Name}
+                    </span>
+                </div>
             </div>
 
-            {/* P2 SHARP LAYER (Top) */}
-            <div
-                key={`p2name-sharp-${animKey}`}
-                className="absolute bottom-[-12px] overflow-visible pointer-events-none"
-                style={{ 
-                    left: '57%',
-                    textAlign: 'left',
-                    zIndex: 1,
-                    animation: `fadeIn 0.5s ease-out 0.1s both`,
-                }}
+            {/* P1 SHARP LAYER (Inside/Right of Green Line) */}
+            <div 
+                className="absolute inset-0 pointer-events-none z-[1]"
+                style={{ clipPath: greenClipPolySharp }}
             >
-                <span 
-                    className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                <div 
+                    key={`p1name-sharp-${animKey}`}
+                    className="absolute bottom-[-12px] overflow-visible"
                     style={{ 
-                        fontSize: '450px',
-                        fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
-                        letterSpacing: '-0.03em',
-                        lineHeight: '0.8',
-                        transform: 'scaleX(0.7)',
-                        display: 'inline-block',
-                        // MASK: Transparent on Left -> Visible on Right
-                        WebkitMaskImage: 'linear-gradient(105deg, transparent 5%, black 15%)',
-                        maskImage: 'linear-gradient(105deg, transparent 5%, black 15%)'
+                        right: '48%',
+                        textAlign: 'right',
+                        animation: `fadeIn 1s ease-out 0.1s both`,
                     }}
                 >
-                    {match.p2Name}
-                </span>
+                    <span
+                        className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                        style={{ 
+                            fontSize: '450px',
+                            fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                            letterSpacing: '-0.03em',
+                            lineHeight: '0.8',
+                            transform: 'scaleX(0.7)',
+                            display: 'inline-block'
+                        }}
+                    >
+                        {match.p1Name}
+                    </span>
+                </div>
+            </div>
+
+            {/* =================================================================================
+               PLAYER 2 NAME (RIGHT SIDE)
+               Using Clip-Path Containers to split the text exactly at the Cyan Line
+               ================================================================================= */}
+
+            {/* P2 SHARP LAYER (Inside/Left of Cyan Line) */}
+            <div 
+                className="absolute inset-0 pointer-events-none z-[1]"
+                style={{ clipPath: cyanClipPolySharp }}
+            >
+                <div
+                    key={`p2name-sharp-${animKey}`}
+                    className="absolute bottom-[-12px] overflow-visible"
+                    style={{ 
+                        left: '45%',
+                        textAlign: 'left',
+                        animation: `fadeIn 0.5s ease-out 0.1s both`,
+                    }}
+                >
+                    <span 
+                        className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                        style={{ 
+                            fontSize: '450px',
+                            fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                            letterSpacing: '-0.03em',
+                            lineHeight: '0.8',
+                            transform: 'scaleX(0.7)',
+                            display: 'inline-block'
+                        }}
+                    >
+                        {match.p2Name}
+                    </span>
+                </div>
+            </div>
+
+            {/* P2 BLURRED LAYER (Outside/Right of Cyan Line) */}
+            <div 
+                className="absolute inset-0 pointer-events-none z-[1]"
+                style={{ clipPath: cyanClipPolyBlur }}
+            >
+                <div
+                    key={`p2name-blur-${animKey}`}
+                    className="absolute bottom-[-12px] overflow-visible"
+                    style={{ 
+                        left: '45%',
+                        textAlign: 'left',
+                        opacity: 0.3, // Reduced opacity
+                        filter: 'blur(8px)', // Blur effect
+                        animation: `fadeIn 0.5s ease-out 0.1s both`,
+                    }}
+                >
+                    <span 
+                        className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                        style={{
+                            fontSize: '450px',
+                            fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                            letterSpacing: '-0.03em',
+                            lineHeight: '0.8',
+                            transform: 'scaleX(0.7)',
+                            display: 'inline-block'
+                        }}
+                    >
+                        {match.p2Name}
+                    </span>
+                </div>
             </div>
 
             {/* Player 1 Character - Flipped, on left edge */}
             <div 
                 key={`p1-${animKey}`}
                 className="absolute left-[-200px] bottom-[-675px]"
-                style={{ 
+                style={{
                     animation: `slideInLeft 0.6s ease-out 0.2s both`,
                     zIndex: 2
                 }}
@@ -350,8 +347,9 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
             {/* Player Info - P1 Side - anchored left, grows towards center */}
             <div 
                 key={`p1info-${animKey}`}
-                className="absolute top-[310px] left-[480px] text-left"
+                className="absolute top-[310px] text-right"
                 style={{ 
+                    right: '57%',
                     animation: `fadeIn 0.6s ease-out 0.3s both`,
                     zIndex: 3
                 }}
@@ -363,7 +361,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                     {match.p1Title}
                 </p>
                 <h3 
-                    className="text-[#e63030] text-[92px] font-bold tracking-tight leading-none"
+                    className="text-[#e63030] text-[92px] font-bold tracking-tight leading-none whitespace-nowrap"
                     style={{ fontFamily: 'D-DIN Condensed, sans-serif' }}
                 >
                     {match.p1Name}
@@ -373,8 +371,9 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
             {/* Player Info - P2 Side - anchored right, grows towards center */}
             <div 
                 key={`p2info-${animKey}`}
-                className="absolute top-[310px] right-[550px] text-right"
+                className="absolute top-[310px] text-left"
                 style={{ 
+                    left: '57%',
                     animation: `fadeIn 0.6s ease-out 0.3s both`,
                     zIndex: 3
                 }}
@@ -386,7 +385,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                     {match.p2Title}
                 </p>
                 <h3 
-                    className="text-[#e63030] text-[92px] font-bold tracking-tight leading-none"
+                    className="text-[#e63030] text-[92px] font-bold tracking-tight leading-none whitespace-nowrap"
                     style={{ fontFamily: 'D-DIN Condensed, sans-serif' }}
                 >
                     {match.p2Name}
