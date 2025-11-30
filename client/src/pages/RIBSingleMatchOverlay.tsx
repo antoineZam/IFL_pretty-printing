@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
@@ -51,36 +51,47 @@ interface OverlayState {
 
 interface Props {
     forceShow?: boolean;
+    externalData?: MatchCardData | null;
+    externalOverlayState?: OverlayState;
 }
 
-export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
+export default function RIBSingleMatchOverlay({ forceShow = false, externalData, externalOverlayState }: Props) {
     const [searchParams] = useSearchParams();
-    const [matchCards, setMatchCards] = useState<MatchCardData | null>(null);
-    const [overlayState, setOverlayState] = useState<OverlayState | null>(null);
+    const [internalMatchCards, setInternalMatchCards] = useState<MatchCardData | null>(null);
+    const [internalOverlayState, setInternalOverlayState] = useState<OverlayState | null>(null);
     const [animKey, setAnimKey] = useState(0);
+
+    const isManaged = externalData !== undefined;
+    const matchCards = isManaged ? externalData : internalMatchCards;
+    const overlayState = isManaged && externalOverlayState ? externalOverlayState : internalOverlayState;
+
+    const prevAnimTrigger = useRef(overlayState?.animationTrigger);
+    useEffect(() => {
+        if (overlayState?.animationTrigger !== prevAnimTrigger.current) {
+            setAnimKey(k => k + 1);
+            prevAnimTrigger.current = overlayState?.animationTrigger;
+        }
+    }, [overlayState?.animationTrigger]);
 
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
         
+        if (isManaged) return;
+
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
         const newSocket: Socket = io({
             auth: { token: connectionKey || '' }
         });
 
-        newSocket.on('rib-match-cards-update', (data: MatchCardData) => setMatchCards(data));
+        newSocket.on('rib-match-cards-update', (data: MatchCardData) => setInternalMatchCards(data));
         newSocket.on('rib-overlay-state-update', (data: OverlayState) => {
-            setOverlayState(prev => {
-                if (prev && data.animationTrigger !== prev.animationTrigger) {
-                    setAnimKey(k => k + 1);
-                }
-                return data;
-            });
+            setInternalOverlayState(data);
         });
 
         return () => {
             newSocket.disconnect();
         };
-    }, []);
+    }, [isManaged, searchParams]);
 
     const shouldShow = forceShow || (overlayState && overlayState.showMatchCard);
     

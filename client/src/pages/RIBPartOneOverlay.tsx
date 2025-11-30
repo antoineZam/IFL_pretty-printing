@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
@@ -64,36 +64,47 @@ interface OverlayState {
 
 interface Props {
     forceShow?: boolean;
+    externalData?: MatchCardData | null;
+    externalOverlayState?: OverlayState;
 }
 
-export default function RIBPartOneOverlay({ forceShow = false }: Props) {
+export default function RIBPartOneOverlay({ forceShow = false, externalData, externalOverlayState }: Props) {
     const [searchParams] = useSearchParams();
-    const [matchCards, setMatchCards] = useState<MatchCardData | null>(null);
-    const [overlayState, setOverlayState] = useState<OverlayState | null>(null);
+    const [internalMatchCards, setInternalMatchCards] = useState<MatchCardData | null>(null);
+    const [internalOverlayState, setInternalOverlayState] = useState<OverlayState | null>(null);
     const [animKey, setAnimKey] = useState(0);
+
+    const isManaged = externalData !== undefined;
+    const matchCards = isManaged ? externalData : internalMatchCards;
+    const overlayState = isManaged && externalOverlayState ? externalOverlayState : internalOverlayState;
+
+    const prevAnimTrigger = useRef(overlayState?.animationTrigger);
+    useEffect(() => {
+        if (overlayState?.animationTrigger !== prevAnimTrigger.current) {
+            setAnimKey(k => k + 1);
+            prevAnimTrigger.current = overlayState?.animationTrigger;
+        }
+    }, [overlayState?.animationTrigger]);
 
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
         
+        if (isManaged) return;
+
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
         const newSocket: Socket = io({
             auth: { token: connectionKey || '' }
         });
 
-        newSocket.on('rib-match-cards-update', (data: MatchCardData) => setMatchCards(data));
+        newSocket.on('rib-match-cards-update', (data: MatchCardData) => setInternalMatchCards(data));
         newSocket.on('rib-overlay-state-update', (data: OverlayState) => {
-            setOverlayState(prev => {
-                if (prev && data.animationTrigger !== prev.animationTrigger) {
-                    setAnimKey(k => k + 1);
-                }
-                return data;
-            });
+            setInternalOverlayState(data);
         });
 
         return () => {
             newSocket.disconnect();
         };
-    }, []);
+    }, [isManaged, searchParams]);
 
     const shouldShow = forceShow || (overlayState && overlayState.showPartOne);
     
@@ -108,11 +119,9 @@ export default function RIBPartOneOverlay({ forceShow = false }: Props) {
     const totalCards = allMatches.length;
 
     // The card images are 1920x1080 with the visible card bar in the center
-    // We need to calculate vertical positions to stack them properly
-    // Visible card bar heights (approximate from the images)
-    const GUEST_CARD_BAR_HEIGHT = 140;  // Height of the visible red bar
-    const REGULAR_CARD_BAR_HEIGHT = 140; // Height of the visible grey bar
-    const CARD_GAP = 64; // Gap between cards
+    const GUEST_CARD_BAR_HEIGHT = 140;
+    const REGULAR_CARD_BAR_HEIGHT = 140;
+    const CARD_GAP = 64;
     
     // Calculate total height needed for all cards
     const totalCardsHeight = allMatches.reduce((acc, match, idx) => {
@@ -156,7 +165,6 @@ export default function RIBPartOneOverlay({ forceShow = false }: Props) {
                 const currentBarHeight = isMainEvent ? GUEST_CARD_BAR_HEIGHT : REGULAR_CARD_BAR_HEIGHT;
                 
                 // The card image center should align with where we want the bar
-                // Image is 1080px tall, bar is in the center, so offset = cardBarY - (540 - barHeight/2)
                 const imageOffsetY = cardBarY - 580 + currentBarHeight / 2;
 
                 return (
@@ -176,7 +184,7 @@ export default function RIBPartOneOverlay({ forceShow = false }: Props) {
                             className="absolute inset-0 w-full h-full"
                         />
 
-                        {/* Card Content Overlay - Positioned over the visible card bar area */}
+                        {/* Card Content Overlay */}
                         <div 
                             className="absolute flex items-center justify-end"
                             style={{
@@ -292,7 +300,6 @@ export default function RIBPartOneOverlay({ forceShow = false }: Props) {
                                 style={{ 
                                     top: `${520 - currentBarHeight / 2}px`,
                                     left: '59%',
-                                    //transform: 'translateX(calc(-50% + 460px))',
                                     animation: `fadeIn 0.3s ease-out ${animDelay + 0.3}s both`, 
                                     fontFamily: 'Gotham Book, Gotham, sans-serif'
                                 }}

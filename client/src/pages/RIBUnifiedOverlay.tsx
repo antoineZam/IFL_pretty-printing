@@ -8,6 +8,94 @@ import RIBPartOneOverlay from './RIBPartOneOverlay';
 import RIBPlayerStatsOverlay from './RIBPlayerStatsOverlay';
 import RIBStreamOverlay from './RIBStreamOverlay';
 
+// --- Interfaces (Copied from child components to ensure types) ---
+
+interface MatchCardData {
+    eventTitle: string;
+    eventSubtitle: string;
+    partNumber: string;
+    mainEvent: {
+        p1Name: string;
+        p1Title: string;
+        p1Character: string;
+        p1Flag?: string;
+        p1Score?: number;
+        p2Name: string;
+        p2Title: string;
+        p2Character: string;
+        p2Flag?: string;
+        p2Score?: number;
+        winner?: string | null;
+        completed?: boolean;
+    };
+    matches: Array<{
+        id: number;
+        p1Name: string;
+        p1Title: string;
+        p1Character: string;
+        p1Flag?: string;
+        p1Score?: number;
+        p2Name: string;
+        p2Title: string;
+        p2Character: string;
+        p2Flag?: string;
+        p2Score?: number;
+        winner?: string | null;
+        completed?: boolean;
+        isMainEvent?: boolean;
+    }>;
+    singleMatch: {
+        matchTitle: string;
+        format: string;
+        p1Name: string;
+        p1Title: string;
+        p1Character: string;
+        p2Name: string;
+        p2Title: string;
+        p2Character: string;
+    };
+    sponsors: {
+        presenter: string;
+        association: string;
+    };
+}
+
+interface PlayerStats {
+    name: string;
+    character: string;
+    division: string;
+    iff8Ranking: string;
+    iff8Record: string;
+    iff8RecordDetails: string;
+    iffHistory: string;
+    rank: string;
+    prowess: number;
+    rankedMatches: {
+        wins: number;
+        loses: number;
+        wlRate: string;
+    };
+    playerMatches: {
+        wins: number;
+        loses: number;
+        wlRate: string;
+    };
+}
+
+interface PlayerStatsData {
+    players: PlayerStats[];
+}
+
+interface StreamData {
+    matchTitle: string;
+    p1Name: string;
+    p1Flag: string;
+    p1Score: number;
+    p2Name: string;
+    p2Flag: string;
+    p2Score: number;
+}
+
 interface OverlayState {
     showMatchCard: boolean;
     showPlayerStats: boolean;
@@ -20,6 +108,8 @@ interface OverlayState {
 
 export default function RIBUnifiedOverlay() {
     const [searchParams] = useSearchParams();
+    
+    // Global State Container
     const [overlayState, setOverlayState] = useState<OverlayState>({
         showMatchCard: false,
         showPlayerStats: false,
@@ -29,6 +119,10 @@ export default function RIBUnifiedOverlay() {
         selectedPlayerIndex: 0,
         animationTrigger: 0
     });
+
+    const [matchCards, setMatchCards] = useState<MatchCardData | null>(null);
+    const [playerStats, setPlayerStats] = useState<PlayerStatsData | null>(null);
+    const [streamData, setStreamData] = useState<StreamData | null>(null);
 
     useEffect(() => {
         // Force transparent background
@@ -51,9 +145,22 @@ export default function RIBUnifiedOverlay() {
             console.error('[UnifiedOverlay] Socket connection error:', err.message);
         });
 
+        // Listen for ALL data types to keep state ready
         newSocket.on('rib-overlay-state-update', (data: OverlayState) => {
             console.log('[UnifiedOverlay] Received overlay state:', data);
             setOverlayState(data);
+        });
+
+        newSocket.on('rib-match-cards-update', (data: MatchCardData) => {
+            setMatchCards(data);
+        });
+
+        newSocket.on('rib-player-stats-update', (data: PlayerStatsData) => {
+            setPlayerStats(data);
+        });
+
+        newSocket.on('rib-stream-data-update', (data: StreamData) => {
+            setStreamData(data);
         });
 
         return () => {
@@ -61,21 +168,45 @@ export default function RIBUnifiedOverlay() {
         };
     }, []);
 
-    // Render the selected overlay component with forceShow to bypass internal visibility checks
+    // Render the selected overlay component with forceShow AND inject the data
     if (overlayState.showMatchCard) {
-        return <RIBSingleMatchOverlay forceShow={true} />;
+        return (
+            <RIBSingleMatchOverlay 
+                forceShow={true} 
+                externalData={matchCards}
+                externalOverlayState={overlayState}
+            />
+        );
     }
     
     if (overlayState.showPartOne) {
-        return <RIBPartOneOverlay forceShow={true} />;
+        return (
+            <RIBPartOneOverlay 
+                forceShow={true} 
+                externalData={matchCards}
+                externalOverlayState={overlayState}
+            />
+        );
     }
     
     if (overlayState.showPlayerStats) {
-        return <RIBPlayerStatsOverlay forceShow={true} />;
+        return (
+            <RIBPlayerStatsOverlay 
+                forceShow={true} 
+                externalData={playerStats}
+                externalOverlayState={overlayState}
+            />
+        );
     }
     
     if (overlayState.showStreamOverlay) {
-        return <RIBStreamOverlay forceShow={true} />;
+        return (
+            <RIBStreamOverlay 
+                forceShow={true} 
+                externalData={streamData}
+                externalOverlayState={overlayState}
+            />
+        );
     }
 
     // No overlay active - transparent container

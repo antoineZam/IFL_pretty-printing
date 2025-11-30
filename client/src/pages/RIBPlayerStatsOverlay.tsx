@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
@@ -40,36 +40,47 @@ interface OverlayState {
 
 interface Props {
     forceShow?: boolean;
+    externalData?: PlayerStatsData | null;
+    externalOverlayState?: OverlayState;
 }
 
-export default function RIBPlayerStatsOverlay({ forceShow = false }: Props) {
+export default function RIBPlayerStatsOverlay({ forceShow = false, externalData, externalOverlayState }: Props) {
     const [searchParams] = useSearchParams();
-    const [playerStats, setPlayerStats] = useState<PlayerStatsData | null>(null);
-    const [overlayState, setOverlayState] = useState<OverlayState | null>(null);
+    const [internalPlayerStats, setInternalPlayerStats] = useState<PlayerStatsData | null>(null);
+    const [internalOverlayState, setInternalOverlayState] = useState<OverlayState | null>(null);
     const [animKey, setAnimKey] = useState(0);
+
+    const isManaged = externalData !== undefined;
+    const playerStats = isManaged ? externalData : internalPlayerStats;
+    const overlayState = isManaged && externalOverlayState ? externalOverlayState : internalOverlayState;
+
+    const prevAnimTrigger = useRef(overlayState?.animationTrigger);
+    useEffect(() => {
+        if (overlayState?.animationTrigger !== prevAnimTrigger.current) {
+            setAnimKey(k => k + 1);
+            prevAnimTrigger.current = overlayState?.animationTrigger;
+        }
+    }, [overlayState?.animationTrigger]);
 
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
         
+        if (isManaged) return;
+
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
         const newSocket: Socket = io({
             auth: { token: connectionKey || '' }
         });
 
-        newSocket.on('rib-player-stats-update', (data: PlayerStatsData) => setPlayerStats(data));
+        newSocket.on('rib-player-stats-update', (data: PlayerStatsData) => setInternalPlayerStats(data));
         newSocket.on('rib-overlay-state-update', (data: OverlayState) => {
-            setOverlayState(prev => {
-                if (prev && data.animationTrigger !== prev.animationTrigger) {
-                    setAnimKey(k => k + 1);
-                }
-                return data;
-            });
+            setInternalOverlayState(data);
         });
 
         return () => {
             newSocket.disconnect();
         };
-    }, []);
+    }, [isManaged, searchParams]);
 
     const shouldShow = forceShow || (overlayState && overlayState.showPlayerStats);
     
@@ -84,32 +95,89 @@ export default function RIBPlayerStatsOverlay({ forceShow = false }: Props) {
 
     const charImg = `/source/overlay/run_it_back/characters/${player.character}.png`;
 
+    // Clip paths for the blur effect on the large name
+    // Line at 655px top, ~545px bottom (5.8deg rotation)
+    // Blur on left side, sharp on right side
+    const blurClipPoly = 'polygon(0 0, 655px 0, 545px 1080px, 0 1080px)';
+    const sharpClipPoly = 'polygon(655px 0, 100% 0, 100% 100%, 545px 100%)';
+
     return (
         <div className="w-[1920px] h-[1080px] relative overflow-hidden font-['Archivo']">
-            {/* Background */}
+            {/* Background Image */}
             <div 
-                className="absolute inset-0 bg-gradient-to-br from-[#f5f0e8] to-[#e8e0d5]"
-                style={{ animation: `fadeIn 0.5s ease-out` }}
+                className="absolute inset-0"
+                style={{ 
+                    backgroundImage: 'url(/source/overlay/run_it_back/stat_screen/background.png)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    animation: `fadeIn 0.5s ease-out`
+                }}
             />
 
-            {/* Large watermark name */}
+            {/* DEBUG: Visible diagonal line for blur transition (CYAN) */}
             <div 
-                key={`watermark-${animKey}`}
-                className="absolute bottom-0 left-0 right-0 text-[200px] font-black text-[#d4c4b0]/40 leading-none tracking-tighter select-none"
-                style={{ 
-                    animation: `slideUp 0.8s ease-out`,
-                    fontFamily: 'Archivo Black, sans-serif'
+                className="absolute pointer-events-none"
+                style={{
+                    left: '655px',
+                    top: '0',
+                    bottom: '0',
+                    width: '1px',
+                    background: 'transparent',
+                    zIndex: 100,
+                    transform: 'rotate(5.8deg)',
+                    transformOrigin: 'top center'
                 }}
+            />
+
+            {/* Large watermark name - BLURRED LAYER (Left side) */}
+            <div 
+                className="absolute inset-0 pointer-events-none z-[1]"
+                style={{ clipPath: blurClipPoly }}
             >
-                {player.name.toUpperCase()}
+                <div 
+                    key={`watermark-blur-${animKey}`}
+                    className="absolute bottom-[-67px] left-[100px] text-[375px] font-black text-[#e63030] leading-none tracking-tighter select-none"
+                    style={{ 
+                        animation: `slideUp 0.8s ease-out`,
+                        fontFamily: 'D-DIN Condensed, D-DIN, sans-serif',
+                        letterSpacing: '-0.03em',
+                        opacity: 0.3,
+                        filter: 'blur(8px)',
+                        transform: 'scaleY(1.4) scaleX(1.3)',
+                        transformOrigin: 'bottom'
+                    }}
+                >
+                    {player.name.toUpperCase()}
+                </div>
+            </div>
+
+            {/* Large watermark name - SHARP LAYER (Right side) */}
+            <div 
+                className="absolute inset-0 pointer-events-none z-[1]"
+                style={{ clipPath: sharpClipPoly }}
+            >
+                <div 
+                    key={`watermark-sharp-${animKey}`}
+                    className="absolute bottom-[-67px] left-[100px] text-[375px] font-black text-[#e63030] leading-none tracking-tighter select-none"
+                    style={{ 
+                        animation: `slideUp 0.8s ease-out`,
+                        fontFamily: 'D-DIN Condensed, D-DIN, sans-serif',
+                        letterSpacing: '-0.03em',
+                        transform: 'scaleY(1.4) scaleX(1.3)',
+                        transformOrigin: 'bottom'
+                    }}
+                >
+                    {player.name.toUpperCase()}
+                </div>
             </div>
 
             {/* Character Image */}
             <div 
                 key={`char-${animKey}`}
-                className="absolute left-0 bottom-0 h-[950px] w-[700px]"
+                className="absolute left-0 bottom-655 h-[1750px] w-[1000px]"
                 style={{ 
                     animation: `slideInLeft 0.6s ease-out`,
+                    zIndex: 10
                 }}
             >
                 <img 
@@ -120,105 +188,86 @@ export default function RIBPlayerStatsOverlay({ forceShow = false }: Props) {
                 />
             </div>
 
-            {/* Sponsors - Top */}
-            <div 
-                key={`sponsors-${animKey}`}
-                className="absolute top-[30px] left-[80px] right-[80px] flex justify-between text-[11px] text-[#8a8070] tracking-[0.15em]"
-                style={{ animation: `fadeIn 0.6s ease-out 0.2s both` }}
-            >
-            </div>
-
             {/* Stats Panel */}
             <div 
                 key={`stats-${animKey}`}
-                className="absolute top-[90px] right-[100px] w-[780px]"
-                style={{ animation: `slideInRight 0.7s ease-out` }}
+                className="absolute top-[90px] right-[500px] w-[480px] font-bold text-left"
+                style={{ animation: `slideInRight 0.7s ease-out`, fontFamily: 'Gotham Bold, Gotham, sans-serif' }}
             >
-                {/* IFF Stats */}
-                <div className="mb-6">
-                    <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-[20px]">
-                        <div className="flex justify-between">
-                            <span className="font-bold text-[#5a5248]">DIVISON</span>
-                            <span className="text-[#2a2520]">{player.division}</span>
-                        </div>
-                        <div></div>
-                        
-                        <div className="flex justify-between">
-                            <span className="font-bold text-[#5a5248]">IFF8 RANKING</span>
-                            <span className="text-[#2a2520]">{player.iff8Ranking}</span>
-                        </div>
-                        <div></div>
-                        
-                        <div className="flex justify-between">
-                            <span className="font-bold text-[#5a5248]">IFF8 RECORD</span>
-                            <span className="text-[#2a2520]">
-                                {player.iff8Record}
-                                <span className="text-[#8a8070] text-[16px] ml-2">({player.iff8RecordDetails})</span>
-                            </span>
-                        </div>
-                        <div></div>
-                        
-                        <div className="flex justify-between">
-                            <span className="font-bold text-[#5a5248]">IFF HISTORY</span>
-                            <span className="text-[#2a2520]">{player.iffHistory}</span>
-                        </div>
-                        <div></div>
+                {/* All Stats - One per line */}
+                <div className="space-y-2 text-[24px]">
+                    <div className="flex gap-8">
+                        <span className="text-[#5a5248] w-[200px]">DIVISION</span>
+                        <span className="text-[#2a2520] font-normal">{player.division}</span>
                     </div>
-                </div>
-
-                {/* Rank & Prowess */}
-                <div className="mb-8">
-                    <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-[20px]">
-                        <div className="flex justify-between">
-                            <span className="font-bold text-[#5a5248]">RANK</span>
-                            <span className="text-[#2a2520]">{player.rank}</span>
+                    <div className="flex gap-8">
+                        <span className="text-[#5a5248] w-[200px]">IFF8 RANKING</span>
+                        <span className="text-[#2a2520] font-normal">{player.iff8Ranking}</span>
+                    </div>
+                    <div className="flex gap-20">
+                        <span className="text-[#5a5248] w-[200px] whitespace-nowrap">IFF8 RECORD</span>
+                        <span className="text-[#2a2520] font-normal whitespace-nowrap">
+                            {player.iff8Record}
+                            <span className="text-[#8a8070] text-[18px] ml-2">({player.iff8RecordDetails})</span>
+                        </span>
+                    </div>
+                    <div className="flex gap-8">
+                        <span className="text-[#5a5248] w-[200px]">IFF HISTORY</span>
+                        <span className="text-[#2a2520] font-normal">{player.iffHistory}</span>
+                    </div>
+                    
+                    {/* Empty line gap */}
+                    <div className="h-[24px]"></div>
+                    
+                    <div className="flex gap-8">
+                        <span className="text-[#5a5248] w-[200px]">RANK</span>
+                        <span className="text-[#2a2520] font-normal">{player.rank}</span>
+                    </div>
+                    <div className="flex gap-8">
+                        <span className="text-[#5a5248] w-[200px]">PROWESS</span>
+                        <span className="text-[#2a2520] font-normal">{player.prowess.toLocaleString()}</span>
+                    </div>
+                    
+                    {/* Empty line gap */}
+                    <div className="h-[24px]"></div>
+                    
+                    {/* Match Stats - Side by Side */}
+                    <div className="flex gap-24">
+                        {/* Ranked Matches Section */}
+                        <div>
+                            <h4 className="text-[#c45c4c] text-[24px] italic mb-2 text-left">Ranked Matches</h4>
+                            <div className="space-y-2">
+                                <div className="flex gap-8">
+                                    <span className="text-[#5a5248] w-[200px]">WINS</span>
+                                    <span className="text-[#2a2520] font-normal">{player.rankedMatches.wins}</span>
+                                </div>
+                                <div className="flex gap-8">
+                                    <span className="text-[#5a5248] w-[200px]">LOSES</span>
+                                    <span className="text-[#2a2520] font-normal">{player.rankedMatches.loses}</span>
+                                </div>
+                                <div className="flex gap-8">
+                                    <span className="text-[#5a5248] w-[200px]">W/L RATE</span>
+                                    <span className="text-[#2a2520] font-normal">{player.rankedMatches.wlRate}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div></div>
                         
-                        <div className="flex justify-between">
-                            <span className="font-bold text-[#5a5248]">PROWESS</span>
-                            <span className="text-[#2a2520]">{player.prowess.toLocaleString()}</span>
-                        </div>
-                        <div></div>
-                    </div>
-                </div>
-
-                {/* Match Stats */}
-                <div className="grid grid-cols-2 gap-8">
-                    {/* Ranked Matches */}
-                    <div>
-                        <h4 className="text-[#c45c4c] text-[22px] font-bold italic mb-3">Ranked Matches</h4>
-                        <div className="space-y-1 text-[18px]">
-                            <div className="flex justify-between">
-                                <span className="font-bold text-[#5a5248]">WINS</span>
-                                <span className="text-[#2a2520]">{player.rankedMatches.wins}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="font-bold text-[#5a5248]">LOSES</span>
-                                <span className="text-[#2a2520]">{player.rankedMatches.loses}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="font-bold text-[#5a5248]">W/L RATE</span>
-                                <span className="text-[#2a2520]">{player.rankedMatches.wlRate}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Player Matches */}
-                    <div>
-                        <h4 className="text-[#c45c4c] text-[22px] font-bold italic mb-3">Player Matches</h4>
-                        <div className="space-y-1 text-[18px]">
-                            <div className="flex justify-between">
-                                <span className="font-bold text-[#5a5248]">WINS</span>
-                                <span className="text-[#2a2520]">{player.playerMatches.wins}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="font-bold text-[#5a5248]">LOSES</span>
-                                <span className="text-[#2a2520]">{player.playerMatches.loses}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="font-bold text-[#5a5248]">W/L RATE</span>
-                                <span className="text-[#2a2520]">{player.playerMatches.wlRate}</span>
+                        {/* Player Matches Section */}
+                        <div>
+                            <h4 className="text-[#c45c4c] text-[24px] italic mb-2 text-left">Player Matches</h4>
+                            <div className="space-y-2">
+                                <div className="flex gap-8">
+                                    <span className="text-[#5a5248] w-[200px]">WINS</span>
+                                    <span className="text-[#2a2520] font-normal">{player.playerMatches.wins}</span>
+                                </div>
+                                <div className="flex gap-8">
+                                    <span className="text-[#5a5248] w-[200px]">LOSES</span>
+                                    <span className="text-[#2a2520] font-normal">{player.playerMatches.loses}</span>
+                                </div>
+                                <div className="flex gap-8">
+                                    <span className="text-[#5a5248] w-[200px]">W/L RATE</span>
+                                    <span className="text-[#2a2520] font-normal">{player.playerMatches.wlRate}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -247,4 +296,3 @@ export default function RIBPlayerStatsOverlay({ forceShow = false }: Props) {
         </div>
     );
 }
-

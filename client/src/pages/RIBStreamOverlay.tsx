@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
@@ -24,40 +24,53 @@ interface OverlayState {
 
 interface Props {
     forceShow?: boolean;
+    externalData?: StreamData | null;
+    externalOverlayState?: OverlayState;
 }
 
-export default function RIBStreamOverlay({ forceShow = false }: Props) {
+export default function RIBStreamOverlay({ forceShow = false, externalData, externalOverlayState }: Props) {
     const [searchParams] = useSearchParams();
-    const [streamData, setStreamData] = useState<StreamData>({
+    const [internalStreamData, setInternalStreamData] = useState<StreamData>({
         matchTitle: '',
         p1Name: '', p1Flag: '', p1Score: 0,
         p2Name: '', p2Flag: '', p2Score: 0
     });
-    const [overlayState, setOverlayState] = useState<OverlayState | null>(null);
+    const [internalOverlayState, setInternalOverlayState] = useState<OverlayState | null>(null);
     const [animKey, setAnimKey] = useState(0);
+
+    // Determine whether to use external props or internal state
+    const isManaged = externalData !== undefined;
+    const streamData = isManaged && externalData ? externalData : internalStreamData;
+    const overlayState = isManaged && externalOverlayState ? externalOverlayState : internalOverlayState;
+
+    // Handle animations based on trigger changes
+    const prevAnimTrigger = useRef(overlayState?.animationTrigger);
+    useEffect(() => {
+        if (overlayState?.animationTrigger !== prevAnimTrigger.current) {
+            setAnimKey(k => k + 1);
+            prevAnimTrigger.current = overlayState?.animationTrigger;
+        }
+    }, [overlayState?.animationTrigger]);
 
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
+
+        if (isManaged) return; // Skip socket connection if managed by Unified Overlay
 
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
         const newSocket: Socket = io({
             auth: { token: connectionKey || '' }
         });
 
-        newSocket.on('rib-stream-data-update', (data: StreamData) => setStreamData(data));
+        newSocket.on('rib-stream-data-update', (data: StreamData) => setInternalStreamData(data));
         newSocket.on('rib-overlay-state-update', (data: OverlayState) => {
-            setOverlayState(prev => {
-                if (prev && data.animationTrigger !== prev.animationTrigger) {
-                    setAnimKey(k => k + 1);
-                }
-                return data;
-            });
+            setInternalOverlayState(data);
         });
 
         return () => {
             newSocket.disconnect();
         };
-    }, []);
+    }, [isManaged, searchParams]);
 
     const shouldShow = forceShow || (overlayState && overlayState.showStreamOverlay);
 
@@ -85,7 +98,7 @@ export default function RIBStreamOverlay({ forceShow = false }: Props) {
                 style={{ animation: `fadeIn 0.3s ease-out` }}
             />
 
-            {/* Player 1 Flag - positioned over the left circle */}
+            {/* Player 1 Flag */}
             <div 
                 key={`p1flag-${animKey}`}
                 className="absolute top-[21px] left-[202px] w-[46px] h-[46px] rounded-full overflow-hidden z-10"
@@ -97,7 +110,7 @@ export default function RIBStreamOverlay({ forceShow = false }: Props) {
                 }}
             />
 
-            {/* Player 1 Name - left aligned to edge of flag with padding */}
+            {/* Player 1 Name */}
             <div 
                 key={`p1name-${animKey}`}
                 className="absolute top-[28px] left-[280px] h-[30px] flex items-center"
@@ -117,7 +130,7 @@ export default function RIBStreamOverlay({ forceShow = false }: Props) {
                 <span className="text-[#c45c4c] text-[40px] font-bold">{streamData.p1Score}</span>
             </div>
 
-            {/* Player 2 Flag - positioned over the right circle */}
+            {/* Player 2 Flag */}
             <div 
                 key={`p2flag-${animKey}`}
                 className="absolute top-[21px] right-[204px] w-[46px] h-[46px] rounded-full overflow-hidden z-10"
@@ -129,7 +142,7 @@ export default function RIBStreamOverlay({ forceShow = false }: Props) {
                 }}
             />
 
-            {/* Player 2 Name - right aligned to edge of flag with padding */}
+            {/* Player 2 Name */}
             <div 
                 key={`p2name-${animKey}`}
                 className="absolute top-[28px] right-[280px] h-[30px] flex items-center justify-end"
@@ -167,4 +180,3 @@ export default function RIBStreamOverlay({ forceShow = false }: Props) {
         </div>
     );
 }
-
