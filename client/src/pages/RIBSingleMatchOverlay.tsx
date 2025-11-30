@@ -122,7 +122,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                 >
                     {match.matchTitle}
                 </h1>
-                <p 
+                <p
                     className="text-[#7a8080] text-[28px] tracking-[0.1em] uppercase mt-1 font-normal"
                     style={{ fontFamily: 'D-DIN Exp Bold, sans-serif' }}
                 >
@@ -130,46 +130,174 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                 </p>
             </div>
 
-            {/* Player 1 Name - Large text at bottom background */}
+            {/* DEBUG: Visible diagonal line for P1 blur transition */}
             <div 
-                key={`p1name-bg-${animKey}`}
-                className="absolute left-[-1400px] bottom-[-10px] overflow-hidden pointer-events-none"
+                className="absolute pointer-events-none"
+                style={{
+                    left: '246px',
+                    top: '0',
+                    bottom: '0',
+                    width: '1px',
+                    background: 'linear-gradient(to bottom, #00ff00, #00ff00)',
+                    zIndex: 100,
+                    transform: 'rotate(6deg)',
+                    transformOrigin: 'bottom center'
+                }}
+            />
+
+            {/* =================================================================================
+               PLAYER 1 NAME (LEFT SIDE)
+               Logic: Two layers. 
+               1. Blurred layer masked to show only on the RIGHT (opponent side).
+               2. Sharp layer masked to show only on the LEFT (player side).
+               ================================================================================= */}
+
+            {/* P1 SHARP LAYER - Full text, no mask, base layer */}
+            <div 
+                key={`p1name-sharp-${animKey}`}
+                className="absolute bottom-[-12px] overflow-visible pointer-events-none"
                 style={{ 
-                    animation: `fadeIn 0.5s ease-out 0.1s both`,
-                    zIndex: 0
+                    right: '57%',
+                    textAlign: 'right',
+                    zIndex: 1,
+                    animation: `fadeIn 1s ease-out 0.1s both`,
                 }}
             >
-                <span 
+                <span
                     className="font-black uppercase whitespace-nowrap text-[#e63030]"
                     style={{ 
-                        fontSize: '400px',
+                        fontSize: '450px',
                         fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
                         letterSpacing: '-0.03em',
                         lineHeight: '0.8',
-                        transform: 'scaleX(0.7)'
+                        transform: 'scaleX(0.7)',
+                        display: 'inline-block'
                     }}
                 >
                     {match.p1Name}
                 </span>
             </div>
 
-            {/* Player 2 Name - Large text at bottom background */}
-            <div
-                key={`p2name-bg-${animKey}`}
-                className="absolute right-[-1050px] bottom-[-10px] overflow-hidden pointer-events-none"
+            {/* P1 BLURRED LAYER - Overlays left portion with blur (0-85%), blur line near center */}
+            <div 
+                key={`p1name-blur-${animKey}`}
+                className="absolute bottom-[-12px] overflow-visible pointer-events-none"
                 style={{ 
+                    right: '57%',
+                    textAlign: 'right',
+                    zIndex: 2,
+                    animation: `fadeIn 1s ease-out 0.1s both`,
+                }}
+            >
+                <span
+                    className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                    style={{ 
+                        fontSize: '450px',
+                        fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                        letterSpacing: '-0.03em',
+                        lineHeight: '0.8',
+                        transform: 'scaleX(0.7)',
+                        display: 'inline-block',
+                        filter: 'blur(12px)',
+                        // Blur visible from 0-80%, fade out 80-90%, hidden 90%+
+                        WebkitMaskImage: 'linear-gradient(to right, black 0%, black 80%, transparent 90%)',
+                        maskImage: 'linear-gradient(to right, black 0%, black 80%, transparent 90%)'
+                    }}
+                >
+                    {match.p1Name}
+                </span>
+            </div>
+
+            {/* =================================================================================
+               PLAYER 2 NAME (RIGHT SIDE)
+               Logic: Two layers.
+               1. Blurred layer masked to show only on the LEFT (opponent side).
+               2. Sharp layer masked to show only on the RIGHT (player side).
+               ================================================================================= */}
+
+            {/* DEBUG: Visible diagonal line for P2 blur transition (MAGENTA) */}
+            <div 
+                className="absolute pointer-events-none"
+                style={{
+                    right: '246px',
+                    top: '0',
+                    bottom: '0',
+                    width: '1px',
+                    background: '#ff00ff',
+                    zIndex: 100,
+                    transform: 'rotate(5.2deg)',
+                    transformOrigin: 'bottom center'
+                }}
+            />
+
+            {/* DEBUG: Second line for P2 mask transition (CYAN) */}
+            <div 
+                className="absolute pointer-events-none"
+                style={{
+                    right: '450px',
+                    top: '0',
+                    bottom: '0',
+                    width: '1px',
+                    background: '#00ffff',
+                    zIndex: 100,
+                    transform: 'rotate(5.2deg)',
+                    transformOrigin: 'bottom center'
+                }}
+            />
+
+            {/* P2 BLURRED LAYER (Bottom) */}
+            <div
+                key={`p2name-blur-${animKey}`}
+                className="absolute bottom-[-12px] overflow-visible pointer-events-none"
+                style={{ 
+                    left: '57%',
+                    textAlign: 'left',
+                    zIndex: 0,
                     animation: `fadeIn 0.5s ease-out 0.1s both`,
-                    zIndex: 0
+                }}
+            >
+                <span 
+                    className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                    style={{
+                        fontSize: '450px',
+                        fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                        letterSpacing: '-0.03em',
+                        lineHeight: '0.8',
+                        transform: 'scaleX(0.7)',
+                        display: 'inline-block',
+                        filter: 'blur(12px)',
+                        // MASK: Visible on Left -> Transparent on Right
+                        WebkitMaskImage: 'linear-gradient(105deg, black 5%, transparent 15%)',
+                        maskImage: 'linear-gradient(105deg, black 5%, transparent 15%)'
+                    }}
+                >
+                    {match.p2Name}
+                </span>
+            </div>
+
+            {/* P2 SHARP LAYER (Top) */}
+            <div
+                key={`p2name-sharp-${animKey}`}
+                className="absolute bottom-[-12px] overflow-visible pointer-events-none"
+                style={{ 
+                    left: '57%',
+                    textAlign: 'left',
+                    zIndex: 1,
+                    animation: `fadeIn 0.5s ease-out 0.1s both`,
                 }}
             >
                 <span 
                     className="font-black uppercase whitespace-nowrap text-[#e63030]"
                     style={{ 
-                        fontSize: '400px',
+                        fontSize: '450px',
                         fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
                         letterSpacing: '-0.03em',
                         lineHeight: '0.8',
-                        transform: 'scaleX(0.7)'
+                        transform: 'scaleX(0.7)',
+                        display: 'inline-block',
+                        // MASK: Transparent on Left -> Visible on Right
+                        WebkitMaskImage: 'linear-gradient(105deg, transparent 5%, black 15%)',
+                        maskImage: 'linear-gradient(105deg, transparent 5%, black 15%)'
                     }}
                 >
                     {match.p2Name}
@@ -191,7 +319,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                     className="object-contain object-bottom"
                     style={{
                         height: '1650px',
-                        filter: 'drop-shadow(4px 4px 11px rgba(0,0,0,0.4))',
+                        filter: 'perspective-shadow(4px 4px 11px rgba(0,0,0,0.4))',
                         transform: 'scaleX(-1)'
                     }}
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -219,10 +347,10 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                 />
             </div>
 
-            {/* Player Info - P1 Side */}
+            {/* Player Info - P1 Side - anchored left, grows towards center */}
             <div 
                 key={`p1info-${animKey}`}
-                className="absolute top-[310px] left-[500px] text-right"
+                className="absolute top-[310px] left-[480px] text-left"
                 style={{ 
                     animation: `fadeIn 0.6s ease-out 0.3s both`,
                     zIndex: 3
@@ -242,10 +370,10 @@ export default function RIBSingleMatchOverlay({ forceShow = false }: Props) {
                 </h3>
             </div>
 
-            {/* Player Info - P2 Side */}
+            {/* Player Info - P2 Side - anchored right, grows towards center */}
             <div 
                 key={`p2info-${animKey}`}
-                className="absolute top-[310px] right-[550px] text-left"
+                className="absolute top-[310px] right-[550px] text-right"
                 style={{ 
                     animation: `fadeIn 0.6s ease-out 0.3s both`,
                     zIndex: 3
