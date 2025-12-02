@@ -163,6 +163,14 @@
     font-style: italic;
 }
 
+@font-face {
+    font-family: 'Crook';
+    src: url('/source/fonts/Crook/cookconthic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+
 body {
     @apply bg-black text-gray-300 font-archivo;
     min-height: 100vh;

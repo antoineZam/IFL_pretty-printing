@@ -145,8 +145,8 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
 
             {/* Match Cards - Each positioned absolutely */}
             {allMatches.map((match, index) => {
-                const p1CharImg = `/source/overlay/run_it_back/characters/${match.p1Character}_icon.png`;
-                const p2CharImg = `/source/overlay/run_it_back/characters/${match.p2Character}_icon.png`;
+                const p1CharImg = `/source/overlay/run_it_back/characters/P1/${match.p1Character.toLowerCase()}_icon.png`;
+                const p2CharImg = `/source/overlay/run_it_back/characters/P2/${match.p2Character.toLowerCase()}_icon.png`;
                 const isMainEvent = match.isMainEvent;
                 const cardBg = isMainEvent 
                     ? '/source/overlay/run_it_back/match_card/guest_match.png'

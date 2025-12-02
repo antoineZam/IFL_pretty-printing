@@ -93,7 +93,8 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
         return <div className="w-[1920px] h-[1080px]" />;
     }
 
-    const charImg = `/source/overlay/run_it_back/characters/${player.character}.png`;
+    const playerSide = (overlayState?.selectedPlayerIndex ?? 0) === 0 ? 'P1' : 'P2';
+    const charImg = `/source/overlay/run_it_back/characters/${playerSide}/${player.character.toLowerCase()}.png`;
 
     // Clip paths for the blur effect on the large name
     // Line at 655px top, ~545px bottom (5.8deg rotation)

@@ -100,8 +100,21 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
     }
 
     const match = matchCards.singleMatch;
-    const p1CharImg = `/source/overlay/run_it_back/characters/${match.p1Character}.png`;
-    const p2CharImg = `/source/overlay/run_it_back/characters/${match.p2Character}.png`;
+    const p1CharImg = `/source/overlay/run_it_back/characters/P1/${match.p1Character.toLowerCase()}.png`;
+    const p2CharImg = `/source/overlay/run_it_back/characters/P2/${match.p2Character.toLowerCase()}.png`;
+
+    // Adaptive font size calculation for player names
+    // Names should fit within 20% of screen width (384px at 1920px)
+    const getAdaptiveFontSize = (name: string, baseSize: number = 120) => {
+        const maxWidth = 354; // 20% of 1920px
+        const charWidthRatio = 0.25; // Approximate character width as percentage of font size for Crook font
+        const estimatedWidth = name.length * baseSize * charWidthRatio;
+        if (estimatedWidth <= maxWidth) return baseSize;
+        return Math.floor(maxWidth / (name.length * charWidthRatio));
+    };
+
+    const p1NameFontSize = getAdaptiveFontSize(match.p1Name);
+    const p2NameFontSize = getAdaptiveFontSize(match.p2Name);
 
     // Geometry Calculations for Clip Paths
     // Green Line: Left 246px, 6deg rotation
@@ -137,13 +150,13 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                 }}
             >
                 <h1
-                    className="text-[#3a3530] text-[36px] font-black tracking-[0.05em] uppercase"
-                    style={{ fontFamily: 'Gotham Bold, Gotham, sans-serif' }}
+                    className="text-[#1e3637] text-[36px] font-black tracking-[0.05em] uppercase"
+                    style={{ fontFamily: 'D-DIN Exp Bold, D-DIN, sans-serif' }}
                 >
                     {match.matchTitle}
                 </h1>
                 <p
-                    className="text-[#7a8080] text-[28px] tracking-[0.1em] uppercase mt-1 font-normal"
+                    className="text-[#7a8080] text-[28px] tracking-[0.1em] uppercase -mt-[10px] font-normal"
                     style={{ fontFamily: 'D-DIN Exp Bold, sans-serif' }}
                 >
                     {match.format}
@@ -190,9 +203,9 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             >
                 <div 
                     key={`p1name-blur-${animKey}`}
-                    className="absolute bottom-[-12px] overflow-visible"
+                    className="absolute bottom-[-40px] overflow-visible"
                     style={{ 
-                        right: '48%',
+                        right: '53%',
                         textAlign: 'right',
                         opacity: 0.3, // Reduced opacity
                         filter: 'blur(8px)', // Blur effect
@@ -200,14 +213,18 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     }}
                 >
                     <span
-                        className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                        className="font-black uppercase whitespace-nowrap"
                         style={{ 
-                            fontSize: '450px',
-                            fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                            fontSize: '580px',
+                            fontFamily: 'Crook, Crook, sans-serif',
                             letterSpacing: '-0.03em',
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
-                            display: 'inline-block'
+                            display: 'inline-block',
+                            background: 'linear-gradient(to bottom, #DE4725, #A21D17)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
                         }}
                     >
                         {match.p1Name}
@@ -222,22 +239,26 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             >
                 <div 
                     key={`p1name-sharp-${animKey}`}
-                    className="absolute bottom-[-12px] overflow-visible"
+                    className="absolute bottom-[-40px] overflow-visible"
                     style={{ 
-                        right: '48%',
+                        right: '53%',
                         textAlign: 'right',
                         animation: `fadeIn 1s ease-out 0.1s both`,
                     }}
                 >
                     <span
-                        className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                        className="font-black uppercase whitespace-nowrap"
                         style={{ 
-                            fontSize: '450px',
-                            fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                            fontSize: '580px',
+                            fontFamily: 'Crook, Crook, sans-serif',
                             letterSpacing: '-0.03em',
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
-                            display: 'inline-block'
+                            display: 'inline-block',
+                            background: 'linear-gradient(to bottom, #DE4725, #A21D17)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
                         }}
                     >
                         {match.p1Name}
@@ -257,22 +278,26 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             >
                 <div
                     key={`p2name-sharp-${animKey}`}
-                    className="absolute bottom-[-12px] overflow-visible"
+                    className="absolute bottom-[-40px] overflow-visible"
                     style={{ 
-                        left: '45%',
+                        left: '51%',
                         textAlign: 'left',
                         animation: `fadeIn 0.5s ease-out 0.1s both`,
                     }}
                 >
                     <span 
-                        className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                        className="font-black uppercase whitespace-nowrap"
                         style={{ 
-                            fontSize: '450px',
-                            fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                            fontSize: '580px',
+                            fontFamily: 'Crook, Crook, sans-serif',
                             letterSpacing: '-0.03em',
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
-                            display: 'inline-block'
+                            display: 'inline-block',
+                            background: 'linear-gradient(to bottom, #DE4725, #A21D17)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
                         }}
                     >
                         {match.p2Name}
@@ -287,9 +312,9 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             >
                 <div
                     key={`p2name-blur-${animKey}`}
-                    className="absolute bottom-[-12px] overflow-visible"
-                    style={{ 
-                        left: '45%',
+                    className="absolute bottom-[-40px] overflow-visible"
+                    style={{
+                        left: '51%',
                         textAlign: 'left',
                         opacity: 0.3, // Reduced opacity
                         filter: 'blur(8px)', // Blur effect
@@ -297,14 +322,18 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     }}
                 >
                     <span 
-                        className="font-black uppercase whitespace-nowrap text-[#e63030]"
+                        className="font-black uppercase whitespace-nowrap"
                         style={{
-                            fontSize: '450px',
-                            fontFamily: 'D-DIN Exp, D-DIN, sans-serif',
+                            fontSize: '580px',
+                            fontFamily: 'Crook, Crook, sans-serif',
                             letterSpacing: '-0.03em',
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
-                            display: 'inline-block'
+                            display: 'inline-block',
+                            background: 'linear-gradient(to bottom, #DE4725, #A21D17)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
                         }}
                     >
                         {match.p2Name}
@@ -315,7 +344,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             {/* Player 1 Character - Flipped, on left edge */}
             <div 
                 key={`p1-${animKey}`}
-                className="absolute left-[-200px] bottom-[-675px]"
+                className="absolute"
                 style={{
                     animation: `slideInLeft 0.6s ease-out 0.2s both`,
                     zIndex: 2
@@ -326,9 +355,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     alt={match.p1Character}
                     className="object-contain object-bottom"
                     style={{
-                        height: '1650px',
-                        filter: 'perspective-shadow(4px 4px 11px rgba(0,0,0,0.4))',
-                        transform: 'scaleX(-1)'
+                        filter: 'drop-shadow(25px -15px 25px rgba(0, 0, 0, 0.27)) drop-shadow(12px -8px 10px rgba(0, 0, 0, 0.17))'
                     }}
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
@@ -337,7 +364,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             {/* Player 2 Character - On right edge */}
             <div 
                 key={`p2-${animKey}`}
-                className="absolute right-[-200px] bottom-[-675px]"
+                className="absolute"
                 style={{ 
                     animation: `slideInRight 0.6s ease-out 0.2s both`,
                     zIndex: 2
@@ -347,60 +374,84 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     src={p2CharImg} 
                     alt={match.p2Character}
                     className="object-contain object-bottom"
-                    style={{ 
-                        height: '1650px',
-                        filter: 'drop-shadow(-4px 4px 11px rgba(0,0,0,0.4))'
+                    style={{
+                        filter: 'drop-shadow(25px -15px 25px rgba(0, 0, 0, 0.27)) drop-shadow(12px -8px 10px rgba(0, 0, 0, 0.17))'
                     }}
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
             </div>
 
-            {/* Player Info - P1 Side - anchored left, grows towards center */}
+            {/* Player Info - P1 Side - spans from 55% to 75% */}
             <div 
                 key={`p1info-${animKey}`}
-                className="absolute top-[310px] text-right"
+                className="absolute top-[300px] flex flex-col items-center"
                 style={{ 
-                    right: '57%',
+                    right: '56%',
+                    width: '20%',
                     animation: `fadeIn 0.6s ease-out 0.3s both`,
                     zIndex: 3
                 }}
             >
                 <p 
-                    className="text-[#7a8080] text-[24px] tracking-[0.2em] font-normal mb-2"
-                    style={{ fontFamily: 'D-DIN Bold, sans-serif' }}
+                    className="text-[#7a8080] text-[28px] tracking-[0.02em] font-bold mb-[-15px]"
+                    style={{ fontFamily: 'Gotham Bold, Gotham, sans-serif' }}
                 >
                     {match.p1Title}
                 </p>
                 <h3 
-                    className="text-[#e63030] text-[92px] font-bold tracking-tight leading-none whitespace-nowrap"
-                    style={{ fontFamily: 'D-DIN Condensed, sans-serif' }}
+                    className="text-[#e63030] font-bold tracking-tight leading-none whitespace-nowrap"
+                    style={{ 
+                        fontFamily: 'Crook, Crook, sans-serif',
+                        fontSize: `${p1NameFontSize}px`
+                    }}
                 >
-                    {match.p1Name}
+                    {match.p1Name.toUpperCase()}
                 </h3>
             </div>
 
-            {/* Player Info - P2 Side - anchored right, grows towards center */}
+            {/* Player Info - P2 Side - spans from 55% to 75% */}
             <div 
                 key={`p2info-${animKey}`}
-                className="absolute top-[310px] text-left"
+                className="absolute top-[300px] flex flex-col items-center"
                 style={{ 
-                    left: '57%',
+                    left: '56%',
+                    width: '20%',
                     animation: `fadeIn 0.6s ease-out 0.3s both`,
                     zIndex: 3
                 }}
             >
                 <p 
-                    className="text-[#7a8080] text-[24px] tracking-[0.2em] font-normal mb-2"
-                    style={{ fontFamily: 'D-DIN Condensed Bold, sans-serif' }}
+                    className="text-[#7a8080] text-[28px] tracking-[0.02em] font-bold mb-[-15px]"
+                    style={{ fontFamily: 'Gotham Bold, Gotham, sans-serif' }}
                 >
                     {match.p2Title}
                 </p>
-                <h3 
-                    className="text-[#e63030] text-[92px] font-bold tracking-tight leading-none whitespace-nowrap"
-                    style={{ fontFamily: 'D-DIN Condensed, sans-serif' }}
+                <h3
+                    className="text-[#e63030] font-bold tracking-tight leading-none whitespace-nowrap"
+                    style={{ 
+                        fontFamily: 'Crook, Crook, sans-serif',
+                        fontSize: `${p2NameFontSize}px`
+                    }}
                 >
-                    {match.p2Name}
+                    {match.p2Name.toUpperCase()}
                 </h3>
+            </div>
+
+            {/* Part Number - Bottom Center */}
+            <div 
+                key={`partnum-${animKey}`}
+                className="absolute bottom-[129px] left-[425px] right-0 text-center"
+                style={{ 
+                    animation: `fadeIn 0.6s ease-out 0.4s both`,
+                    zIndex: 3
+                }}
+            >
+                <span
+                    className="text-[#1e3637] text-[80px] font-black tracking-[0.002em] uppercase"
+                    style={{ fontFamily: 'Crook, Crook, sans-serif' }}
+                >
+                    {matchCards.partNumber}
+                </span>
             </div>
 
             {/* Animations */}
