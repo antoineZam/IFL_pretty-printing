@@ -144,26 +144,6 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                     ? '/source/overlay/run_it_back/match_card/guest_match.png'
                     : '/source/overlay/run_it_back/match_card/regular_match.png';
 
-                // Adaptive margin for longer names - push them further from VS
-                const getP1Margin = (name: string) => {
-                    const baseMargin = -550;
-                    const extraPerChar = +60; // Extra pixels per character over threshold
-                    const threshold = 8;
-                    if (name.length <= threshold) return baseMargin;
-                    return baseMargin + (name.length - threshold) * extraPerChar;
-                };
-
-                const getP2Margin = (name: string) => {
-                    const baseMargin = -335;
-                    const extraPerChar = +60;
-                    const threshold = 8;
-                    if (name.length <= threshold) return baseMargin;
-                    return baseMargin + (name.length - threshold) * extraPerChar;
-                };
-
-                const p1Margin = getP1Margin(match.p1Name);
-                const p2Margin = getP2Margin(match.p2Name);
-                
                 // Animation delay: bottom cards animate first (reverse order)
                 const animDelay = (totalCards - 1 - index) * 0.12;
                 
@@ -231,25 +211,23 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                 paddingLeft: '500px'
                             }}
                         >
-                            {/* P1 Info */}
-                            <div className="flex-1 px-4 flex flex-col items-center justify-center">
+                            {/* P1 Info - Left aligned */}
+                            <div className="flex-1 flex flex-col items-start justify-center" style={{ paddingLeft: '425px' }}>
                                 <h3 
-                                    className={`font-bold tracking-tight text-center ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
+                                    className={`font-bold tracking-tight ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
                                     style={{ 
                                         fontSize: '38px',
                                         fontFamily: 'Gotham Bold, Gotham, sans-serif',
-                                        textShadow: isMainEvent ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none',
-                                        marginRight: `${p1Margin}px`
+                                        textShadow: isMainEvent ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none'
                                     }}
                                 >
                                     {match.p1Name}
                                 </h3>
                                 <p 
-                                    className={`tracking-wider font-medium text-center ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
+                                    className={`tracking-wider font-medium ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
                                     style={{
                                         fontFamily: 'Crook Bold, Crook, sans-serif',
-                                        fontSize: isMainEvent ? '14px' : '11px',
-                                        marginRight: `${p1Margin}px`,
+                                        fontSize: '18px',
                                         marginTop: '-10px'
                                      }}
                                 >
@@ -258,9 +236,9 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             </div>
 
                             {/* VS / Center Section */}
-                            <div className="w-[80px] flex items-center justify-center" style={{ marginRight: '-100px' }}>
+                            <div className="w-[80px] flex items-center justify-center" style={{ marginRight: '8px' }}>
                                 <span 
-                                    className={`font-black ${isMainEvent ? 'text-white/50' : 'text-[#8a8070]/50'}`}
+                                    className={`font-black ${isMainEvent ? 'text-white/70' : 'text-[#8a8070]/70'}`}
                                     style={{ 
                                         fontSize: '28px',
                                         fontFamily: 'Gotham, sans-serif' }}
@@ -269,25 +247,23 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                 </span>
                             </div>
 
-                            {/* P2 Info */}
-                            <div className="flex-1 px-4 flex flex-col items-center justify-center">
+                            {/* P2 Info - Right aligned */}
+                            <div className="flex-1 flex flex-col items-end justify-center" style={{ paddingRight: '315px' }}>
                                 <h3 
-                                    className={`font-bold tracking-tight text-center ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
+                                    className={`font-bold tracking-tight text-right ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
                                     style={{ 
                                         fontSize: '38px',
                                         fontFamily: 'Gotham Bold, Gotham, sans-serif',
-                                        textShadow: isMainEvent ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none',
-                                        marginLeft: `${p2Margin}px`
+                                        textShadow: isMainEvent ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none'
                                     }}
                                 >
                                     {match.p2Name}
                                 </h3>
                                 <p 
-                                    className={`tracking-wider font-medium text-center ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
+                                    className={`tracking-wider font-medium text-right ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
                                     style={{
                                         fontFamily: 'Crook Bold, Crook, sans-serif',
-                                        fontSize: isMainEvent ? '14px' : '11px',
-                                        marginLeft: `${p2Margin}px`,
+                                        fontSize: '18px',
                                         marginTop: '-10px'
                                     }}
                                 >
