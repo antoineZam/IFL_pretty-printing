@@ -227,8 +227,8 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                     className={`tracking-wider font-medium ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
                                     style={{
                                         fontFamily: 'Crook Bold, Crook, sans-serif',
-                                        fontSize: '18px',
-                                        marginTop: '-10px'
+                                        fontSize: '28px',
+                                        marginTop: '-15px'
                                      }}
                                 >
                                     {match.p1Title}
@@ -263,8 +263,8 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                     className={`tracking-wider font-medium text-right ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
                                     style={{
                                         fontFamily: 'Crook Bold, Crook, sans-serif',
-                                        fontSize: '18px',
-                                        marginTop: '-10px'
+                                        fontSize: '28px',
+                                        marginTop: '-15px'
                                     }}
                                 >
                                     {match.p2Title}
