@@ -133,18 +133,21 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
 
             {/* Large watermark name - BLURRED LAYER (Left side) */}
             <div 
-                className="absolute inset-0 pointer-events-none z-[1]"
+                className="absolute inset-0 pointer-events-none z-[1] overflow-visible"
                 style={{ clipPath: blurClipPoly }}
             >
                 <div 
                     key={`watermark-blur-${animKey}`}
-                    className="absolute bottom-[-67px] left-[100px] text-[375px] font-black text-[#e63030] leading-none tracking-tighter select-none"
+                    className="absolute font-black text-[#e63030] leading-none tracking-tighter select-none whitespace-nowrap"
                     style={{ 
+                        bottom: '-80px',
+                        right: '640px',
+                        fontSize: '420px',
                         animation: `slideUpBlur 0.8s ease-out both`,
                         fontFamily: 'D-DIN Condensed, D-DIN, sans-serif',
                         letterSpacing: '-0.03em',
                         filter: 'blur(8px)',
-                        transformOrigin: 'bottom'
+                        transformOrigin: 'bottom right'
                     }}
                 >
                     {player.name.toUpperCase()}
@@ -153,17 +156,20 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
 
             {/* Large watermark name - SHARP LAYER (Right side) */}
             <div 
-                className="absolute inset-0 pointer-events-none z-[1]"
+                className="absolute inset-0 pointer-events-none z-[1] overflow-visible"
                 style={{ clipPath: sharpClipPoly }}
             >
                 <div 
                     key={`watermark-sharp-${animKey}`}
-                    className="absolute bottom-[-67px] left-[100px] text-[375px] font-black text-[#e63030] leading-none tracking-tighter select-none"
+                    className="absolute font-black text-[#e63030] leading-none tracking-tighter select-none whitespace-nowrap"
                     style={{ 
+                        bottom: '-80px',
+                        right: '640px',
+                        fontSize: '420px',
                         animation: `slideUpSharp 0.8s ease-out both`,
                         fontFamily: 'D-DIN Condensed, D-DIN, sans-serif',
                         letterSpacing: '-0.03em',
-                        transformOrigin: 'bottom'
+                        transformOrigin: 'bottom right'
                     }}
                 >
                     {player.name.toUpperCase()}
