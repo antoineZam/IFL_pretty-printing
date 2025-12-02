@@ -171,6 +171,27 @@ export default function RIBMatchControlPage() {
         const newData = { ...streamData, ...updates };
         setStreamData(newData);
         socket?.emit('rib-stream-data-update', newData);
+        
+        // Auto-transition to SingleMatchOverlay when a player reaches win score
+        const winScore = matchCards?.winScore || 3;
+        const newP1Score = updates.p1Score ?? streamData.p1Score;
+        const newP2Score = updates.p2Score ?? streamData.p2Score;
+        
+        if (newP1Score >= winScore || newP2Score >= winScore) {
+            // Small delay to let the score update be processed first
+            setTimeout(() => {
+                const victoryState: OverlayState = {
+                    ...overlayState,
+                    showMatchCard: true,
+                    showPlayerStats: false,
+                    showPartOne: false,
+                    showStreamOverlay: false,
+                    animationTrigger: overlayState.animationTrigger + 1
+                };
+                setOverlayState(victoryState);
+                socket?.emit('rib-overlay-state-update', victoryState);
+            }, 300);
+        }
     };
 
     const toggleOverlay = (overlay: keyof Pick<OverlayState, 'showMatchCard' | 'showPlayerStats' | 'showPartOne' | 'showStreamOverlay'>) => {
