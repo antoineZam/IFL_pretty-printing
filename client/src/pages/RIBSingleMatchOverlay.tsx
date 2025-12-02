@@ -236,7 +236,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
                             display: 'inline-block',
-                            background: p2Victory 
+                            background: (hasVictory && p2Victory) 
                                 ? 'linear-gradient(to bottom, #888888, #444444)' 
                                 : 'linear-gradient(to bottom, #DE4725, #A21D17)',
                             WebkitBackgroundClip: 'text',
@@ -272,7 +272,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
                             display: 'inline-block',
-                            background: p2Victory 
+                            background: (hasVictory && p2Victory) 
                                 ? 'linear-gradient(to bottom, #888888, #444444)' 
                                 : 'linear-gradient(to bottom, #DE4725, #A21D17)',
                             WebkitBackgroundClip: 'text',
@@ -313,7 +313,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
                             display: 'inline-block',
-                            background: p1Victory 
+                            background: (hasVictory && p1Victory) 
                                 ? 'linear-gradient(to bottom, #888888, #444444)' 
                                 : 'linear-gradient(to bottom, #DE4725, #A21D17)',
                             WebkitBackgroundClip: 'text',
@@ -351,7 +351,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
                             display: 'inline-block',
-                            background: p1Victory 
+                            background: (hasVictory && p1Victory) 
                                 ? 'linear-gradient(to bottom, #888888, #444444)' 
                                 : 'linear-gradient(to bottom, #DE4725, #A21D17)',
                             WebkitBackgroundClip: 'text',
@@ -378,7 +378,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     alt={match.p1Character}
                     className="object-contain object-bottom"
                     style={{
-                        filter: p2Victory 
+                        filter: (hasVictory && p2Victory) 
                             ? 'grayscale(100%) drop-shadow(25px -15px 25px rgba(0, 0, 0, 0.27))' 
                             : 'drop-shadow(25px -15px 25px rgba(0, 0, 0, 0.27)) drop-shadow(12px -8px 10px rgba(0, 0, 0, 0.17))',
                         transition: 'filter 0.5s ease-out'
@@ -401,7 +401,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     alt={match.p2Character}
                     className="object-contain object-bottom"
                     style={{
-                        filter: p1Victory 
+                        filter: (hasVictory && p1Victory) 
                             ? 'grayscale(100%) drop-shadow(25px -15px 25px rgba(0, 0, 0, 0.27))' 
                             : 'drop-shadow(25px -15px 25px rgba(0, 0, 0, 0.27)) drop-shadow(12px -8px 10px rgba(0, 0, 0, 0.17))',
                         transition: 'filter 0.5s ease-out'
@@ -420,15 +420,15 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     animation: `fadeIn 0.6s ease-out 0.3s both`,
                     zIndex: 3,
                     transition: 'filter 0.5s ease-out, opacity 0.5s ease-out',
-                    filter: p2Victory ? 'grayscale(100%)' : 'none',
-                    opacity: p2Victory ? 0.5 : 1
+                    filter: (hasVictory && p2Victory) ? 'grayscale(100%)' : 'none',
+                    opacity: (hasVictory && p2Victory) ? 0.5 : 1
                 }}
             >
                 <p 
                     className="text-[28px] tracking-[0.02em] font-bold mb-[-15px]"
                     style={{ 
                         fontFamily: 'Gotham Bold, Gotham, sans-serif',
-                        color: p2Victory ? '#888888' : '#7a8080'
+                        color: (hasVictory && p2Victory) ? '#888888' : '#7a8080'
                     }}
                 >
                     {match.p1Title}
@@ -438,7 +438,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     style={{ 
                         fontFamily: 'Crook, Crook, sans-serif',
                         fontSize: `${p1NameFontSize}px`,
-                        color: p2Victory ? '#888888' : '#e63030'
+                        color: (hasVictory && p2Victory) ? '#888888' : '#e63030'
                     }}
                 >
                     {match.p1Name.toUpperCase()}
@@ -455,15 +455,15 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     animation: `fadeIn 0.6s ease-out 0.3s both`,
                     zIndex: 3,
                     transition: 'filter 0.5s ease-out, opacity 0.5s ease-out',
-                    filter: p1Victory ? 'grayscale(100%)' : 'none',
-                    opacity: p1Victory ? 0.5 : 1
+                    filter: (hasVictory && p1Victory) ? 'grayscale(100%)' : 'none',
+                    opacity: (hasVictory && p1Victory) ? 0.5 : 1
                 }}
             >
                 <p 
                     className="text-[28px] tracking-[0.02em] font-bold mb-[-15px]"
                     style={{ 
                         fontFamily: 'Gotham Bold, Gotham, sans-serif',
-                        color: p1Victory ? '#888888' : '#7a8080'
+                        color: (hasVictory && p1Victory) ? '#888888' : '#7a8080'
                     }}
                 >
                     {match.p2Title}
@@ -473,7 +473,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     style={{ 
                         fontFamily: 'Crook, Crook, sans-serif',
                         fontSize: `${p2NameFontSize}px`,
-                        color: p1Victory ? '#888888' : '#e63030'
+                        color: (hasVictory && p1Victory) ? '#888888' : '#e63030'
                     }}
                 >
                     {match.p2Name.toUpperCase()}

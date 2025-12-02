@@ -144,7 +144,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                         right: '640px',
                         fontSize: '420px',
                         animation: `slideUpBlur 0.8s ease-out both`,
-                        fontFamily: 'D-DIN Condensed, D-DIN, sans-serif',
+                        fontFamily: 'Crook, Crook, sans-serif',
                         letterSpacing: '-0.03em',
                         filter: 'blur(8px)',
                         transformOrigin: 'bottom right'
@@ -167,7 +167,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                         right: '640px',
                         fontSize: '420px',
                         animation: `slideUpSharp 0.8s ease-out both`,
-                        fontFamily: 'D-DIN Condensed, D-DIN, sans-serif',
+                        fontFamily: 'Crook, Crook, sans-serif',
                         letterSpacing: '-0.03em',
                         transformOrigin: 'bottom right'
                     }}
