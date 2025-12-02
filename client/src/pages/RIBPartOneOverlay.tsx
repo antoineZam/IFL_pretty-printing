@@ -6,6 +6,7 @@ interface MatchCardData {
     eventTitle: string;
     eventSubtitle: string;
     partNumber: string;
+    winScore?: number;
     mainEvent: {
         p1Name: string;
         p1Title: string;
@@ -22,6 +23,7 @@ interface MatchCardData {
     };
     matches: Array<{
         id: number;
+        matchTitle: string;
         p1Name: string;
         p1Title: string;
         p1Character: string;
@@ -36,16 +38,6 @@ interface MatchCardData {
         completed?: boolean;
         isMainEvent?: boolean;
     }>;
-    singleMatch: {
-        matchTitle: string;
-        format: string;
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-    };
     sponsors: {
         presenter: string;
         association: string;
@@ -145,12 +137,32 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
 
             {/* Match Cards - Each positioned absolutely */}
             {allMatches.map((match, index) => {
-                const p1CharImg = `/source/overlay/run_it_back/characters/P1/${match.p1Character.toLowerCase()}_icon.png`;
-                const p2CharImg = `/source/overlay/run_it_back/characters/P2/${match.p2Character.toLowerCase()}_icon.png`;
+                const p1CharImg = `/source/overlay/run_it_back/characters/P1_icon/${match.p1Character.toLowerCase()}.png`;
+                const p2CharImg = `/source/overlay/run_it_back/characters/P2_icon/${match.p2Character.toLowerCase()}.png`;
                 const isMainEvent = match.isMainEvent;
                 const cardBg = isMainEvent 
                     ? '/source/overlay/run_it_back/match_card/guest_match.png'
                     : '/source/overlay/run_it_back/match_card/regular_match.png';
+
+                // Adaptive margin for longer names - push them further from VS
+                const getP1Margin = (name: string) => {
+                    const baseMargin = -550;
+                    const extraPerChar = +60; // Extra pixels per character over threshold
+                    const threshold = 8;
+                    if (name.length <= threshold) return baseMargin;
+                    return baseMargin + (name.length - threshold) * extraPerChar;
+                };
+
+                const getP2Margin = (name: string) => {
+                    const baseMargin = -335;
+                    const extraPerChar = +60;
+                    const threshold = 8;
+                    if (name.length <= threshold) return baseMargin;
+                    return baseMargin + (name.length - threshold) * extraPerChar;
+                };
+
+                const p1Margin = getP1Margin(match.p1Name);
+                const p2Margin = getP2Margin(match.p2Name);
                 
                 // Animation delay: bottom cards animate first (reverse order)
                 const animDelay = (totalCards - 1 - index) * 0.12;
@@ -184,6 +196,28 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             className="absolute inset-0 w-full h-full"
                         />
 
+                        {/* P1 Character - Full 1920x1080 layer */}
+                        <img 
+                            src={p1CharImg}
+                            alt={match.p1Character}
+                            className="absolute inset-0 w-[1920px] h-[1080px]"
+                            style={{
+                                filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
+                            }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+
+                        {/* P2 Character - Full 1920x1080 layer */}
+                        <img 
+                            src={p2CharImg}
+                            alt={match.p2Character}
+                            className="absolute inset-0 w-[1920px] h-[1080px]"
+                            style={{
+                                filter: 'drop-shadow(-2px 2px 4px rgba(0,0,0,0.3))'
+                            }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+
                         {/* Card Content Overlay */}
                         <div 
                             className="absolute flex items-center justify-end"
@@ -197,34 +231,15 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                 paddingLeft: '500px'
                             }}
                         >
-                            {/* P1 Character */}
-                            <div 
-                                className="relative overflow-visible"
-                                style={{ width: '700px', height: '100%' }}
-                            >
-                                <img 
-                                    src={p1CharImg}
-                                    alt={match.p1Character}
-                                    className="absolute"
-                                    style={{
-                                        height: '170px',
-                                        left: '120px',
-                                        bottom: '7px',
-                                        filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
-                                    }}
-                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                />
-                            </div>
-                            
                             {/* P1 Info */}
                             <div className="flex-1 px-4 flex flex-col items-center justify-center">
                                 <h3 
                                     className={`font-bold tracking-tight text-center ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
                                     style={{ 
-                                        fontSize: isMainEvent ? '32px' : '24px',
+                                        fontSize: '38px',
                                         fontFamily: 'Gotham Bold, Gotham, sans-serif',
                                         textShadow: isMainEvent ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none',
-                                        marginRight: '-550px'
+                                        marginRight: `${p1Margin}px`
                                     }}
                                 >
                                     {match.p1Name}
@@ -232,8 +247,10 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                 <p 
                                     className={`tracking-wider font-medium text-center ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
                                     style={{
+                                        fontFamily: 'Crook Bold, Crook, sans-serif',
                                         fontSize: isMainEvent ? '14px' : '11px',
-                                        marginRight: '-550px'
+                                        marginRight: `${p1Margin}px`,
+                                        marginTop: '-10px'
                                      }}
                                 >
                                     {match.p1Title}
@@ -244,9 +261,11 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             <div className="w-[80px] flex items-center justify-center" style={{ marginRight: '-100px' }}>
                                 <span 
                                     className={`font-black ${isMainEvent ? 'text-white/50' : 'text-[#8a8070]/50'}`}
-                                    style={{ fontSize: '20px' }}
+                                    style={{ 
+                                        fontSize: '28px',
+                                        fontFamily: 'Gotham, sans-serif' }}
                                 >
-                                    VS
+                                    {match.p1Score} - {match.p2Score}
                                 </span>
                             </div>
 
@@ -255,56 +274,40 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                 <h3 
                                     className={`font-bold tracking-tight text-center ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
                                     style={{ 
-                                        fontSize: isMainEvent ? '32px' : '24px',
+                                        fontSize: '38px',
                                         fontFamily: 'Gotham Bold, Gotham, sans-serif',
                                         textShadow: isMainEvent ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none',
-                                        marginLeft: '-335px'
+                                        marginLeft: `${p2Margin}px`
                                     }}
                                 >
                                     {match.p2Name}
                                 </h3>
                                 <p 
                                     className={`tracking-wider font-medium text-center ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
-                                    style={{ fontSize: isMainEvent ? '14px' : '11px',
-                                        marginLeft: '-335px'
-                                     }}
+                                    style={{
+                                        fontFamily: 'Crook Bold, Crook, sans-serif',
+                                        fontSize: isMainEvent ? '14px' : '11px',
+                                        marginLeft: `${p2Margin}px`,
+                                        marginTop: '-10px'
+                                    }}
                                 >
                                     {match.p2Title}
                                 </p>
-                            </div>
-
-                            {/* P2 Character */}
-                            <div 
-                                className="relative overflow-visible"
-                                style={{ width: '700px', height: '100%' }}
-                            >
-                                <img 
-                                    src={p2CharImg}
-                                    alt={match.p2Character}
-                                    className="absolute"
-                                    style={{ 
-                                        height: '170px',
-                                        right: '-35px',
-                                        bottom: '7px',
-                                        filter: 'drop-shadow(-2px 2px 4px rgba(0,0,0,0.3))'
-                                    }}
-                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                />
                             </div>
                         </div>
 
                         {/* Match Title Label */}
                         {isMainEvent && (
                             <div
-                                className="absolute text-white text-[18px] font-bold tracking-[0.2em] uppercase"
+                                className="absolute text-white text-[24px] font-bold tracking-[0.02em] uppercase"
                                 style={{ 
-                                    top: `${520 - currentBarHeight / 2}px`,
-                                    left: '59%',
+                                    top: `${520 - currentBarHeight / 2 - 8}px`,
+                                    left: '60%',
                                     animation: `fadeIn 0.3s ease-out ${animDelay + 0.3}s both`, 
-                                    fontFamily: 'Gotham Book, Gotham, sans-serif'
+                                    fontFamily: 'Crook Bold, Crook, sans-serif'
                                 }}
                             >
-                                {matchCards.eventTitle}
+                                {match.matchTitle}
                             </div>
                         )}
                     </div>

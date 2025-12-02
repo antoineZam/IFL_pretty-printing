@@ -93,6 +93,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
         return <div className="w-[1920px] h-[1080px]" />;
     }
 
+    // Use P1 or P2 folder based on selectedPlayerIndex (0 = P1, 1 = P2)
     const playerSide = (overlayState?.selectedPlayerIndex ?? 0) === 0 ? 'P1' : 'P2';
     const charImg = `/source/overlay/run_it_back/characters/${playerSide}/${player.character.toLowerCase()}.png`;
 
@@ -172,22 +173,18 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                 </div>
             </div>
 
-            {/* Character Image */}
-            <div 
+            {/* Character Image - Full 1920x1080 */}
+            <img 
                 key={`char-${animKey}`}
-                className="absolute left-0 bottom-655 h-[1750px] w-[1000px]"
+                src={charImg} 
+                alt={player.character}
+                className="absolute inset-0"
                 style={{ 
                     animation: `slideInLeft 0.6s ease-out`,
                     zIndex: 10
                 }}
-            >
-                <img 
-                    src={charImg} 
-                    alt={player.character}
-                    className="h-full w-full object-contain object-bottom"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
-            </div>
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
 
             {/* Stats Panel */}
             <div 

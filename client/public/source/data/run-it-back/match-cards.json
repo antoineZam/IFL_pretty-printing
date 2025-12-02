@@ -20,9 +20,10 @@
   "matches": [
     {
       "id": 1,
+      "matchTitle": "The Runback",
       "p1Name": "Kuro Loaf",
       "p1Title": "IFF8 & IFF7 CHAMPION",
-      "p1Character": "kazuya",
+      "p1Character": "jin",
       "p2Name": "MainManSWE",
       "p2Title": "THE FINAL BOSS",
       "p2Character": "kazuya",
@@ -36,12 +37,13 @@
     },
     {
       "id": 2,
+      "matchTitle": "Match 2",
       "p1Name": "Omnis",
       "p1Title": "CHALLENGER",
       "p1Character": "reina",
       "p2Name": "Crimson",
       "p2Title": "IFF6 CHAMPION",
-      "p2Character": "jun",
+      "p2Character": "zafina",
       "p1Score": 3,
       "p2Score": 2,
       "winner": "p1",
@@ -52,12 +54,13 @@
     },
     {
       "id": 3,
-      "p1Name": "Penny",
+      "matchTitle": "Match 3",
+      "p1Name": "Jinora",
       "p1Title": "CHALLENGER",
-      "p1Character": "alisa",
-      "p2Name": "Jinora",
+      "p1Character": "nina",
+      "p2Name": "Penny",
       "p2Title": "CHALLENGER",
-      "p2Character": "nina",
+      "p2Character": "alisa",
       "p1Score": 0,
       "p2Score": 0,
       "winner": null,
@@ -66,12 +69,13 @@
     },
     {
       "id": 4,
+      "matchTitle": "Match 4",
       "p1Name": "Omnis",
       "p1Title": "CHALLENGER",
       "p1Character": "reina",
       "p2Name": "Crimson",
       "p2Title": "IFF6 CHAMPION",
-      "p2Character": "jun",
+      "p2Character": "zafina",
       "p1Score": 0,
       "p2Score": 0,
       "winner": null,
@@ -79,22 +83,6 @@
       "isMainEvent": false
     }
   ],
-  "singleMatch": {
-    "matchTitle": "Match 1",
-    "format": "First to 3",
-    "p1Name": "Kuro Loaf",
-    "p1Title": "IFF8 & IFF7 CHAMPION",
-    "p1Character": "jin",
-    "p1Flag": "FR",
-    "p1Score": 3,
-    "p2Name": "MainManSWE",
-    "p2Title": "THE FINAL BOSS",
-    "p2Character": "kazuya",
-    "p2Flag": "IL",
-    "p2Score": 2,
-    "winner": null,
-    "completed": false
-  },
   "sponsors": {
     "presenter": "THE HOUSE OF LOAF",
     "association": "THE IRON FROOT FEDERATION"

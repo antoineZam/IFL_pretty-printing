@@ -42,22 +42,7 @@ interface MatchCardData {
     };
     matches: Array<{
         id: number;
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p1Flag?: string;
-        p1Score: number;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-        p2Flag?: string;
-        p2Score: number;
-        winner: 'p1' | 'p2' | null;
-        completed: boolean;
-    }>;
-    singleMatch: {
         matchTitle: string;
-        format: string;
         p1Name: string;
         p1Title: string;
         p1Character: string;
@@ -70,7 +55,8 @@ interface MatchCardData {
         p2Score: number;
         winner: 'p1' | 'p2' | null;
         completed: boolean;
-    };
+        isMainEvent?: boolean;
+    }>;
     sponsors: {
         presenter: string;
         association: string;
@@ -305,29 +291,6 @@ export default function RIBMatchControlPage() {
             p1Score,
             p2Score
         });
-        
-        // Update singleMatch data for SingleMatchOverlay
-        const updatedMatchCards = {
-            ...matchCards,
-            singleMatch: {
-                matchTitle,
-                format: `First to ${matchCards.winScore || 3}`,
-                p1Name,
-                p1Title,
-                p1Character,
-                p1Flag,
-                p1Score,
-                p2Name,
-                p2Title,
-                p2Character,
-                p2Flag,
-                p2Score,
-                winner: null,
-                completed: false
-            }
-        };
-        setMatchCards(updatedMatchCards);
-        socket.emit('rib-match-cards-update', updatedMatchCards);
     };
 
     // Save scores and flags to match card and determine winner

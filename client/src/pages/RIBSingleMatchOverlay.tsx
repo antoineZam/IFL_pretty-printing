@@ -6,6 +6,7 @@ interface MatchCardData {
     eventTitle: string;
     eventSubtitle: string;
     partNumber: string;
+    winScore: number;
     mainEvent: {
         p1Name: string;
         p1Title: string;
@@ -16,23 +17,21 @@ interface MatchCardData {
     };
     matches: Array<{
         id: number;
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-    }>;
-    singleMatch: {
         matchTitle: string;
-        format: string;
         p1Name: string;
         p1Title: string;
         p1Character: string;
+        p1Flag?: string;
+        p1Score?: number;
         p2Name: string;
         p2Title: string;
         p2Character: string;
-    };
+        p2Flag?: string;
+        p2Score?: number;
+        winner?: string | null;
+        completed?: boolean;
+        isMainEvent?: boolean;
+    }>;
     sponsors: {
         presenter: string;
         association: string;
@@ -99,9 +98,19 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
         return <div className="w-[1920px] h-[1080px]" />;
     }
 
-    const match = matchCards.singleMatch;
+    // Get match from matches array using selectedMatchIndex
+    const selectedIndex = overlayState?.selectedMatchIndex ?? 0;
+    const match = matchCards.matches[selectedIndex];
+    
+    if (!match) {
+        return <div className="w-[1920px] h-[1080px]" />;
+    }
+    
     const p1CharImg = `/source/overlay/run_it_back/characters/P1/${match.p1Character.toLowerCase()}.png`;
     const p2CharImg = `/source/overlay/run_it_back/characters/P2/${match.p2Character.toLowerCase()}.png`;
+    
+    // Format display based on winScore
+    const format = `First to ${matchCards.winScore || 3}`;
 
     // Adaptive font size calculation for player names
     // Names should fit within 20% of screen width (384px at 1920px)
@@ -159,7 +168,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     className="text-[#7a8080] text-[28px] tracking-[0.1em] uppercase -mt-[10px] font-normal"
                     style={{ fontFamily: 'D-DIN Exp Bold, sans-serif' }}
                 >
-                    {match.format}
+                    {format}
                 </p>
             </div>
 

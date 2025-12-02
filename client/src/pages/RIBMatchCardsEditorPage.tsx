@@ -14,6 +14,7 @@ import { countries } from '../utils/countries';
 
 interface Match {
     id: number;
+    matchTitle: string;
     p1Name: string;
     p1Title: string;
     p1Character: string;
@@ -49,22 +50,6 @@ interface MatchCardData {
         completed: boolean;
     };
     matches: Match[];
-    singleMatch: {
-        matchTitle: string;
-        format: string;
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p1Flag?: string;
-        p1Score: number;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-        p2Flag?: string;
-        p2Score: number;
-        winner: 'p1' | 'p2' | null;
-        completed: boolean;
-    };
     sponsors: {
         presenter: string;
         association: string;
@@ -84,7 +69,6 @@ export default function RIBMatchCardsEditorPage() {
         winScore: 3,
         mainEvent: { p1Name: "", p1Title: "", p1Character: "", p1Flag: "", p1Score: 0, p2Name: "", p2Title: "", p2Character: "", p2Flag: "", p2Score: 0, winner: null, completed: false },
         matches: [],
-        singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p1Flag: "", p1Score: 0, p2Name: "", p2Title: "", p2Character: "", p2Flag: "", p2Score: 0, winner: null, completed: false },
         sponsors: { presenter: "", association: "" }
     });
 
@@ -169,6 +153,7 @@ export default function RIBMatchCardsEditorPage() {
                 ...prev.matches,
                 {
                     id: prev.matches.length + 1,
+                    matchTitle: `Match ${prev.matches.length + 1}`,
                     p1Name: "",
                     p1Title: "CHALLENGER",
                     p1Character: "",
@@ -310,102 +295,6 @@ export default function RIBMatchCardsEditorPage() {
                     </div>
                 </div>
 
-                {/* Single Match Card */}
-                <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                        <Users size={20} />
-                        Single Match Card
-                    </h2>
-                    
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label className="block text-sm text-gray-400 mb-1">Match Title</label>
-                            <input
-                                type="text"
-                                value={matchCards.singleMatch.matchTitle}
-                                onChange={(e) => handleChange('singleMatch.matchTitle', e.target.value)}
-                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm text-gray-400 mb-1">Format</label>
-                            <input
-                                type="text"
-                                value={matchCards.singleMatch.format}
-                                onChange={(e) => handleChange('singleMatch.format', e.target.value)}
-                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
-                                placeholder="e.g., FIRST TO 3"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                        {/* Player 1 */}
-                        <div className="space-y-3">
-                            <h4 className="font-medium text-red-400">Player 1</h4>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Name</label>
-                                <input
-                                    type="text"
-                                    value={matchCards.singleMatch.p1Name}
-                                    onChange={(e) => handleChange('singleMatch.p1Name', e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Title</label>
-                                <input
-                                    type="text"
-                                    value={matchCards.singleMatch.p1Title}
-                                    onChange={(e) => handleChange('singleMatch.p1Title', e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Character</label>
-                                <input
-                                    type="text"
-                                    value={matchCards.singleMatch.p1Character}
-                                    onChange={(e) => handleChange('singleMatch.p1Character', e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Player 2 */}
-                        <div className="space-y-3">
-                            <h4 className="font-medium text-blue-400">Player 2</h4>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Name</label>
-                                <input
-                                    type="text"
-                                    value={matchCards.singleMatch.p2Name}
-                                    onChange={(e) => handleChange('singleMatch.p2Name', e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Title</label>
-                                <input
-                                    type="text"
-                                    value={matchCards.singleMatch.p2Title}
-                                    onChange={(e) => handleChange('singleMatch.p2Title', e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Character</label>
-                                <input
-                                    type="text"
-                                    value={matchCards.singleMatch.p2Character}
-                                    onChange={(e) => handleChange('singleMatch.p2Character', e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Match List */}
                 <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
                     <div className="flex items-center justify-between mb-4">
@@ -530,9 +419,20 @@ export default function RIBMatchCardsEditorPage() {
                                             onClick={() => removeMatch(index)}
                                             className="p-1 text-red-400 hover:text-red-300 transition-colors"
                                         >
-                                            <Trash2 size={18} />
+                                                <Trash2 size={18} />
                                         </button>
                                     </div>
+                                </div>
+
+                                {/* Match Title */}
+                                <div className="mb-3">
+                                    <input
+                                        type="text"
+                                        value={match.matchTitle || ''}
+                                        onChange={(e) => handleMatchChange(index, 'matchTitle', e.target.value)}
+                                        placeholder="Match Title (e.g., 'The Runback')"
+                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-amber-500"
+                                    />
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-4">
