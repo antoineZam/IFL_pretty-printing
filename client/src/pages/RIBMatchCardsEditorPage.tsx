@@ -6,7 +6,6 @@ import {
     Plus, 
     Trash2, 
     ArrowLeft,
-    Users,
     Trophy,
     Swords
 } from 'lucide-react';

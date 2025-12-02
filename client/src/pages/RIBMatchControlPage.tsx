@@ -245,10 +245,6 @@ export default function RIBMatchControlPage() {
         let p1Score = 0;
         let p2Score = 0;
         let matchTitle = '';
-        let p1Title = '';
-        let p2Title = '';
-        let p1Character = '';
-        let p2Character = '';
         
         if (overlayState.selectedMatchIndex === 0) {
             // Main Event
@@ -258,10 +254,6 @@ export default function RIBMatchControlPage() {
             p2Flag = matchCards.mainEvent.p2Flag || '';
             p1Score = matchCards.mainEvent.p1Score || 0;
             p2Score = matchCards.mainEvent.p2Score || 0;
-            p1Title = matchCards.mainEvent.p1Title || '';
-            p2Title = matchCards.mainEvent.p2Title || '';
-            p1Character = matchCards.mainEvent.p1Character || '';
-            p2Character = matchCards.mainEvent.p2Character || '';
             matchTitle = 'Main Event';
         } else {
             // Regular match
@@ -273,10 +265,6 @@ export default function RIBMatchControlPage() {
                 p2Flag = match.p2Flag || '';
                 p1Score = match.p1Score || 0;
                 p2Score = match.p2Score || 0;
-                p1Title = match.p1Title || '';
-                p2Title = match.p2Title || '';
-                p1Character = match.p1Character || '';
-                p2Character = match.p2Character || '';
                 matchTitle = `Match ${overlayState.selectedMatchIndex}`;
             }
         }
