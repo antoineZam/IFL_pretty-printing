@@ -112,7 +112,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                     backgroundImage: 'url(/source/overlay/run_it_back/stat_screen/background.png)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    animation: `fadeIn 0.5s ease-out`
+                    animation: `fadeIn 0.5s ease-out both`
                 }}
             />
 
@@ -140,12 +140,10 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                     key={`watermark-blur-${animKey}`}
                     className="absolute bottom-[-67px] left-[100px] text-[375px] font-black text-[#e63030] leading-none tracking-tighter select-none"
                     style={{ 
-                        animation: `slideUp 0.8s ease-out`,
+                        animation: `slideUpBlur 0.8s ease-out both`,
                         fontFamily: 'D-DIN Condensed, D-DIN, sans-serif',
                         letterSpacing: '-0.03em',
-                        opacity: 0.3,
                         filter: 'blur(8px)',
-                        transform: 'scaleY(1.4) scaleX(1.3)',
                         transformOrigin: 'bottom'
                     }}
                 >
@@ -162,10 +160,9 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                     key={`watermark-sharp-${animKey}`}
                     className="absolute bottom-[-67px] left-[100px] text-[375px] font-black text-[#e63030] leading-none tracking-tighter select-none"
                     style={{ 
-                        animation: `slideUp 0.8s ease-out`,
+                        animation: `slideUpSharp 0.8s ease-out both`,
                         fontFamily: 'D-DIN Condensed, D-DIN, sans-serif',
                         letterSpacing: '-0.03em',
-                        transform: 'scaleY(1.4) scaleX(1.3)',
                         transformOrigin: 'bottom'
                     }}
                 >
@@ -178,9 +175,9 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                 key={`char-${animKey}`}
                 src={charImg} 
                 alt={player.character}
-                className="absolute inset-0"
+                className="absolute inset-0 w-[1920px] h-[1080px] object-contain object-left"
                 style={{ 
-                    animation: `slideInLeft 0.6s ease-out`,
+                    animation: `slideInLeft 0.6s ease-out both`,
                     zIndex: 10
                 }}
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -189,62 +186,62 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
             {/* Stats Panel */}
             <div 
                 key={`stats-${animKey}`}
-                className="absolute top-[90px] right-[500px] w-[480px] font-bold text-left"
-                style={{ animation: `slideInRight 0.7s ease-out`, fontFamily: 'Gotham Bold, Gotham, sans-serif' }}
+                className="absolute top-[80px] right-[200px] text-left whitespace-nowrap"
+                style={{ animation: `slideInRight 0.7s ease-out both`, fontFamily: 'Gotham Bold, Gotham, sans-serif', zIndex: 20 }}
             >
-                {/* All Stats - One per line */}
-                <div className="space-y-2 text-[24px]">
-                    <div className="flex gap-8">
-                        <span className="text-[#5a5248] w-[200px]">DIVISION</span>
+                {/* Main Stats */}
+                <div className="space-y-[7px] text-[24px]">
+                    <div className="flex">
+                        <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>DIVISION</span>
                         <span className="text-[#2a2520] font-normal">{player.division}</span>
                     </div>
-                    <div className="flex gap-8">
-                        <span className="text-[#5a5248] w-[200px]">IFF8 RANKING</span>
+                    <div className="flex">
+                        <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>IFF8 RANKING</span>
                         <span className="text-[#2a2520] font-normal">{player.iff8Ranking}</span>
                     </div>
-                    <div className="flex gap-20">
-                        <span className="text-[#5a5248] w-[200px] whitespace-nowrap">IFF8 RECORD</span>
+                    <div className="flex">
+                        <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>IFF8 RECORD</span>
                         <span className="text-[#2a2520] font-normal whitespace-nowrap">
                             {player.iff8Record}
-                            <span className="text-[#8a8070] text-[18px] ml-2">({player.iff8RecordDetails})</span>
+                            <span className="text-[#9a9080] text-[19px] ml-3">({player.iff8RecordDetails})</span>
                         </span>
                     </div>
-                    <div className="flex gap-8">
-                        <span className="text-[#5a5248] w-[200px]">IFF HISTORY</span>
+                    <div className="flex">
+                        <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>IFF HISTORY</span>
                         <span className="text-[#2a2520] font-normal">{player.iffHistory}</span>
                     </div>
                     
                     {/* Empty line gap */}
-                    <div className="h-[24px]"></div>
+                    <div className="h-[18px]"></div>
                     
-                    <div className="flex gap-8">
-                        <span className="text-[#5a5248] w-[200px]">RANK</span>
+                    <div className="flex">
+                        <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>RANK</span>
                         <span className="text-[#2a2520] font-normal">{player.rank}</span>
                     </div>
-                    <div className="flex gap-8">
-                        <span className="text-[#5a5248] w-[200px]">PROWESS</span>
+                    <div className="flex">
+                        <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>PROWESS</span>
                         <span className="text-[#2a2520] font-normal">{player.prowess.toLocaleString()}</span>
                     </div>
                     
                     {/* Empty line gap */}
-                    <div className="h-[24px]"></div>
+                    <div className="h-[18px]"></div>
                     
                     {/* Match Stats - Side by Side */}
-                    <div className="flex gap-24">
+                    <div className="flex gap-20">
                         {/* Ranked Matches Section */}
                         <div>
-                            <h4 className="text-[#c45c4c] text-[24px] italic mb-2 text-left">Ranked Matches</h4>
-                            <div className="space-y-2">
-                                <div className="flex gap-8">
-                                    <span className="text-[#5a5248] w-[200px]">WINS</span>
+                            <h4 className="text-[#c45c4c] text-[24px] font-bold italic mb-1">Ranked Matches</h4>
+                            <div className="space-y-[7px] text-[24px]">
+                                <div className="flex">
+                                    <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>WINS</span>
                                     <span className="text-[#2a2520] font-normal">{player.rankedMatches.wins}</span>
                                 </div>
-                                <div className="flex gap-8">
-                                    <span className="text-[#5a5248] w-[200px]">LOSES</span>
+                                <div className="flex">
+                                    <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>LOSES</span>
                                     <span className="text-[#2a2520] font-normal">{player.rankedMatches.loses}</span>
                                 </div>
-                                <div className="flex gap-8">
-                                    <span className="text-[#5a5248] w-[200px]">W/L RATE</span>
+                                <div className="flex">
+                                    <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>W/L RATE</span>
                                     <span className="text-[#2a2520] font-normal">{player.rankedMatches.wlRate}</span>
                                 </div>
                             </div>
@@ -252,18 +249,18 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                         
                         {/* Player Matches Section */}
                         <div>
-                            <h4 className="text-[#c45c4c] text-[24px] italic mb-2 text-left">Player Matches</h4>
-                            <div className="space-y-2">
-                                <div className="flex gap-8">
-                                    <span className="text-[#5a5248] w-[200px]">WINS</span>
+                            <h4 className="text-[#c45c4c] text-[24px] font-bold italic mb-1">Player Matches</h4>
+                            <div className="space-y-[7px] text-[24px]">
+                                <div className="flex">
+                                    <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>WINS</span>
                                     <span className="text-[#2a2520] font-normal">{player.playerMatches.wins}</span>
                                 </div>
-                                <div className="flex gap-8">
-                                    <span className="text-[#5a5248] w-[200px]">LOSES</span>
+                                <div className="flex">
+                                    <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>LOSES</span>
                                     <span className="text-[#2a2520] font-normal">{player.playerMatches.loses}</span>
                                 </div>
-                                <div className="flex gap-8">
-                                    <span className="text-[#5a5248] w-[200px]">W/L RATE</span>
+                                <div className="flex">
+                                    <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>W/L RATE</span>
                                     <span className="text-[#2a2520] font-normal">{player.playerMatches.wlRate}</span>
                                 </div>
                             </div>
@@ -278,9 +275,25 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                     from { opacity: 0; }
                     to { opacity: 1; }
                 }
-                @keyframes slideUp {
-                    from { transform: translateY(100px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
+                @keyframes slideUpBlur {
+                    from { 
+                        transform: scaleY(1.4) scaleX(1.3) translateY(100px); 
+                        opacity: 0; 
+                    }
+                    to { 
+                        transform: scaleY(1.4) scaleX(1.3) translateY(0); 
+                        opacity: 0.3; 
+                    }
+                }
+                @keyframes slideUpSharp {
+                    from { 
+                        transform: scaleY(1.4) scaleX(1.3) translateY(100px); 
+                        opacity: 0; 
+                    }
+                    to { 
+                        transform: scaleY(1.4) scaleX(1.3) translateY(0); 
+                        opacity: 1; 
+                    }
                 }
                 @keyframes slideInLeft {
                     from { transform: translateX(-100px); opacity: 0; }
