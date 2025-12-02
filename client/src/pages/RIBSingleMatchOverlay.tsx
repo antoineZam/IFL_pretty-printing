@@ -110,7 +110,13 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
     const p2CharImg = `/source/overlay/run_it_back/characters/P2/${match.p2Character.toLowerCase()}.png`;
     
     // Format display based on winScore
-    const format = `First to ${matchCards.winScore || 3}`;
+    const winScore = matchCards.winScore || 3;
+    const format = `First to ${winScore}`;
+    
+    // Check for victory condition
+    const p1Victory = (match.p1Score ?? 0) >= winScore;
+    const p2Victory = (match.p2Score ?? 0) >= winScore;
+    const hasVictory = p1Victory || p2Victory;
 
     // Adaptive font size calculation for player names
     // Names should fit within 20% of screen width (384px at 1920px)
@@ -446,6 +452,8 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                 </h3>
             </div>
 
+            <div className="absolute top-[400px] flex flex-col items-center"></div>
+
             {/* Part Number - Bottom Center */}
             <div 
                 key={`partnum-${animKey}`}
@@ -463,6 +471,50 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                 </span>
             </div>
 
+            {/* Victory Overlay */}
+            {hasVictory && (
+                <div 
+                    key={`victory-${animKey}`}
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ 
+                        animation: `fadeIn 0.5s ease-out both`,
+                        zIndex: 4
+                    }}
+                >
+                    {/* Victory Background Image */}
+                    <img 
+                        src={p1Victory 
+                            ? '/source/overlay/run_it_back/player_vs/p1_victory.png' 
+                            : '/source/overlay/run_it_back/player_vs/p2_victory.png'
+                        }
+                        alt="Victory"
+                        className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    
+                    {/* VICTORY Text - Positioned under winner's name */}
+                    <div 
+                        className="absolute top-[490px] flex items-center justify-center"
+                        style={{ 
+                            right: p1Victory ? '56.7%' : undefined,
+                            left: p2Victory ? '56%' : undefined,
+                            width: '20%',
+                            animation: `victoryPulse 0.8s ease-out 0.2s both`
+                        }}
+                    >
+                        <h1 
+                            className="text-white text-[20px] font-bold tracking-[0.2em] uppercase"
+                            style={{ 
+                                fontFamily: 'Gotham Bold, Gotham, sans-serif',
+                                textShadow: '0 0 30px rgba(0,0,0,0.4)',
+                                animation: `victoryTextGlow 2s ease-in-out infinite`
+                            }}
+                        >
+                            VICTORY
+                        </h1>
+                    </div>
+                </div>
+            )}
+
             {/* Animations */}
             <style>{`
                 @keyframes fadeIn {
@@ -476,6 +528,19 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                 @keyframes slideInRight {
                     from { transform: translateX(150px); opacity: 0; }
                     to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes victoryPulse {
+                    0% { transform: scale(0.8); opacity: 0; }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                @keyframes victoryTextGlow {
+                    0%, 100% { text-shadow: 0 0 40px rgba(255,255,255,0.3), 0 0 80px rgba(255,255,255,0.2); }
+                    50% { text-shadow: 0 0 60px rgba(255,255,255,0.5), 0 0 120px rgba(255,255,255,0.3); }
+                }
+                @keyframes slideUp {
+                    from { transform: translateY(50px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
                 }
             `}</style>
         </div>
