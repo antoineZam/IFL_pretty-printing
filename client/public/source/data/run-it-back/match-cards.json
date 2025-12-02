@@ -27,10 +27,10 @@
       "p2Name": "MainManSWE",
       "p2Title": "THE FINAL BOSS",
       "p2Character": "kazuya",
-      "p1Score": 3,
+      "p1Score": 2,
       "p2Score": 0,
-      "winner": "p1",
-      "completed": true,
+      "winner": null,
+      "completed": false,
       "p1Flag": "PT",
       "p2Flag": "SE",
       "isMainEvent": true
@@ -44,9 +44,9 @@
       "p2Name": "Crimson",
       "p2Title": "IFF6 CHAMPION",
       "p2Character": "zafina",
-      "p1Score": 3,
-      "p2Score": 2,
-      "winner": "p1",
+      "p1Score": 1,
+      "p2Score": 3,
+      "winner": "p2",
       "completed": true,
       "p1Flag": "FR",
       "p2Flag": "IE",
@@ -61,11 +61,13 @@
       "p2Name": "Penny",
       "p2Title": "CHALLENGER",
       "p2Character": "alisa",
-      "p1Score": 0,
+      "p1Score": 3,
       "p2Score": 0,
-      "winner": null,
-      "completed": false,
-      "isMainEvent": false
+      "winner": "p1",
+      "completed": true,
+      "isMainEvent": false,
+      "p1Flag": "",
+      "p2Flag": ""
     },
     {
       "id": 4,
@@ -76,11 +78,13 @@
       "p2Name": "Crimson",
       "p2Title": "IFF6 CHAMPION",
       "p2Character": "zafina",
-      "p1Score": 0,
+      "p1Score": 3,
       "p2Score": 0,
-      "winner": null,
-      "completed": false,
-      "isMainEvent": false
+      "winner": "p1",
+      "completed": true,
+      "isMainEvent": false,
+      "p1Flag": "DE",
+      "p2Flag": "EG"
     }
   ],
   "sponsors": {

@@ -182,26 +182,16 @@ export default function RIBMatchControlPage() {
             if (matchCards && socket) {
                 const winner: 'p1' | 'p2' = newP1Score >= winScore ? 'p1' : 'p2';
                 const updatedMatchCards = { ...matchCards };
+                const matchIndex = overlayState.selectedMatchIndex;
                 
-                if (overlayState.selectedMatchIndex === 0) {
-                    updatedMatchCards.mainEvent = {
-                        ...updatedMatchCards.mainEvent,
+                if (updatedMatchCards.matches[matchIndex]) {
+                    updatedMatchCards.matches[matchIndex] = {
+                        ...updatedMatchCards.matches[matchIndex],
                         p1Score: newP1Score,
                         p2Score: newP2Score,
                         winner,
                         completed: true
                     };
-                } else {
-                    const matchIndex = overlayState.selectedMatchIndex - 1;
-                    if (updatedMatchCards.matches[matchIndex]) {
-                        updatedMatchCards.matches[matchIndex] = {
-                            ...updatedMatchCards.matches[matchIndex],
-                            p1Score: newP1Score,
-                            p2Score: newP2Score,
-                            winner,
-                            completed: true
-                        };
-                    }
                 }
                 
                 setMatchCards(updatedMatchCards);
@@ -243,8 +233,8 @@ export default function RIBMatchControlPage() {
     };
 
     const selectMatch = (direction: 'prev' | 'next') => {
-        if (!matchCards) return;
-        const maxIndex = matchCards.matches.length;
+        if (!matchCards || matchCards.matches.length === 0) return;
+        const maxIndex = matchCards.matches.length - 1;
         let newIndex = overlayState.selectedMatchIndex;
         
         if (direction === 'prev') {
@@ -272,11 +262,10 @@ export default function RIBMatchControlPage() {
 
     const getSelectedMatchName = () => {
         if (!matchCards) return 'No matches loaded';
-        if (overlayState.selectedMatchIndex === 0) {
-            return `Main Event: ${matchCards.mainEvent.p1Name} vs ${matchCards.mainEvent.p2Name}`;
-        }
-        const match = matchCards.matches[overlayState.selectedMatchIndex - 1];
-        return match ? `Match ${overlayState.selectedMatchIndex}: ${match.p1Name} vs ${match.p2Name}` : 'No match selected';
+        const match = matchCards.matches[overlayState.selectedMatchIndex];
+        if (!match) return 'No match selected';
+        const matchLabel = match.isMainEvent ? 'Main Event' : `Match ${overlayState.selectedMatchIndex + 1}`;
+        return `${matchLabel}: ${match.p1Name} vs ${match.p2Name}`;
     };
 
     const getSelectedPlayerName = () => {
@@ -289,46 +278,20 @@ export default function RIBMatchControlPage() {
     const loadFromMatchCard = () => {
         if (!matchCards || !socket) return;
         
-        let p1Name = '';
-        let p2Name = '';
-        let p1Flag = '';
-        let p2Flag = '';
-        let p1Score = 0;
-        let p2Score = 0;
-        let matchTitle = '';
+        const match = matchCards.matches[overlayState.selectedMatchIndex];
+        if (!match) return;
         
-        if (overlayState.selectedMatchIndex === 0) {
-            // Main Event
-            p1Name = matchCards.mainEvent.p1Name;
-            p2Name = matchCards.mainEvent.p2Name;
-            p1Flag = matchCards.mainEvent.p1Flag || '';
-            p2Flag = matchCards.mainEvent.p2Flag || '';
-            p1Score = matchCards.mainEvent.p1Score || 0;
-            p2Score = matchCards.mainEvent.p2Score || 0;
-            matchTitle = 'Main Event';
-        } else {
-            // Regular match
-            const match = matchCards.matches[overlayState.selectedMatchIndex - 1];
-            if (match) {
-                p1Name = match.p1Name;
-                p2Name = match.p2Name;
-                p1Flag = match.p1Flag || '';
-                p2Flag = match.p2Flag || '';
-                p1Score = match.p1Score || 0;
-                p2Score = match.p2Score || 0;
-                matchTitle = `Match ${overlayState.selectedMatchIndex}`;
-            }
-        }
+        const matchTitle = match.matchTitle || (match.isMainEvent ? 'Main Event' : `Match ${overlayState.selectedMatchIndex + 1}`);
         
         // Update stream data for StreamOverlay
         updateStreamData({
             matchTitle,
-            p1Name,
-            p2Name,
-            p1Flag,
-            p2Flag,
-            p1Score,
-            p2Score
+            p1Name: match.p1Name,
+            p2Name: match.p2Name,
+            p1Flag: match.p1Flag || '',
+            p2Flag: match.p2Flag || '',
+            p1Score: match.p1Score || 0,
+            p2Score: match.p2Score || 0
         });
     };
 
@@ -355,11 +318,11 @@ export default function RIBMatchControlPage() {
         }
         
         const updatedMatchCards = { ...matchCards };
+        const matchIndex = overlayState.selectedMatchIndex;
         
-        if (overlayState.selectedMatchIndex === 0) {
-            // Update Main Event
-            updatedMatchCards.mainEvent = {
-                ...updatedMatchCards.mainEvent,
+        if (updatedMatchCards.matches[matchIndex]) {
+            updatedMatchCards.matches[matchIndex] = {
+                ...updatedMatchCards.matches[matchIndex],
                 p1Score,
                 p2Score,
                 p1Flag,
@@ -367,20 +330,6 @@ export default function RIBMatchControlPage() {
                 winner,
                 completed
             };
-        } else {
-            // Update regular match
-            const matchIndex = overlayState.selectedMatchIndex - 1;
-            if (updatedMatchCards.matches[matchIndex]) {
-                updatedMatchCards.matches[matchIndex] = {
-                    ...updatedMatchCards.matches[matchIndex],
-                    p1Score,
-                    p2Score,
-                    p1Flag,
-                    p2Flag,
-                    winner,
-                    completed
-                };
-            }
         }
         
         setMatchCards(updatedMatchCards);
@@ -389,25 +338,16 @@ export default function RIBMatchControlPage() {
 
     // Get current match status
     const getCurrentMatchStatus = () => {
-        if (!matchCards) return { completed: false, winner: null };
+        if (!matchCards) return { completed: false, winner: null, p1Score: 0, p2Score: 0 };
         
-        if (overlayState.selectedMatchIndex === 0) {
+        const match = matchCards.matches[overlayState.selectedMatchIndex];
+        if (match) {
             return {
-                completed: matchCards.mainEvent.completed,
-                winner: matchCards.mainEvent.winner,
-                p1Score: matchCards.mainEvent.p1Score,
-                p2Score: matchCards.mainEvent.p2Score
+                completed: match.completed,
+                winner: match.winner,
+                p1Score: match.p1Score,
+                p2Score: match.p2Score
             };
-        } else {
-            const match = matchCards.matches[overlayState.selectedMatchIndex - 1];
-            if (match) {
-                return {
-                    completed: match.completed,
-                    winner: match.winner,
-                    p1Score: match.p1Score,
-                    p2Score: match.p2Score
-                };
-            }
         }
         return { completed: false, winner: null, p1Score: 0, p2Score: 0 };
     };

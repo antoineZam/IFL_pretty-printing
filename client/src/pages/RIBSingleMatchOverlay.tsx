@@ -99,8 +99,9 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
     }
 
     // Get match from matches array using selectedMatchIndex
+    // All matches are now in the matches array (including main event at index 0)
     const selectedIndex = overlayState?.selectedMatchIndex ?? 0;
-    const match = matchCards.matches[selectedIndex];
+    const match = matchCards.matches[selectedIndex] || matchCards.matches[0];
     
     if (!match) {
         return <div className="w-[1920px] h-[1080px]" />;
