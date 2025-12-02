@@ -178,7 +178,37 @@ export default function RIBMatchControlPage() {
         const newP2Score = updates.p2Score ?? streamData.p2Score;
         
         if (newP1Score >= winScore || newP2Score >= winScore) {
-            // Small delay to let the score update be processed first
+            // First, save the scores to match cards so SingleMatchOverlay has updated data
+            if (matchCards && socket) {
+                const winner: 'p1' | 'p2' = newP1Score >= winScore ? 'p1' : 'p2';
+                const updatedMatchCards = { ...matchCards };
+                
+                if (overlayState.selectedMatchIndex === 0) {
+                    updatedMatchCards.mainEvent = {
+                        ...updatedMatchCards.mainEvent,
+                        p1Score: newP1Score,
+                        p2Score: newP2Score,
+                        winner,
+                        completed: true
+                    };
+                } else {
+                    const matchIndex = overlayState.selectedMatchIndex - 1;
+                    if (updatedMatchCards.matches[matchIndex]) {
+                        updatedMatchCards.matches[matchIndex] = {
+                            ...updatedMatchCards.matches[matchIndex],
+                            p1Score: newP1Score,
+                            p2Score: newP2Score,
+                            winner,
+                            completed: true
+                        };
+                    }
+                }
+                
+                setMatchCards(updatedMatchCards);
+                socket.emit('rib-match-cards-update', updatedMatchCards);
+            }
+            
+            // Small delay to let the data update be processed, then switch to SingleMatchOverlay
             setTimeout(() => {
                 const victoryState: OverlayState = {
                     ...overlayState,
