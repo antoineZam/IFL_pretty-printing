@@ -215,13 +215,13 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             {/* P1 BLURRED LAYER (Outside/Left of Green Line) */}
             <div 
                 className="absolute inset-0 pointer-events-none z-[1]"
-                style={{ clipPath: greenClipPolyBlur }}
+                style={{ clipPath: greenClipPolyBlur, overflow: 'visible' }}
             >
                 <div 
                     key={`p1name-blur-${animKey}`}
-                    className="absolute bottom-[-40px] overflow-visible"
+                    className="absolute bottom-[-40px]"
                     style={{ 
-                        right: '53%',
+                        right: '57%',
                         textAlign: 'right',
                         opacity: 0.3,
                         filter: 'blur(8px)',
@@ -253,13 +253,13 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             {/* P1 SHARP LAYER (Inside/Right of Green Line) */}
             <div 
                 className="absolute inset-0 pointer-events-none z-[1]"
-                style={{ clipPath: greenClipPolySharp }}
+                style={{ clipPath: greenClipPolySharp, overflow: 'visible' }}
             >
                 <div 
                     key={`p1name-sharp-${animKey}`}
-                    className="absolute bottom-[-40px] overflow-visible"
+                    className="absolute bottom-[-40px]"
                     style={{ 
-                        right: '53%',
+                        right: '57%',
                         textAlign: 'right',
                         animation: `fadeIn 1s ease-out 0.1s both`,
                     }}
@@ -294,13 +294,13 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             {/* P2 SHARP LAYER (Inside/Left of Cyan Line) */}
             <div 
                 className="absolute inset-0 pointer-events-none z-[1]"
-                style={{ clipPath: cyanClipPolySharp }}
+                style={{ clipPath: cyanClipPolySharp, overflow: 'visible' }}
             >
                 <div
                     key={`p2name-sharp-${animKey}`}
-                    className="absolute bottom-[-40px] overflow-visible"
+                    className="absolute bottom-[-40px]"
                     style={{ 
-                        left: '51%',
+                        left: '52%',
                         textAlign: 'left',
                         animation: `fadeIn 0.5s ease-out 0.1s both`,
                     }}
@@ -330,13 +330,13 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             {/* P2 BLURRED LAYER (Outside/Right of Cyan Line) */}
             <div 
                 className="absolute inset-0 pointer-events-none z-[1]"
-                style={{ clipPath: cyanClipPolyBlur }}
+                style={{ clipPath: cyanClipPolyBlur, overflow: 'visible' }}
             >
                 <div
                     key={`p2name-blur-${animKey}`}
-                    className="absolute bottom-[-40px] overflow-visible"
+                    className="absolute bottom-[-40px]"
                     style={{
-                        left: '51%',
+                        left: '52%',
                         textAlign: 'left',
                         opacity: 0.3,
                         filter: 'blur(8px)',
@@ -525,7 +525,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                         className="absolute top-[490px] flex items-center justify-center"
                         style={{ 
                             right: p1Victory ? '56.7%' : undefined,
-                            left: p2Victory ? '56%' : undefined,
+                            left: p2Victory ? '55.3%' : undefined,
                             width: '20%',
                             animation: `victoryPulse 0.8s ease-out 0.2s both`
                         }}
@@ -547,7 +547,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                         className="absolute top-[490px] flex items-center justify-center"
                         style={{ 
                             right: p2Victory ? '56.7%' : undefined,
-                            left: p1Victory ? '56%' : undefined,
+                            left: p1Victory ? '55.5%' : undefined,
                             width: '20%',
                             animation: `fadeIn 0.8s ease-out 0.3s both`
                         }}
