@@ -85,6 +85,22 @@
       "isMainEvent": false,
       "p1Flag": "DE",
       "p2Flag": "EG"
+    },
+    {
+      "id": 5,
+      "matchTitle": "THE REVENGE",
+      "p1Name": "Ted Loaf",
+      "p1Title": "THE HIGHLANDER",
+      "p1Character": "lee",
+      "p1Flag": "",
+      "p1Score": 0,
+      "p2Name": "Kuro Loafn't",
+      "p2Title": "ANAKIN",
+      "p2Character": "jin",
+      "p2Flag": "",
+      "p2Score": 0,
+      "winner": null,
+      "completed": false
     }
   ],
   "sponsors": {

@@ -113,7 +113,11 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
     // The card images are 1920x1080 with the visible card bar in the center
     const GUEST_CARD_BAR_HEIGHT = 140;
     const REGULAR_CARD_BAR_HEIGHT = 140;
-    const CARD_GAP = 64;
+    
+    // Adjust gap and vertical offset based on number of cards
+    // If 5 or more cards, reduce gap and start higher
+    const CARD_GAP = totalCards >= 5 ? 32 : 64;
+    const verticalOffset = totalCards >= 5 ? -40 : 0; // Move cards up when 5+
     
     // Calculate total height needed for all cards
     const totalCardsHeight = allMatches.reduce((acc, match, idx) => {
@@ -121,8 +125,8 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
         return acc + barHeight + (idx > 0 ? CARD_GAP : 0);
     }, 0);
     
-    // Starting Y position to center all cards vertically
-    const startY = (1180 - totalCardsHeight) / 2;
+    // Starting Y position to center all cards vertically (with offset for 5+ cards)
+    const startY = (1180 - totalCardsHeight) / 2 + verticalOffset;
 
     return (
         <div className="w-[1920px] h-[1080px] relative overflow-hidden font-['Archivo']">
@@ -182,7 +186,10 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             alt={match.p1Character}
                             className="absolute inset-0 w-[1920px] h-[1080px]"
                             style={{
-                                filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
+                                filter: (!isMainEvent && match.completed && match.winner === 'p2')
+                                    ? 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3)) grayscale(100%)'
+                                    : 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))',
+                                opacity: (match.completed && match.winner === 'p2') ? 0.4 : 1
                             }}
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
@@ -193,7 +200,10 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             alt={match.p2Character}
                             className="absolute inset-0 w-[1920px] h-[1080px]"
                             style={{
-                                filter: 'drop-shadow(-2px 2px 4px rgba(0,0,0,0.3))'
+                                filter: (!isMainEvent && match.completed && match.winner === 'p1')
+                                    ? 'drop-shadow(-2px 2px 4px rgba(0,0,0,0.3)) grayscale(100%)'
+                                    : 'drop-shadow(-2px 2px 4px rgba(0,0,0,0.3))',
+                                opacity: (match.completed && match.winner === 'p1') ? 0.4 : 1
                             }}
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
@@ -212,7 +222,14 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             }}
                         >
                             {/* P1 Info - Left aligned */}
-                            <div className="flex-1 flex flex-col items-start justify-center" style={{ paddingLeft: '425px' }}>
+                            <div 
+                                className="flex-1 flex flex-col items-start justify-center" 
+                                style={{ 
+                                    paddingLeft: '425px',
+                                    opacity: (match.completed && match.winner === 'p2') ? 0.55 : 1,
+                                    filter: (!isMainEvent && match.completed && match.winner === 'p2') ? 'grayscale(100%)' : 'none'
+                                }}
+                            >
                                 <h3 
                                     className={`font-bold tracking-tight ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
                                     style={{ 
@@ -236,7 +253,12 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             </div>
 
                             {/* VS / Center Section */}
-                            <div className="w-[80px] flex items-center justify-center" style={{ marginRight: '8px' }}>
+                            <div 
+                                className="w-[80px] flex items-center justify-center" 
+                                style={{ 
+                                    marginRight: '8px'
+                                }}
+                            >
                                 <span 
                                     className={`font-black ${isMainEvent ? 'text-white/70' : 'text-[#8a8070]/70'}`}
                                     style={{ 
@@ -248,7 +270,14 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             </div>
 
                             {/* P2 Info - Right aligned */}
-                            <div className="flex-1 flex flex-col items-end justify-center" style={{ paddingRight: '315px' }}>
+                            <div 
+                                className="flex-1 flex flex-col items-end justify-center" 
+                                style={{ 
+                                    paddingRight: '315px',
+                                    opacity: (match.completed && match.winner === 'p1') ? 0.55 : 1,
+                                    filter: (!isMainEvent && match.completed && match.winner === 'p1') ? 'grayscale(100%)' : 'none'
+                                }}
+                            >
                                 <h3 
                                     className={`font-bold tracking-tight text-right ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
                                     style={{ 
@@ -272,14 +301,16 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             </div>
                         </div>
 
-                        {/* Match Title Label */}
-                        {isMainEvent && (
+                        {/* Match Title Label - shown for all cards */}
+                        {match.matchTitle && (
                             <div
-                                className="absolute text-white text-[24px] font-bold tracking-[0.02em] uppercase"
+                                className={`absolute text-[32px] font-bold tracking-[0.02em] uppercase text-white text-center`}
                                 style={{ 
-                                    top: `${520 - currentBarHeight / 2 - 8}px`,
-                                    left: '60%',
+                                    top: `${506- currentBarHeight / 2}px`,
+                                    left: '55%',
+                                    width: '300px',
                                     animation: `fadeIn 0.3s ease-out ${animDelay + 0.3}s both`, 
+                                    textShadow: '1px 1px 3px rgba(0,0,0,0.3)',
                                     fontFamily: 'Crook Bold, Crook, sans-serif'
                                 }}
                             >
