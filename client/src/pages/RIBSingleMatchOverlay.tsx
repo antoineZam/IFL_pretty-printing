@@ -300,7 +300,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     key={`p2name-sharp-${animKey}`}
                     className="absolute bottom-[-40px]"
                     style={{ 
-                        left: '52%',
+                        left: '57%',
                         textAlign: 'left',
                         animation: `fadeIn 0.5s ease-out 0.1s both`,
                     }}
@@ -336,7 +336,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     key={`p2name-blur-${animKey}`}
                     className="absolute bottom-[-40px]"
                     style={{
-                        left: '52%',
+                        left: '57%',
                         textAlign: 'left',
                         opacity: 0.3,
                         filter: 'blur(8px)',
