@@ -26,6 +26,26 @@ import {
 } from 'lucide-react';
 import { countries } from '../utils/countries';
 
+// Available Tekken 8 characters
+const characters: Record<string, string> = {
+    '': '-- Select Character --',
+    'alisa': 'Alisa',
+    'anna': 'Anna',
+    'armor king': 'Armor King',
+    'azucena': 'Azucena',
+    'eddy': 'Eddy',
+    'heihachi': 'Heihachi',
+    'jin': 'Jin',
+    'kazuya': 'Kazuya',
+    'lee': 'Lee',
+    'leo': 'Leo',
+    'lili': 'Lili',
+    'nina': 'Nina',
+    'reina': 'Reina',
+    'steve': 'Steve',
+    'zafina': 'Zafina'
+};
+
 interface MatchCardData {
     eventTitle: string;
     eventSubtitle: string;
@@ -731,12 +751,15 @@ export default function RIBMatchControlPage() {
                                     </div>
                                     <div>
                                         <label className="block text-sm text-gray-400 mb-1">Character</label>
-                                        <input
-                                            type="text"
+                                        <select
                                             value={editingPlayer.character}
                                             onChange={(e) => updateEditingPlayer('character', e.target.value)}
                                             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
-                                        />
+                                        >
+                                            {Object.entries(characters).map(([value, label]) => (
+                                                <option key={value} value={value}>{label}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 
