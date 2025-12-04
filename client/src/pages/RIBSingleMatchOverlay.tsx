@@ -216,7 +216,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                         right: '67%',
                         textAlign: 'right',
                         opacity: 0.3,
-                        filter: 'blur(8px) saturate(5) brightness(1)',
+                        filter: 'blur(10px) saturate(.8) brightness(1) opacity(.65)',
                         animation: `fadeIn 1s ease-out 0.1s both`,
                     }}
                 >
@@ -334,7 +334,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                         left: '67%',
                         textAlign: 'left',
                         opacity: 0.3,
-                        filter: 'blur(8px) saturate(5) brightness(2)',
+                        filter: 'blur(10px) saturate(.8) brightness(1) opacity(.65)',
                         animation: `fadeIn 0.5s ease-out 0.1s both`,
                     }}
                 >
@@ -367,7 +367,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                 className="absolute"
                 style={{
                     animation: `slideInLeft 0.6s ease-out 0.2s both`,
-                    zIndex: 2
+                    zIndex: 15
                 }}
             >
                 <img 
@@ -390,7 +390,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                 className="absolute"
                 style={{ 
                     animation: `slideInRight 0.6s ease-out 0.2s both`,
-                    zIndex: 2
+                    zIndex: 15
                 }}
             >
                 <img 

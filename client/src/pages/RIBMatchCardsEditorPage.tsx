@@ -321,7 +321,7 @@ export default function RIBMatchCardsEditorPage() {
                             <div key={match.id} className={`rounded-lg p-4 ${match.isMainEvent ? 'bg-gradient-to-r from-amber-900/40 to-amber-800/20 border border-amber-500/50' : 'bg-gray-800'} ${match.completed ? 'border border-green-500/30' : ''}`}>
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
-                                        <h4 className="font-medium">{match.isMainEvent ? '⭐ Main Event' : `Match ${index + 1}`}</h4>
+                                        <h4 className="font-medium">{match.isMainEvent ? 'Main Event' : `Match ${index + 1}`}</h4>
                                         {match.completed && (
                                             <span className="text-xs px-2 py-1 bg-green-600/30 text-green-400 rounded">
                                                 {match.p1Score} - {match.p2Score} • {match.winner === 'p1' ? match.p1Name : match.p2Name} wins
