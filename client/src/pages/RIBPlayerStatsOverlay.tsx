@@ -93,7 +93,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
         return <div className="w-[1920px] h-[1080px]" />;
     }
 
-    const charImg = `/source/overlay/run_it_back/characters/P1/${player.character.toLowerCase()}_stats.png`;
+    const charImg = `/source/overlay/run_it_back/characters/stat_screen/${player.character.toLowerCase()}.png`;
 
     // Clip paths for the blur effect on the large name
     // Line at 655px top, ~545px bottom (5.8deg rotation)
@@ -144,7 +144,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                         animation: `slideUpBlur 0.8s ease-out both`,
                         fontFamily: 'Crook, Crook, sans-serif',
                         letterSpacing: '-0.03em',
-                        filter: 'blur(8px)',
+                        filter: 'blur(8px) saturate(2) brightness(1.3)',
                         transformOrigin: 'bottom right',
                         background: 'linear-gradient(to bottom, #DE4725, #A21D17)',
                         WebkitBackgroundClip: 'text',

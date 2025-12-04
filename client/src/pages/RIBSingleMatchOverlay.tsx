@@ -224,7 +224,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                         right: '57%',
                         textAlign: 'right',
                         opacity: 0.3,
-                        filter: 'blur(8px)',
+                        filter: 'blur(8px) saturate(5) brightness(1)',
                         animation: `fadeIn 1s ease-out 0.1s both`,
                     }}
                 >
@@ -339,7 +339,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                         left: '57%',
                         textAlign: 'left',
                         opacity: 0.3,
-                        filter: 'blur(8px)',
+                        filter: 'blur(8px) saturate(2) brightness(1.3)',
                         animation: `fadeIn 0.5s ease-out 0.1s both`,
                     }}
                 >
@@ -486,17 +486,17 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             {/* Part Number - Bottom Center */}
             <div 
                 key={`partnum-${animKey}`}
-                className="absolute bottom-[129px] left-[425px] right-0 text-center"
+                className="absolute bottom-[132px] left-[316px] right-0 text-center"
                 style={{ 
                     animation: `fadeIn 0.6s ease-out 0.4s both`,
                     zIndex: 3
                 }}
             >
                 <span
-                    className="text-[#1e3637] text-[80px] font-black tracking-[0.002em] uppercase"
+                    className="text-[#1e3637] text-[76px] font-black tracking-[0.002em] uppercase"
                     style={{ fontFamily: 'Crook, Crook, sans-serif' }}
                 >
-                    {matchCards.partNumber}
+                   PART{matchCards.partNumber}
                 </span>
             </div>
 
