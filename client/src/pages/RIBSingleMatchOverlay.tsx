@@ -221,7 +221,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     key={`p1name-blur-${animKey}`}
                     className="absolute bottom-[-40px]"
                     style={{ 
-                        right: '57%',
+                        right: '67%',
                         textAlign: 'right',
                         opacity: 0.3,
                         filter: 'blur(8px) saturate(5) brightness(1)',
@@ -235,6 +235,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                             fontFamily: 'Crook, Crook, sans-serif',
                             letterSpacing: '-0.03em',
                             lineHeight: '0.8',
+                            transformOrigin: 'right',
                             transform: 'scaleX(0.7)',
                             display: 'inline-block',
                             background: (hasVictory && p2Victory) 
@@ -259,7 +260,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     key={`p1name-sharp-${animKey}`}
                     className="absolute bottom-[-40px]"
                     style={{ 
-                        right: '57%',
+                        right: '67%',
                         textAlign: 'right',
                         animation: `fadeIn 1s ease-out 0.1s both`,
                     }}
@@ -271,6 +272,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                             fontFamily: 'Crook, Crook, sans-serif',
                             letterSpacing: '-0.03em',
                             lineHeight: '0.8',
+                            transformOrigin: 'right',
                             transform: 'scaleX(0.7)',
                             display: 'inline-block',
                             background: (hasVictory && p2Victory) 
@@ -300,7 +302,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     key={`p2name-sharp-${animKey}`}
                     className="absolute bottom-[-40px]"
                     style={{ 
-                        left: '57%',
+                        left: '67%',
                         textAlign: 'left',
                         animation: `fadeIn 0.5s ease-out 0.1s both`,
                     }}
@@ -313,6 +315,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                             letterSpacing: '-0.03em',
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
+                            transformOrigin: 'left',
                             display: 'inline-block',
                             background: (hasVictory && p1Victory) 
                                 ? 'linear-gradient(to bottom, #888888, #444444)' 
@@ -336,10 +339,10 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     key={`p2name-blur-${animKey}`}
                     className="absolute bottom-[-40px]"
                     style={{
-                        left: '57%',
+                        left: '67%',
                         textAlign: 'left',
                         opacity: 0.3,
-                        filter: 'blur(8px) saturate(2) brightness(1.3)',
+                        filter: 'blur(8px) saturate(5) brightness(2)',
                         animation: `fadeIn 0.5s ease-out 0.1s both`,
                     }}
                 >
@@ -351,6 +354,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                             letterSpacing: '-0.03em',
                             lineHeight: '0.8',
                             transform: 'scaleX(0.7)',
+                            transformOrigin: 'left',
                             display: 'inline-block',
                             background: (hasVictory && p1Victory) 
                                 ? 'linear-gradient(to bottom, #888888, #444444)' 
