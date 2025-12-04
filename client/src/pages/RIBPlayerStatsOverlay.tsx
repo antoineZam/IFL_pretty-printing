@@ -93,9 +93,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
         return <div className="w-[1920px] h-[1080px]" />;
     }
 
-    // Use P1 or P2 folder based on selectedPlayerIndex (0 = P1, 1 = P2)
-    const playerSide = (overlayState?.selectedPlayerIndex ?? 0) === 0 ? 'P1' : 'P2';
-    const charImg = `/source/overlay/run_it_back/characters/${playerSide}/${player.character.toLowerCase()}.png`;
+    const charImg = `/source/overlay/run_it_back/characters/P1/${player.character.toLowerCase()}_stats.png`;
 
     // Clip paths for the blur effect on the large name
     // Line at 655px top, ~545px bottom (5.8deg rotation)
@@ -138,7 +136,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
             >
                 <div 
                     key={`watermark-blur-${animKey}`}
-                    className="absolute font-black text-[#e63030] leading-none tracking-tighter select-none whitespace-nowrap"
+                    className="absolute font-black leading-none tracking-tighter select-none whitespace-nowrap"
                     style={{ 
                         bottom: '-80px',
                         right: '640px',
@@ -147,7 +145,11 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                         fontFamily: 'Crook, Crook, sans-serif',
                         letterSpacing: '-0.03em',
                         filter: 'blur(8px)',
-                        transformOrigin: 'bottom right'
+                        transformOrigin: 'bottom right',
+                        background: 'linear-gradient(to bottom, #DE4725, #A21D17)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
                     }}
                 >
                     {player.name.toUpperCase()}
@@ -161,7 +163,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
             >
                 <div 
                     key={`watermark-sharp-${animKey}`}
-                    className="absolute font-black text-[#e63030] leading-none tracking-tighter select-none whitespace-nowrap"
+                    className="absolute font-black leading-none tracking-tighter select-none whitespace-nowrap"
                     style={{ 
                         bottom: '-80px',
                         right: '640px',
@@ -169,7 +171,11 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                         animation: `slideUpSharp 0.8s ease-out both`,
                         fontFamily: 'Crook, Crook, sans-serif',
                         letterSpacing: '-0.03em',
-                        transformOrigin: 'bottom right'
+                        transformOrigin: 'bottom right',
+                        background: 'linear-gradient(to bottom, #DE4725, #A21D17)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
                     }}
                 >
                     {player.name.toUpperCase()}
@@ -192,29 +198,29 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
             {/* Stats Panel */}
             <div 
                 key={`stats-${animKey}`}
-                className="absolute top-[80px] right-[200px] text-left whitespace-nowrap"
-                style={{ animation: `slideInRight 0.7s ease-out both`, fontFamily: 'Gotham Bold, Gotham, sans-serif', zIndex: 20 }}
+                className="absolute top-[150px] right-[200px] text-left whitespace-nowrap"
+                style={{ animation: `slideInRight 0.7s ease-out both`, fontFamily: 'Gotham Black, Gotham, sans-serif', zIndex: 20 }}
             >
                 {/* Main Stats */}
-                <div className="space-y-[7px] text-[24px]">
+                <div className="space-y-[-2px] text-[24px]">
                     <div className="flex">
                         <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>DIVISION</span>
-                        <span className="text-[#2a2520] font-normal">{player.division}</span>
+                        <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.division}</span>
                     </div>
                     <div className="flex">
                         <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>IFF8 RANKING</span>
-                        <span className="text-[#2a2520] font-normal">{player.iff8Ranking}</span>
+                        <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.iff8Ranking}</span>
                     </div>
                     <div className="flex">
                         <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>IFF8 RECORD</span>
-                        <span className="text-[#2a2520] font-normal whitespace-nowrap">
+                        <span className="text-[#2a2520] whitespace-nowrap" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>
                             {player.iff8Record}
                             <span className="text-[#9a9080] text-[19px] ml-3">({player.iff8RecordDetails})</span>
                         </span>
                     </div>
                     <div className="flex">
                         <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>IFF HISTORY</span>
-                        <span className="text-[#2a2520] font-normal">{player.iffHistory}</span>
+                        <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.iffHistory}</span>
                     </div>
                     
                     {/* Empty line gap */}
@@ -222,11 +228,11 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                     
                     <div className="flex">
                         <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>RANK</span>
-                        <span className="text-[#2a2520] font-normal">{player.rank}</span>
+                        <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.rank}</span>
                     </div>
                     <div className="flex">
                         <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>PROWESS</span>
-                        <span className="text-[#2a2520] font-normal">{player.prowess.toLocaleString()}</span>
+                        <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.prowess.toLocaleString()}</span>
                     </div>
                     
                     {/* Empty line gap */}
@@ -237,18 +243,18 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                         {/* Ranked Matches Section */}
                         <div>
                             <h4 className="text-[#c45c4c] text-[24px] font-bold italic mb-1">Ranked Matches</h4>
-                            <div className="space-y-[7px] text-[24px]">
+                            <div className="space-y-[-2px] text-[24px]">
                                 <div className="flex">
                                     <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>WINS</span>
-                                    <span className="text-[#2a2520] font-normal">{player.rankedMatches.wins}</span>
+                                    <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.rankedMatches.wins}</span>
                                 </div>
                                 <div className="flex">
                                     <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>LOSES</span>
-                                    <span className="text-[#2a2520] font-normal">{player.rankedMatches.loses}</span>
+                                    <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.rankedMatches.loses}</span>
                                 </div>
                                 <div className="flex">
                                     <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>W/L RATE</span>
-                                    <span className="text-[#2a2520] font-normal">{player.rankedMatches.wlRate}</span>
+                                    <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.rankedMatches.wlRate}</span>
                                 </div>
                             </div>
                         </div>
@@ -256,18 +262,18 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                         {/* Player Matches Section */}
                         <div>
                             <h4 className="text-[#c45c4c] text-[24px] font-bold italic mb-1">Player Matches</h4>
-                            <div className="space-y-[7px] text-[24px]">
+                            <div className="space-y-[-2px] text-[24px]">
                                 <div className="flex">
                                     <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>WINS</span>
-                                    <span className="text-[#2a2520] font-normal">{player.playerMatches.wins}</span>
+                                    <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.playerMatches.wins}</span>
                                 </div>
                                 <div className="flex">
                                     <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>LOSES</span>
-                                    <span className="text-[#2a2520] font-normal">{player.playerMatches.loses}</span>
+                                    <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.playerMatches.loses}</span>
                                 </div>
                                 <div className="flex">
                                     <span className="text-[#5a5248] w-[260px] font-bold" style={{ letterSpacing: '0.05em' }}>W/L RATE</span>
-                                    <span className="text-[#2a2520] font-normal">{player.playerMatches.wlRate}</span>
+                                    <span className="text-[#2a2520]" style={{ fontFamily: 'Gotham Book, Gotham, sans-serif' }}>{player.playerMatches.wlRate}</span>
                                 </div>
                             </div>
                         </div>
