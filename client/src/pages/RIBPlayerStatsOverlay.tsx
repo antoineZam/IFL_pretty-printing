@@ -123,7 +123,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                     bottom: '0',
                     width: '1px',
                     background: 'transparent',
-                    zIndex: 100,
+                    zIndex: 10,
                     transform: 'rotate(5.8deg)',
                     transformOrigin: 'top center'
                 }}
@@ -137,16 +137,17 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                 <div 
                     key={`watermark-blur-${animKey}`}
                     className="absolute font-black leading-none tracking-tighter select-none whitespace-nowrap"
-                    style={{ 
-                        bottom: '-80px',
+                    style={{
+                        bottom: '0px',
                         right: '640px',
                         fontSize: '420px',
                         animation: `slideUpBlur 0.8s ease-out both`,
                         fontFamily: 'Crook, Crook, sans-serif',
                         letterSpacing: '-0.03em',
-                        filter: 'blur(8px) saturate(2) brightness(1.3)',
-                        transformOrigin: 'bottom right',
+                        filter: 'blur(10px) saturate(.8) brightness(1) opacity(1)',
+                        transformOrigin: 'right',
                         background: 'linear-gradient(to bottom, #DE4725, #A21D17)',
+                        display: 'inline-block',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         backgroundClip: 'text'
