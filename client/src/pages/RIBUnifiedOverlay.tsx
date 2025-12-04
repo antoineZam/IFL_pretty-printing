@@ -7,12 +7,16 @@ import RIBSingleMatchOverlay from './RIBSingleMatchOverlay';
 import RIBPartOneOverlay from './RIBPartOneOverlay';
 import RIBPlayerStatsOverlay from './RIBPlayerStatsOverlay';
 import RIBStreamOverlay from './RIBStreamOverlay';
+import IntroVideoPlayer from '../components/IntroVideoPlayer';
+import SnowEffect from '../components/SnowEffect';
 
 interface OverlayState {
     showMatchCard: boolean;
     showPlayerStats: boolean;
     showPartOne: boolean;
     showStreamOverlay: boolean;
+    showIntroVideo: boolean;
+    introVideoUrl: string;
     selectedMatchIndex: number;
     selectedPlayerIndex: number;
     animationTrigger: number;
@@ -25,6 +29,8 @@ export default function RIBUnifiedOverlay() {
         showPlayerStats: false,
         showPartOne: false,
         showStreamOverlay: false,
+        showIntroVideo: false,
+        introVideoUrl: '',
         selectedMatchIndex: 0,
         selectedPlayerIndex: 0,
         animationTrigger: 0
@@ -62,49 +68,96 @@ export default function RIBUnifiedOverlay() {
     // forceShow={true} is passed to ensure they render their content internally, 
     // while this parent component controls whether that content is actually visible on screen.
 
-    // Debug: Check if any overlay is active
+    // Check if any overlay is active
     const anyOverlayActive = overlayState.showMatchCard || overlayState.showPlayerStats || 
-                             overlayState.showPartOne || overlayState.showStreamOverlay;
+                             overlayState.showPartOne || overlayState.showStreamOverlay ||
+                             overlayState.showIntroVideo;
 
     return (
-        <div className="w-[1920px] h-[1080px] relative">
-            {/* Debug indicator - remove in production */}
-            {!anyOverlayActive && (
-                <div className="absolute top-4 left-4 text-white bg-black/50 px-4 py-2 rounded z-50 text-sm">
-                    Waiting for overlay selection... (No overlay active)
-                </div>
-            )}
+        <div className="w-[1920px] h-[1080px] relative overflow-hidden">
+            {/* Default Main Page - shows when no overlay is active */}
+            <div 
+                className="absolute inset-0 transition-all duration-500 ease-in-out"
+                style={{ 
+                    opacity: anyOverlayActive ? 0 : 1,
+                    transform: anyOverlayActive ? 'scale(1.05)' : 'scale(1)',
+                    pointerEvents: anyOverlayActive ? 'none' : 'auto'
+                }}
+            >
+                <img 
+                    src="/source/overlay/run_it_back/main_page/Runitback_main_page_part-01.jpg" 
+                    alt="Run It Back Main Page"
+                    className="w-full h-full object-cover"
+                />
+                {/* Animated snow effect */}
+                <SnowEffect />
+            </div>
 
             {/* Match Card Overlay */}
             <div 
-                className="absolute inset-0"
-                style={{ display: overlayState.showMatchCard ? 'block' : 'none' }}
+                className="absolute inset-0 transition-all duration-500 ease-in-out"
+                style={{ 
+                    opacity: overlayState.showMatchCard ? 1 : 0,
+                    transform: overlayState.showMatchCard ? 'scale(1)' : 'scale(0.98)',
+                    pointerEvents: overlayState.showMatchCard ? 'auto' : 'none'
+                }}
             >
                 <RIBSingleMatchOverlay forceShow={true} />
             </div>
 
             {/* Part One Overlay */}
             <div 
-                className="absolute inset-0"
-                style={{ display: overlayState.showPartOne ? 'block' : 'none' }}
+                className="absolute inset-0 transition-all duration-500 ease-in-out"
+                style={{ 
+                    opacity: overlayState.showPartOne ? 1 : 0,
+                    transform: overlayState.showPartOne ? 'scale(1)' : 'scale(0.98)',
+                    pointerEvents: overlayState.showPartOne ? 'auto' : 'none'
+                }}
             >
                 <RIBPartOneOverlay forceShow={true} />
             </div>
 
             {/* Player Stats Overlay */}
             <div 
-                className="absolute inset-0"
-                style={{ display: overlayState.showPlayerStats ? 'block' : 'none' }}
+                className="absolute inset-0 transition-all duration-500 ease-in-out"
+                style={{ 
+                    opacity: overlayState.showPlayerStats ? 1 : 0,
+                    transform: overlayState.showPlayerStats ? 'scale(1)' : 'scale(0.98)',
+                    pointerEvents: overlayState.showPlayerStats ? 'auto' : 'none'
+                }}
             >
                 <RIBPlayerStatsOverlay forceShow={true} />
             </div>
 
             {/* Stream Overlay (In-Game) */}
             <div 
-                className="absolute inset-0"
-                style={{ display: overlayState.showStreamOverlay ? 'block' : 'none' }}
+                className="absolute inset-0 transition-all duration-500 ease-in-out"
+                style={{ 
+                    opacity: overlayState.showStreamOverlay ? 1 : 0,
+                    transform: overlayState.showStreamOverlay ? 'scale(1)' : 'scale(0.98)',
+                    pointerEvents: overlayState.showStreamOverlay ? 'auto' : 'none'
+                }}
             >
                 <RIBStreamOverlay forceShow={true} />
+            </div>
+
+            {/* Intro Video Overlay */}
+            <div 
+                className="absolute inset-0 transition-all duration-500 ease-in-out bg-black"
+                style={{ 
+                    opacity: overlayState.showIntroVideo ? 1 : 0,
+                    transform: overlayState.showIntroVideo ? 'scale(1)' : 'scale(1.02)',
+                    pointerEvents: overlayState.showIntroVideo ? 'auto' : 'none'
+                }}
+            >
+                {/* React Player - stays mounted, plays when visible */}
+                {overlayState.introVideoUrl && (
+                    <IntroVideoPlayer 
+                        url={overlayState.introVideoUrl} 
+                        volume={0.7}
+                        isPlaying={overlayState.showIntroVideo}
+                    />
+                )}
             </div>
         </div>
     );

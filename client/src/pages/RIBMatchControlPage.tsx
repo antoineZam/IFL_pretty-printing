@@ -17,7 +17,12 @@ import {
     Settings,
     Download,
     Save,
-    Trophy
+    Trophy,
+    Trash2,
+    UserPlus,
+    Edit3,
+    X,
+    Youtube
 } from 'lucide-react';
 import { countries } from '../utils/countries';
 
@@ -104,6 +109,8 @@ interface OverlayState {
     showPlayerStats: boolean;
     showPartOne: boolean;
     showStreamOverlay: boolean;
+    showIntroVideo: boolean;
+    introVideoUrl: string;
     selectedMatchIndex: number;
     selectedPlayerIndex: number;
     animationTrigger: number;
@@ -126,10 +133,15 @@ export default function RIBMatchControlPage() {
         showPlayerStats: false,
         showPartOne: false,
         showStreamOverlay: false,
+        showIntroVideo: false,
+        introVideoUrl: '',
         selectedMatchIndex: 0,
         selectedPlayerIndex: 0,
         animationTrigger: 0
     });
+    const [introVideoUrlInput, setIntroVideoUrlInput] = useState('');
+    const [editingPlayer, setEditingPlayer] = useState<PlayerStats | null>(null);
+    const [isAddingPlayer, setIsAddingPlayer] = useState(false);
 
     useEffect(() => {
         const connectionKey = localStorage.getItem('connectionKey');
@@ -354,6 +366,96 @@ export default function RIBMatchControlPage() {
 
     const matchStatus = getCurrentMatchStatus();
 
+    // Player Stats Management Functions
+    const createEmptyPlayer = (): PlayerStats => ({
+        name: '',
+        character: '',
+        division: '',
+        iff8Ranking: '',
+        iff8Record: '',
+        iff8RecordDetails: '',
+        iffHistory: '',
+        rank: '',
+        prowess: 0,
+        rankedMatches: { wins: 0, loses: 0, wlRate: '0%' },
+        playerMatches: { wins: 0, loses: 0, wlRate: '0%' }
+    });
+
+    const addPlayer = () => {
+        setEditingPlayer(createEmptyPlayer());
+        setIsAddingPlayer(true);
+    };
+
+    const editCurrentPlayer = () => {
+        if (playerStats && playerStats.players[overlayState.selectedPlayerIndex]) {
+            setEditingPlayer({ ...playerStats.players[overlayState.selectedPlayerIndex] });
+            setIsAddingPlayer(false);
+        }
+    };
+
+    const savePlayer = () => {
+        if (!editingPlayer || !socket) return;
+        
+        const currentPlayers = playerStats?.players || [];
+        let updatedPlayers: PlayerStats[];
+        
+        if (isAddingPlayer) {
+            updatedPlayers = [...currentPlayers, editingPlayer];
+        } else {
+            updatedPlayers = currentPlayers.map((p, i) => 
+                i === overlayState.selectedPlayerIndex ? editingPlayer : p
+            );
+        }
+        
+        const updatedData = { players: updatedPlayers };
+        setPlayerStats(updatedData);
+        socket.emit('rib-player-stats-update', updatedData);
+        setEditingPlayer(null);
+        
+        // If adding, select the new player
+        if (isAddingPlayer) {
+            updateOverlayState({ selectedPlayerIndex: updatedPlayers.length - 1 });
+        }
+    };
+
+    const deleteCurrentPlayer = () => {
+        if (!playerStats || !socket || playerStats.players.length === 0) return;
+        
+        const updatedPlayers = playerStats.players.filter((_, i) => i !== overlayState.selectedPlayerIndex);
+        const updatedData = { players: updatedPlayers };
+        setPlayerStats(updatedData);
+        socket.emit('rib-player-stats-update', updatedData);
+        
+        // Adjust selected index if needed
+        if (overlayState.selectedPlayerIndex >= updatedPlayers.length) {
+            updateOverlayState({ selectedPlayerIndex: Math.max(0, updatedPlayers.length - 1) });
+        }
+    };
+
+    const updateEditingPlayer = (field: string, value: string | number) => {
+        if (!editingPlayer) return;
+        
+        const keys = field.split('.');
+        if (keys.length === 1) {
+            setEditingPlayer({ ...editingPlayer, [field]: value });
+        } else {
+            // Handle nested fields like rankedMatches.wins
+            const [parent, child] = keys;
+            setEditingPlayer({
+                ...editingPlayer,
+                [parent]: {
+                    ...(editingPlayer as any)[parent],
+                    [child]: value
+                }
+            });
+        }
+    };
+
+    const cancelEditing = () => {
+        setEditingPlayer(null);
+        setIsAddingPlayer(false);
+    };
+
     return (
         <div className="min-h-screen bg-black text-white p-6">
             {/* Header */}
@@ -449,6 +551,70 @@ export default function RIBMatchControlPage() {
                             <span>Play / Replay Animations</span>
                         </button>
                     </div>
+
+                    {/* Intro Video Controls */}
+                    <div className="mt-6 pt-6 border-t border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <Youtube size={18} />
+                            Intro Video
+                        </h3>
+                        
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">YouTube URL</label>
+                                <input
+                                    type="text"
+                                    value={introVideoUrlInput}
+                                    onChange={(e) => setIntroVideoUrlInput(e.target.value)}
+                                    placeholder="https://www.youtube.com/watch?v=..."
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500"
+                                />
+                            </div>
+                            
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        // Turn off all other overlays and play intro video
+                                        const newState: OverlayState = {
+                                            ...overlayState,
+                                            showMatchCard: false,
+                                            showPlayerStats: false,
+                                            showPartOne: false,
+                                            showStreamOverlay: false,
+                                            showIntroVideo: true,
+                                            introVideoUrl: introVideoUrlInput
+                                        };
+                                        setOverlayState(newState);
+                                        socket?.emit('rib-overlay-state-update', newState);
+                                    }}
+                                    disabled={!introVideoUrlInput}
+                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg transition-all ${
+                                        introVideoUrlInput 
+                                            ? 'bg-red-600 hover:bg-red-700' 
+                                            : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                >
+                                    <Play size={18} />
+                                    Play Intro
+                                </button>
+                                
+                                <button
+                                    onClick={() => {
+                                        const newState: OverlayState = {
+                                            ...overlayState,
+                                            showIntroVideo: false
+                                        };
+                                        setOverlayState(newState);
+                                        socket?.emit('rib-overlay-state-update', newState);
+                                    }}
+                                    className="flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-all active:scale-90"
+                                >
+                                    <div className="w-4 h-4 bg-white rounded-sm" />
+                                    Stop
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Match Selection */}
@@ -491,17 +657,26 @@ export default function RIBMatchControlPage() {
 
                     {/* Player Selection for Stats */}
                     <div className="mt-6 pt-6 border-t border-gray-700">
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <BarChart3 size={18} />
-                            Player Stats Selection
-                        </h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <BarChart3 size={18} />
+                                Player Stats Selection
+                            </h3>
+                            <button
+                                onClick={addPlayer}
+                                className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-sm"
+                            >
+                                <UserPlus size={16} />
+                                Add Player
+                            </button>
+                        </div>
                         
                         <div className="bg-gray-800 rounded-lg p-4 mb-4">
-                            <p className="text-sm text-gray-400 mb-1">Currently Selected</p>
+                            <p className="text-sm text-gray-400 mb-1">Currently Selected ({playerStats?.players.length || 0} players)</p>
                             <p className="text-lg font-medium">{getSelectedPlayerName()}</p>
                         </div>
                         
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 mb-4">
                             <button
                                 onClick={() => selectPlayer('prev')}
                                 className="flex-1 flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
@@ -517,8 +692,237 @@ export default function RIBMatchControlPage() {
                                 <ChevronRight size={20} />
                             </button>
                         </div>
+
+                        {/* Edit/Delete buttons for current player */}
+                        {playerStats && playerStats.players.length > 0 && (
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={editCurrentPlayer}
+                                    className="flex-1 flex items-center justify-center gap-2 p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm"
+                                >
+                                    <Edit3 size={16} />
+                                    Edit Player
+                                </button>
+                                <button
+                                    onClick={deleteCurrentPlayer}
+                                    className="flex items-center justify-center gap-2 p-2 bg-red-900 hover:bg-red-800 rounded-lg transition-colors text-sm"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* Player Stats Editor Modal */}
+                {editingPlayer && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-semibold flex items-center gap-2">
+                                    <BarChart3 size={20} />
+                                    {isAddingPlayer ? 'Add New Player' : 'Edit Player Stats'}
+                                </h2>
+                                <button
+                                    onClick={cancelEditing}
+                                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Basic Info */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-1">Player Name</label>
+                                        <input
+                                            type="text"
+                                            value={editingPlayer.name}
+                                            onChange={(e) => updateEditingPlayer('name', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-1">Character</label>
+                                        <input
+                                            type="text"
+                                            value={editingPlayer.character}
+                                            onChange={(e) => updateEditingPlayer('character', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-1">Division</label>
+                                        <input
+                                            type="text"
+                                            value={editingPlayer.division}
+                                            onChange={(e) => updateEditingPlayer('division', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-1">Rank</label>
+                                        <input
+                                            type="text"
+                                            value={editingPlayer.rank}
+                                            onChange={(e) => updateEditingPlayer('rank', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Prowess</label>
+                                    <input
+                                        type="number"
+                                        value={editingPlayer.prowess}
+                                        onChange={(e) => updateEditingPlayer('prowess', parseInt(e.target.value) || 0)}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                    />
+                                </div>
+
+                                {/* IFF8 Stats */}
+                                <div className="pt-4 border-t border-gray-700">
+                                    <h3 className="text-lg font-medium mb-4 text-red-400">IFF8 Statistics</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">IFF8 Ranking</label>
+                                            <input
+                                                type="text"
+                                                value={editingPlayer.iff8Ranking}
+                                                onChange={(e) => updateEditingPlayer('iff8Ranking', e.target.value)}
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">IFF8 Record</label>
+                                            <input
+                                                type="text"
+                                                value={editingPlayer.iff8Record}
+                                                onChange={(e) => updateEditingPlayer('iff8Record', e.target.value)}
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mt-4">
+                                        <label className="block text-sm text-gray-400 mb-1">IFF8 Record Details</label>
+                                        <input
+                                            type="text"
+                                            value={editingPlayer.iff8RecordDetails}
+                                            onChange={(e) => updateEditingPlayer('iff8RecordDetails', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                        />
+                                    </div>
+                                    <div className="mt-4">
+                                        <label className="block text-sm text-gray-400 mb-1">IFF History</label>
+                                        <input
+                                            type="text"
+                                            value={editingPlayer.iffHistory}
+                                            onChange={(e) => updateEditingPlayer('iffHistory', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Match Stats */}
+                                <div className="pt-4 border-t border-gray-700">
+                                    <h3 className="text-lg font-medium mb-4 text-blue-400">Match Statistics</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-6">
+                                        {/* Ranked Matches */}
+                                        <div className="bg-gray-800 rounded-lg p-4">
+                                            <h4 className="text-sm font-medium text-gray-300 mb-3">Ranked Matches</h4>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-sm text-gray-400 w-12">Wins</label>
+                                                    <input
+                                                        type="number"
+                                                        value={editingPlayer.rankedMatches.wins}
+                                                        onChange={(e) => updateEditingPlayer('rankedMatches.wins', parseInt(e.target.value) || 0)}
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-green-500"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-sm text-gray-400 w-12">Losses</label>
+                                                    <input
+                                                        type="number"
+                                                        value={editingPlayer.rankedMatches.loses}
+                                                        onChange={(e) => updateEditingPlayer('rankedMatches.loses', parseInt(e.target.value) || 0)}
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-red-500"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-sm text-gray-400 w-12">W/L %</label>
+                                                    <input
+                                                        type="text"
+                                                        value={editingPlayer.rankedMatches.wlRate}
+                                                        onChange={(e) => updateEditingPlayer('rankedMatches.wlRate', e.target.value)}
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Player Matches */}
+                                        <div className="bg-gray-800 rounded-lg p-4">
+                                            <h4 className="text-sm font-medium text-gray-300 mb-3">Player Matches</h4>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-sm text-gray-400 w-12">Wins</label>
+                                                    <input
+                                                        type="number"
+                                                        value={editingPlayer.playerMatches.wins}
+                                                        onChange={(e) => updateEditingPlayer('playerMatches.wins', parseInt(e.target.value) || 0)}
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-green-500"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-sm text-gray-400 w-12">Losses</label>
+                                                    <input
+                                                        type="number"
+                                                        value={editingPlayer.playerMatches.loses}
+                                                        onChange={(e) => updateEditingPlayer('playerMatches.loses', parseInt(e.target.value) || 0)}
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-red-500"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-sm text-gray-400 w-12">W/L %</label>
+                                                    <input
+                                                        type="text"
+                                                        value={editingPlayer.playerMatches.wlRate}
+                                                        onChange={(e) => updateEditingPlayer('playerMatches.wlRate', e.target.value)}
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="pt-4 flex gap-4">
+                                    <button
+                                        onClick={cancelEditing}
+                                        className="flex-1 flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={savePlayer}
+                                        className="flex-1 flex items-center justify-center gap-2 p-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                                    >
+                                        <Save size={18} />
+                                        {isAddingPlayer ? 'Add Player' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Stream Overlay Controls */}
                 <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 lg:col-span-2">
