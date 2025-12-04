@@ -54,20 +54,6 @@ interface MatchCardData {
     eventSubtitle: string;
     partNumber: string;
     winScore: number;
-    mainEvent: {
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p1Flag?: string;
-        p1Score: number;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-        p2Flag?: string;
-        p2Score: number;
-        winner: 'p1' | 'p2' | null;
-        completed: boolean;
-    };
     matches: Match[];
     sponsors: {
         presenter: string;
@@ -86,7 +72,6 @@ export default function RIBMatchCardsEditorPage() {
         eventSubtitle: "THE FINAL CHAPTER",
         partNumber: "01",
         winScore: 3,
-        mainEvent: { p1Name: "", p1Title: "", p1Character: "", p1Flag: "", p1Score: 0, p2Name: "", p2Title: "", p2Character: "", p2Flag: "", p2Score: 0, winner: null, completed: false },
         matches: [],
         sponsors: { presenter: "", association: "" }
     });
@@ -331,92 +316,7 @@ export default function RIBMatchCardsEditorPage() {
                     </div>
                     
                     <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                        {/* Main Event */}
-                        <div className={`bg-gradient-to-r from-emerald-900/40 to-emerald-800/20 rounded-lg p-4 border ${matchCards.mainEvent.completed ? 'border-green-400/60' : 'border-emerald-500/50'}`}>
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <h4 className="font-bold text-emerald-400">Main Event</h4>
-                                    {matchCards.mainEvent.completed && (
-                                        <span className="text-xs px-2 py-1 bg-green-600/30 text-green-400 rounded">
-                                            {matchCards.mainEvent.p1Score} - {matchCards.mainEvent.p2Score} • {matchCards.mainEvent.winner === 'p1' ? matchCards.mainEvent.p1Name : matchCards.mainEvent.p2Name} wins
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <input
-                                        type="text"
-                                        value={matchCards.mainEvent.p1Name}
-                                        onChange={(e) => handleChange('mainEvent.p1Name', e.target.value)}
-                                        placeholder="P1 Name"
-                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
-                                    />
-                                    <select
-                                        value={matchCards.mainEvent.p1Flag || ''}
-                                        onChange={(e) => handleChange('mainEvent.p1Flag', e.target.value)}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
-                                    >
-                                        {Object.entries(countries).map(([code, name]) => (
-                                            <option key={code} value={code}>{name}</option>
-                                        ))}
-                                    </select>
-                                    <input
-                                        type="text"
-                                        value={matchCards.mainEvent.p1Title}
-                                        onChange={(e) => handleChange('mainEvent.p1Title', e.target.value)}
-                                        placeholder="P1 Title"
-                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
-                                    />
-                                    <select
-                                        value={matchCards.mainEvent.p1Character}
-                                        onChange={(e) => handleChange('mainEvent.p1Character', e.target.value)}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
-                                    >
-                                        {Object.entries(characters).map(([value, label]) => (
-                                            <option key={value} value={value}>{label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <input
-                                        type="text"
-                                        value={matchCards.mainEvent.p2Name}
-                                        onChange={(e) => handleChange('mainEvent.p2Name', e.target.value)}
-                                        placeholder="P2 Name"
-                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
-                                    />
-                                    <select
-                                        value={matchCards.mainEvent.p2Flag || ''}
-                                        onChange={(e) => handleChange('mainEvent.p2Flag', e.target.value)}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
-                                    >
-                                        {Object.entries(countries).map(([code, name]) => (
-                                            <option key={code} value={code}>{name}</option>
-                                        ))}
-                                    </select>
-                                    <input
-                                        type="text"
-                                        value={matchCards.mainEvent.p2Title}
-                                        onChange={(e) => handleChange('mainEvent.p2Title', e.target.value)}
-                                        placeholder="P2 Title"
-                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
-                                    />
-                                    <select
-                                        value={matchCards.mainEvent.p2Character}
-                                        onChange={(e) => handleChange('mainEvent.p2Character', e.target.value)}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
-                                    >
-                                        {Object.entries(characters).map(([value, label]) => (
-                                            <option key={value} value={value}>{label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Regular Matches */}
+                        {/* Matches */}
                         {matchCards.matches.map((match, index) => (
                             <div key={match.id} className={`rounded-lg p-4 ${match.isMainEvent ? 'bg-gradient-to-r from-amber-900/40 to-amber-800/20 border border-amber-500/50' : 'bg-gray-800'} ${match.completed ? 'border border-green-500/30' : ''}`}>
                                 <div className="flex items-center justify-between mb-3">

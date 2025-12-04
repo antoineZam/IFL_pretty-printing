@@ -7,14 +7,6 @@ interface MatchCardData {
     eventSubtitle: string;
     partNumber: string;
     winScore: number;
-    mainEvent: {
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-    };
     matches: Array<{
         id: number;
         matchTitle: string;

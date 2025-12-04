@@ -7,20 +7,6 @@ interface MatchCardData {
     eventSubtitle: string;
     partNumber: string;
     winScore?: number;
-    mainEvent: {
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p1Flag?: string;
-        p1Score?: number;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-        p2Flag?: string;
-        p2Score?: number;
-        winner?: string | null;
-        completed?: boolean;
-    };
     matches: Array<{
         id: number;
         matchTitle: string;
@@ -138,6 +124,15 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                 className="absolute inset-0 w-full h-full object-cover"
                 style={{ animation: `fadeIn 0.4s ease-out` }}
             />
+            {/* Part Number Label */}
+            <div className="absolute top-[450px] left-[17%] transform -translate-x-1/2 text-center">
+                <span
+                    className="text-[#1e3637] text-[76px] font-black tracking-[0.002em] uppercase"
+                    style={{ fontFamily: 'Crook, Crook, sans-serif' }}
+                >
+                   PART{matchCards.partNumber}
+                </span>
+            </div>
 
             {/* Match Cards - Each positioned absolutely */}
             {allMatches.map((match, index) => {
@@ -179,6 +174,7 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             alt="Card Background"
                             className="absolute inset-0 w-full h-full"
                         />
+
 
                         {/* P1 Character - Full 1920x1080 layer */}
                         <img 

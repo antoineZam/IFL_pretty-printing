@@ -31,20 +31,6 @@ interface MatchCardData {
     eventSubtitle: string;
     partNumber: string;
     winScore: number;
-    mainEvent: {
-        p1Name: string;
-        p1Title: string;
-        p1Character: string;
-        p1Flag?: string;
-        p1Score: number;
-        p2Name: string;
-        p2Title: string;
-        p2Character: string;
-        p2Flag?: string;
-        p2Score: number;
-        winner: 'p1' | 'p2' | null;
-        completed: boolean;
-    };
     matches: Array<{
         id: number;
         matchTitle: string;
