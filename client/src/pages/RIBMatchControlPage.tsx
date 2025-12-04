@@ -494,7 +494,7 @@ export default function RIBMatchControlPage() {
                     </h2>
                     
                     <div className="grid grid-cols-2 gap-4">
-                        {/* Match Card Toggle */}
+                        {/* Versus Scene Toggle */}
                         <button
                             onClick={() => toggleOverlay('showMatchCard')}
                             className={`flex items-center justify-center gap-2 p-4 rounded-lg transition-all ${
@@ -504,7 +504,7 @@ export default function RIBMatchControlPage() {
                             }`}
                         >
                             {overlayState.showMatchCard ? <Eye size={20} /> : <EyeOff size={20} />}
-                            <span>Match Cards</span>
+                            <span>Versus Scene</span>
                         </button>
 
                         {/* Player Stats Toggle */}
@@ -520,7 +520,7 @@ export default function RIBMatchControlPage() {
                             <span>Player Stats</span>
                         </button>
 
-                        {/* Part One Toggle */}
+                        {/* Match Cards Toggle */}
                         <button
                             onClick={() => toggleOverlay('showPartOne')}
                             className={`flex items-center justify-center gap-2 p-4 rounded-lg transition-all ${
@@ -530,7 +530,7 @@ export default function RIBMatchControlPage() {
                             }`}
                         >
                             {overlayState.showPartOne ? <Eye size={20} /> : <EyeOff size={20} />}
-                            <span>Part One</span>
+                            <span>Match Cards</span>
                         </button>
 
                         {/* Stream Overlay Toggle */}
