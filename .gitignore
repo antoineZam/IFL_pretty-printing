@@ -1,3 +1,7 @@
 node_modules
 .env
-public\source\data
+
+# Data files - contain runtime/user data
+client/public/source/data/
+public/source/data/
+**/source/data/
