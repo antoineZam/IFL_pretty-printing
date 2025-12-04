@@ -11,6 +11,26 @@ import {
 } from 'lucide-react';
 import { countries } from '../utils/countries';
 
+// Available Tekken 8 characters
+const characters: Record<string, string> = {
+    '': '-- Select Character --',
+    'alisa': 'Alisa',
+    'anna': 'Anna',
+    'armor king': 'Armor King',
+    'azucena': 'Azucena',
+    'eddy': 'Eddy',
+    'heihachi': 'Heihachi',
+    'jin': 'Jin',
+    'kazuya': 'Kazuya',
+    'lee': 'Lee',
+    'leo': 'Leo',
+    'lili': 'Lili',
+    'nina': 'Nina',
+    'reina': 'Reina',
+    'steve': 'Steve',
+    'zafina': 'Zafina'
+};
+
 interface Match {
     id: number;
     matchTitle: string;
@@ -349,13 +369,15 @@ export default function RIBMatchCardsEditorPage() {
                                         placeholder="P1 Title"
                                         className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
                                     />
-                                    <input
-                                        type="text"
+                                    <select
                                         value={matchCards.mainEvent.p1Character}
                                         onChange={(e) => handleChange('mainEvent.p1Character', e.target.value)}
-                                        placeholder="P1 Character"
                                         className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
-                                    />
+                                    >
+                                        {Object.entries(characters).map(([value, label]) => (
+                                            <option key={value} value={value}>{label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="space-y-2">
                                     <input
@@ -381,13 +403,15 @@ export default function RIBMatchCardsEditorPage() {
                                         placeholder="P2 Title"
                                         className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
                                     />
-                                    <input
-                                        type="text"
+                                    <select
                                         value={matchCards.mainEvent.p2Character}
                                         onChange={(e) => handleChange('mainEvent.p2Character', e.target.value)}
-                                        placeholder="P2 Character"
                                         className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
-                                    />
+                                    >
+                                        {Object.entries(characters).map(([value, label]) => (
+                                            <option key={value} value={value}>{label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -459,13 +483,15 @@ export default function RIBMatchCardsEditorPage() {
                                             placeholder="P1 Title"
                                             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
                                         />
-                                        <input
-                                            type="text"
+                                        <select
                                             value={match.p1Character}
                                             onChange={(e) => handleMatchChange(index, 'p1Character', e.target.value)}
-                                            placeholder="P1 Character"
                                             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
-                                        />
+                                        >
+                                            {Object.entries(characters).map(([value, label]) => (
+                                                <option key={value} value={value}>{label}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className="space-y-2">
                                         <input
@@ -491,13 +517,15 @@ export default function RIBMatchCardsEditorPage() {
                                             placeholder="P2 Title"
                                             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
                                         />
-                                        <input
-                                            type="text"
+                                        <select
                                             value={match.p2Character}
                                             onChange={(e) => handleMatchChange(index, 'p2Character', e.target.value)}
-                                            placeholder="P2 Character"
                                             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
-                                        />
+                                        >
+                                            {Object.entries(characters).map(([value, label]) => (
+                                                <option key={value} value={value}>{label}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
                             </div>
