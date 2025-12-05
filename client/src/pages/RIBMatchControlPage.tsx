@@ -22,7 +22,8 @@ import {
     UserPlus,
     Edit3,
     X,
-    Youtube
+    Youtube,
+    ArrowLeftRight
 } from 'lucide-react';
 import { countries } from '../utils/countries';
 
@@ -1082,6 +1083,22 @@ export default function RIBMatchControlPage() {
                         >
                             <Save size={18} />
                             Save Scores to Match Card
+                        </button>
+                        <button
+                            onClick={() => {
+                                updateStreamData({
+                                    p1Name: streamData.p2Name,
+                                    p1Flag: streamData.p2Flag,
+                                    p1Score: streamData.p2Score,
+                                    p2Name: streamData.p1Name,
+                                    p2Flag: streamData.p1Flag,
+                                    p2Score: streamData.p1Score
+                                });
+                            }}
+                            className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+                        >
+                            <ArrowLeftRight size={18} />
+                            Swap Players
                         </button>
                     </div>
 
