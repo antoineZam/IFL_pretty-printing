@@ -22,6 +22,11 @@ interface OverlayState {
     animationTrigger: number;
 }
 
+interface MatchCardData {
+    partNumber: string;
+    [key: string]: unknown;
+}
+
 export default function RIBUnifiedOverlay() {
     const [searchParams] = useSearchParams();
     const [overlayState, setOverlayState] = useState<OverlayState>({
@@ -35,6 +40,7 @@ export default function RIBUnifiedOverlay() {
         selectedPlayerIndex: 0,
         animationTrigger: 0
     });
+    const [matchCards, setMatchCards] = useState<MatchCardData | null>(null);
 
     useEffect(() => {
         // Force transparent background
@@ -56,6 +62,10 @@ export default function RIBUnifiedOverlay() {
         newSocket.on('rib-overlay-state-update', (data: OverlayState) => {
             console.log('[UnifiedOverlay] Received overlay state:', data);
             setOverlayState(data);
+        });
+
+        newSocket.on('rib-match-cards-update', (data: MatchCardData) => {
+            setMatchCards(data);
         });
 
         return () => {
@@ -85,7 +95,7 @@ export default function RIBUnifiedOverlay() {
                 }}
             >
                 <img 
-                    src="/source/overlay/run_it_back/main_page/Runitback_main_page_part-01.jpg" 
+                    src={`/source/overlay/run_it_back/main_page/Runitback_main_page_part-${matchCards?.partNumber}.png`}
                     alt="Run It Back Main Page"
                     className="w-full h-full object-cover"
                 />
