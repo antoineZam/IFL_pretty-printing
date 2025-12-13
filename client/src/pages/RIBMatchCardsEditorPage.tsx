@@ -22,13 +22,15 @@ const characters: Record<string, string> = {
     'heihachi': 'Heihachi',
     'jin': 'Jin',
     'kazuya': 'Kazuya',
+    'law': 'Law',
     'lee': 'Lee',
     'leo': 'Leo',
     'lili': 'Lili',
     'nina': 'Nina',
     'reina': 'Reina',
     'steve': 'Steve',
-    'zafina': 'Zafina'
+    'zafina': 'Zafina',
+    'schizophrenic': 'Schizophrenic'
 };
 
 interface Match {
