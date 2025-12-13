@@ -251,6 +251,24 @@ export default function RIBMatchControlPage() {
         updateOverlayState({ animationTrigger: overlayState.animationTrigger + 1 });
     };
 
+    // Get player indices that match a specific match's players
+    const getMatchPlayerIndicesForMatch = (matchIndex: number): number[] => {
+        if (!playerStats || !matchCards) return [];
+        const match = matchCards.matches[matchIndex];
+        if (!match) return [];
+        
+        const matchPlayerNames = [match.p1Name.toLowerCase(), match.p2Name.toLowerCase()];
+        return playerStats.players
+            .map((player, index) => ({ player, index }))
+            .filter(({ player }) => matchPlayerNames.includes(player.name.toLowerCase()))
+            .map(({ index }) => index);
+    };
+
+    // Get player indices for current match
+    const getMatchPlayerIndices = (): number[] => {
+        return getMatchPlayerIndicesForMatch(overlayState.selectedMatchIndex);
+    };
+
     const selectMatch = (direction: 'prev' | 'next') => {
         if (!matchCards || matchCards.matches.length === 0) return;
         const maxIndex = matchCards.matches.length - 1;
@@ -262,21 +280,32 @@ export default function RIBMatchControlPage() {
             newIndex = newIndex < maxIndex ? newIndex + 1 : 0;
         }
         
-        updateOverlayState({ selectedMatchIndex: newIndex });
+        // Auto-select the first player from the new match
+        const newMatchPlayerIndices = getMatchPlayerIndicesForMatch(newIndex);
+        const newPlayerIndex = newMatchPlayerIndices.length > 0 ? newMatchPlayerIndices[0] : overlayState.selectedPlayerIndex;
+        
+        updateOverlayState({ selectedMatchIndex: newIndex, selectedPlayerIndex: newPlayerIndex });
     };
 
     const selectPlayer = (direction: 'prev' | 'next') => {
         if (!playerStats) return;
-        const maxIndex = playerStats.players.length - 1;
-        let newIndex = overlayState.selectedPlayerIndex;
         
-        if (direction === 'prev') {
-            newIndex = newIndex > 0 ? newIndex - 1 : maxIndex;
+        const matchPlayerIndices = getMatchPlayerIndices();
+        if (matchPlayerIndices.length === 0) return;
+        
+        const currentPosInFiltered = matchPlayerIndices.indexOf(overlayState.selectedPlayerIndex);
+        let newPosInFiltered: number;
+        
+        if (currentPosInFiltered === -1) {
+            // Current player not in filtered list, select first
+            newPosInFiltered = 0;
+        } else if (direction === 'prev') {
+            newPosInFiltered = currentPosInFiltered > 0 ? currentPosInFiltered - 1 : matchPlayerIndices.length - 1;
         } else {
-            newIndex = newIndex < maxIndex ? newIndex + 1 : 0;
+            newPosInFiltered = currentPosInFiltered < matchPlayerIndices.length - 1 ? currentPosInFiltered + 1 : 0;
         }
         
-        updateOverlayState({ selectedPlayerIndex: newIndex });
+        updateOverlayState({ selectedPlayerIndex: matchPlayerIndices[newPosInFiltered] });
     };
 
     const getSelectedMatchName = () => {
@@ -289,6 +318,8 @@ export default function RIBMatchControlPage() {
 
     const getSelectedPlayerName = () => {
         if (!playerStats || playerStats.players.length === 0) return 'No players loaded';
+        const matchPlayerIndices = getMatchPlayerIndices();
+        if (matchPlayerIndices.length === 0) return 'No matching players for this match';
         const player = playerStats.players[overlayState.selectedPlayerIndex];
         return player ? player.name : 'No player selected';
     };
@@ -679,21 +710,25 @@ export default function RIBMatchControlPage() {
                         </div>
                         
                         <div className="bg-gray-800 rounded-lg p-4 mb-4">
-                            <p className="text-sm text-gray-400 mb-1">Currently Selected ({playerStats?.players.length || 0} players)</p>
+                            <p className="text-sm text-gray-400 mb-1">
+                                Players in this match ({getMatchPlayerIndices().length} of {playerStats?.players.length || 0})
+                            </p>
                             <p className="text-lg font-medium">{getSelectedPlayerName()}</p>
                         </div>
                         
                         <div className="flex gap-4 mb-4">
                             <button
                                 onClick={() => selectPlayer('prev')}
-                                className="flex-1 flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                                disabled={getMatchPlayerIndices().length < 2}
+                                className="flex-1 flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
                             >
                                 <ChevronLeft size={20} />
                                 Previous
                             </button>
                             <button
                                 onClick={() => selectPlayer('next')}
-                                className="flex-1 flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                                disabled={getMatchPlayerIndices().length < 2}
+                                className="flex-1 flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
                             >
                                 Next
                                 <ChevronRight size={20} />
@@ -1119,4 +1154,3 @@ export default function RIBMatchControlPage() {
         </div>
     );
 }
-

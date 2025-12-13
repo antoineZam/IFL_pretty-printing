@@ -139,9 +139,17 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                 const p1CharImg = `/source/overlay/run_it_back/characters/P1_icon/${match.p1Character.toLowerCase()}.png`;
                 const p2CharImg = `/source/overlay/run_it_back/characters/P2_icon/${match.p2Character.toLowerCase()}.png`;
                 const isMainEvent = match.isMainEvent;
-                const cardBg = isMainEvent 
-                    ? '/source/overlay/run_it_back/match_card/guest_match.png'
-                    : '/source/overlay/run_it_back/match_card/regular_match.png';
+                const isActiveMatch = index === (overlayState?.selectedMatchIndex ?? 0);
+                
+                // Active match uses active_match.png, main event uses guest_match.png, others use regular_match.png
+                const cardBg = isActiveMatch
+                    ? '/source/overlay/run_it_back/match_card/active_match.png'
+                    : isMainEvent 
+                        ? '/source/overlay/run_it_back/match_card/guest_match.png'
+                        : '/source/overlay/run_it_back/match_card/regular_match.png';
+                
+                // Active match and main event both use the "featured" styling (white text)
+                const useFeaturedStyle = isActiveMatch || isMainEvent;
 
                 // Animation delay: bottom cards animate first (reverse order)
                 const animDelay = (totalCards - 1 - index) * 0.12;
@@ -182,7 +190,7 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             alt={match.p1Character}
                             className="absolute inset-0 w-[1920px] h-[1080px]"
                             style={{
-                                filter: (!isMainEvent && match.completed && match.winner === 'p2')
+                                filter: (!useFeaturedStyle && match.completed && match.winner === 'p2')
                                     ? 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3)) grayscale(100%)'
                                     : 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))',
                                 opacity: (match.completed && match.winner === 'p2') ? 0.4 : 1
@@ -196,7 +204,7 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                             alt={match.p2Character}
                             className="absolute inset-0 w-[1920px] h-[1080px]"
                             style={{
-                                filter: (!isMainEvent && match.completed && match.winner === 'p1')
+                                filter: (!useFeaturedStyle && match.completed && match.winner === 'p1')
                                     ? 'drop-shadow(-2px 2px 4px rgba(0,0,0,0.3)) grayscale(100%)'
                                     : 'drop-shadow(-2px 2px 4px rgba(0,0,0,0.3))',
                                 opacity: (match.completed && match.winner === 'p1') ? 0.4 : 1
@@ -223,21 +231,21 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                 style={{ 
                                     paddingLeft: '425px',
                                     opacity: (match.completed && match.winner === 'p2') ? 0.55 : 1,
-                                    filter: (!isMainEvent && match.completed && match.winner === 'p2') ? 'grayscale(100%)' : 'none'
+                                    filter: (!useFeaturedStyle && match.completed && match.winner === 'p2') ? 'grayscale(100%)' : 'none'
                                 }}
                             >
                                 <h3 
-                                    className={`font-bold tracking-tight ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
+                                    className={`font-bold tracking-tight ${useFeaturedStyle ? 'text-white' : 'text-[#3a3530]'}`}
                                     style={{ 
                                         fontSize: '38px',
                                         fontFamily: 'Gotham Bold, Gotham, sans-serif',
-                                        textShadow: isMainEvent ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none'
+                                        textShadow: useFeaturedStyle ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none'
                                     }}
                                 >
                                     {match.p1Name}
                                 </h3>
                                 <p 
-                                    className={`tracking-wider font-medium ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
+                                    className={`tracking-wider font-medium ${useFeaturedStyle ? 'text-white/90' : 'text-[#c45c4c]'}`}
                                     style={{
                                         fontFamily: 'Crook Bold, Crook, sans-serif',
                                         fontSize: '28px',
@@ -256,7 +264,7 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                 }}
                             >
                                 <span 
-                                    className={`font-black ${isMainEvent ? 'text-white/70' : 'text-[#8a8070]/70'}`}
+                                    className={`font-black ${useFeaturedStyle ? 'text-white/70' : 'text-[#8a8070]/70'}`}
                                     style={{ 
                                         fontSize: '28px',
                                         fontFamily: 'Gotham, sans-serif' }}
@@ -271,21 +279,21 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                                 style={{ 
                                     paddingRight: '315px',
                                     opacity: (match.completed && match.winner === 'p1') ? 0.55 : 1,
-                                    filter: (!isMainEvent && match.completed && match.winner === 'p1') ? 'grayscale(100%)' : 'none'
+                                    filter: (!useFeaturedStyle && match.completed && match.winner === 'p1') ? 'grayscale(100%)' : 'none'
                                 }}
                             >
                                 <h3 
-                                    className={`font-bold tracking-tight text-right ${isMainEvent ? 'text-white' : 'text-[#3a3530]'}`}
+                                    className={`font-bold tracking-tight text-right ${useFeaturedStyle ? 'text-white' : 'text-[#3a3530]'}`}
                                     style={{ 
                                         fontSize: '38px',
                                         fontFamily: 'Gotham Bold, Gotham, sans-serif',
-                                        textShadow: isMainEvent ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none'
+                                        textShadow: useFeaturedStyle ? '1px 1px 3px rgba(0,0,0,0.3)' : 'none'
                                     }}
                                 >
                                     {match.p2Name}
                                 </h3>
                                 <p 
-                                    className={`tracking-wider font-medium text-right ${isMainEvent ? 'text-white/90' : 'text-[#c45c4c]'}`}
+                                    className={`tracking-wider font-medium text-right ${useFeaturedStyle ? 'text-white/90' : 'text-[#c45c4c]'}`}
                                     style={{
                                         fontFamily: 'Crook Bold, Crook, sans-serif',
                                         fontSize: '28px',
