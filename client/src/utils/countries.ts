@@ -2,6 +2,7 @@ export const countries: { [key: string]: string } = {
     "": "No Flag",
     "DZ": "Algeria",
     "AU": "Australia",
+    "AT": "Austria",
     "BE": "Belgium",
     "BR": "Brazil",
     "BG": "Bulgaria",

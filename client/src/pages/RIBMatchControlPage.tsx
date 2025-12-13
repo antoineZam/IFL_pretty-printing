@@ -38,13 +38,15 @@ const characters: Record<string, string> = {
     'heihachi': 'Heihachi',
     'jin': 'Jin',
     'kazuya': 'Kazuya',
+    'law': 'Law',
     'lee': 'Lee',
     'leo': 'Leo',
     'lili': 'Lili',
     'nina': 'Nina',
     'reina': 'Reina',
     'steve': 'Steve',
-    'zafina': 'Zafina'
+    'zafina': 'Zafina',
+    'schizophrenic': 'Schizophrenic'
 };
 
 interface MatchCardData {
@@ -193,7 +195,7 @@ export default function RIBMatchControlPage() {
         
         // Skip win detection if requested (e.g., during player swap)
         if (skipWinDetection) return;
-        
+
         // Auto-transition to SingleMatchOverlay when a player reaches win score
         const winScore = matchCards?.winScore || 3;
         const newP1Score = updates.p1Score ?? streamData.p1Score;
@@ -219,7 +221,7 @@ export default function RIBMatchControlPage() {
                 setMatchCards(updatedMatchCards);
                 socket.emit('rib-match-cards-update', updatedMatchCards);
             }
-            
+
             // Small delay to let the data update be processed, then switch to SingleMatchOverlay
             setTimeout(() => {
                 const victoryState: OverlayState = {
@@ -235,7 +237,7 @@ export default function RIBMatchControlPage() {
             }, 300);
         }
     };
-    
+
     // Swap player positions (P1 <-> P2) without triggering win detection
     const swapPlayers = () => {
         // Swap stream data
@@ -247,12 +249,12 @@ export default function RIBMatchControlPage() {
             p2Flag: streamData.p1Flag,
             p2Score: streamData.p1Score
         }, true); // Skip win detection during swap
-        
+
         // Also swap match card data for the current match (including winner reference)
         if (matchCards && socket) {
             const matchIndex = overlayState.selectedMatchIndex;
             const match = matchCards.matches[matchIndex];
-            
+
             if (match) {
                 const updatedMatchCards = { ...matchCards };
                 updatedMatchCards.matches[matchIndex] = {
@@ -270,7 +272,7 @@ export default function RIBMatchControlPage() {
                     // Swap winner reference so the same person stays the winner
                     winner: match.winner === 'p1' ? 'p2' : match.winner === 'p2' ? 'p1' : null
                 };
-                
+
                 setMatchCards(updatedMatchCards);
                 socket.emit('rib-match-cards-update', updatedMatchCards);
             }
