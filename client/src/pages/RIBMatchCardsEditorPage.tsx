@@ -18,6 +18,7 @@ const characters: Record<string, string> = {
     'anna': 'Anna',
     'armor king': 'Armor King',
     'azucena': 'Azucena',
+    'bryan': 'Bryan',
     'eddy': 'Eddy',
     'heihachi': 'Heihachi',
     'jin': 'Jin',
