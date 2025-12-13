@@ -186,10 +186,13 @@ export default function RIBMatchControlPage() {
         socket?.emit('rib-overlay-state-update', newState);
     };
 
-    const updateStreamData = (updates: Partial<StreamData>) => {
+    const updateStreamData = (updates: Partial<StreamData>, skipWinDetection = false) => {
         const newData = { ...streamData, ...updates };
         setStreamData(newData);
         socket?.emit('rib-stream-data-update', newData);
+        
+        // Skip win detection if requested (e.g., during player swap)
+        if (skipWinDetection) return;
         
         // Auto-transition to SingleMatchOverlay when a player reaches win score
         const winScore = matchCards?.winScore || 3;
@@ -230,6 +233,47 @@ export default function RIBMatchControlPage() {
                 setOverlayState(victoryState);
                 socket?.emit('rib-overlay-state-update', victoryState);
             }, 300);
+        }
+    };
+    
+    // Swap player positions (P1 <-> P2) without triggering win detection
+    const swapPlayers = () => {
+        // Swap stream data
+        updateStreamData({
+            p1Name: streamData.p2Name,
+            p1Flag: streamData.p2Flag,
+            p1Score: streamData.p2Score,
+            p2Name: streamData.p1Name,
+            p2Flag: streamData.p1Flag,
+            p2Score: streamData.p1Score
+        }, true); // Skip win detection during swap
+        
+        // Also swap match card data for the current match (including winner reference)
+        if (matchCards && socket) {
+            const matchIndex = overlayState.selectedMatchIndex;
+            const match = matchCards.matches[matchIndex];
+            
+            if (match) {
+                const updatedMatchCards = { ...matchCards };
+                updatedMatchCards.matches[matchIndex] = {
+                    ...match,
+                    p1Name: match.p2Name,
+                    p1Title: match.p2Title,
+                    p1Character: match.p2Character,
+                    p1Flag: match.p2Flag,
+                    p1Score: match.p2Score,
+                    p2Name: match.p1Name,
+                    p2Title: match.p1Title,
+                    p2Character: match.p1Character,
+                    p2Flag: match.p1Flag,
+                    p2Score: match.p1Score,
+                    // Swap winner reference so the same person stays the winner
+                    winner: match.winner === 'p1' ? 'p2' : match.winner === 'p2' ? 'p1' : null
+                };
+                
+                setMatchCards(updatedMatchCards);
+                socket.emit('rib-match-cards-update', updatedMatchCards);
+            }
         }
     };
 
@@ -1120,16 +1164,7 @@ export default function RIBMatchControlPage() {
                             Save Scores to Match Card
                         </button>
                         <button
-                            onClick={() => {
-                                updateStreamData({
-                                    p1Name: streamData.p2Name,
-                                    p1Flag: streamData.p2Flag,
-                                    p1Score: streamData.p2Score,
-                                    p2Name: streamData.p1Name,
-                                    p2Flag: streamData.p1Flag,
-                                    p2Score: streamData.p1Score
-                                });
-                            }}
+                            onClick={swapPlayers}
                             className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
                         >
                             <ArrowLeftRight size={18} />
