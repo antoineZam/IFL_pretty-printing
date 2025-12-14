@@ -267,7 +267,7 @@ const IFLMatchControlPage = () => {
                     <GlassCard className="p-4 flex-1 flex flex-col justify-center gap-4 text-center">
                         <h3 className="text-xs font-bold uppercase text-gray-500">Match Details</h3>
                         <CyberInput id="round" label="Current Round" value={data.round} onChange={handleInputChange} className="text-center" />
-                        <CyberInput id="eventNumber" label="Week #" value={data.eventNumber} onChange={handleInputChange} className="text-center" />
+                        <CyberInput id="eventNumber" label="Event" value={data.eventNumber} onChange={handleInputChange} className="text-center" />
                     </GlassCard>
 
                     {/* Big Update Button */}

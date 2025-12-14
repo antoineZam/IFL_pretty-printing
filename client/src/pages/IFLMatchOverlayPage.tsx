@@ -174,8 +174,11 @@ const IFLMatchOverlayPage = () => {
                 <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[16px] text-center w-[600px] tracking-[3px] text-shadow">
                     {data.round}
                 </div>
-                <div className="absolute bottom-[36px] right-[483px] text-[22px] font-bold text-shadow">
-                    {data.eventNumber ? `IFL WEEK #${data.eventNumber}` : ''}
+                <div className="absolute bottom-[36px] right-[510px] text-[22px] font-bold text-shadow">
+                    {data.eventNumber ? `${data.eventNumber}` : ''}
+                </div>
+                <div className="absolute bottom-[36px] right-[160px] text-[22px] font-bold text-shadow">
+                    Road to Ingage
                 </div>
             </div>
         </div>
