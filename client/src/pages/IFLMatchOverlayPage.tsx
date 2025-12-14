@@ -1,6 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+
+const SPONSOR_LOGOS = [
+    '/source/overlay/ifl/ingage_logo.png',
+    '/source/overlay/ifl/reversal_logo.png',
+    '/source/overlay/ifl/tekkendojo_logo.png',
+];
+const LOGO_ROTATION_INTERVAL = 5000; // 5 seconds per logo
+const FADE_DURATION = 800; // ms for fade transition
 
 interface PlayerData {
     p1Flag: string;
@@ -22,6 +30,25 @@ const IFLMatchOverlayPage = () => {
     const [searchParams] = useSearchParams();
     const [data, setData] = useState<PlayerData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
+    const [logoOpacity, setLogoOpacity] = useState(1);
+
+    // Rotate through sponsor logos with fade animation
+    const rotateLogo = useCallback(() => {
+        // Fade out
+        setLogoOpacity(0);
+        
+        // After fade out completes, change logo and fade in
+        setTimeout(() => {
+            setCurrentLogoIndex((prev) => (prev + 1) % SPONSOR_LOGOS.length);
+            setLogoOpacity(1);
+        }, FADE_DURATION);
+    }, []);
+
+    useEffect(() => {
+        const intervalId = setInterval(rotateLogo, LOGO_ROTATION_INTERVAL);
+        return () => clearInterval(intervalId);
+    }, [rotateLogo]);
 
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
@@ -85,9 +112,14 @@ const IFLMatchOverlayPage = () => {
                     className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
                     style={{ backgroundImage: "url('/source/overlay/ifl/IFL_overlays_tracker.png')" }}
                 />
+                {/* Rotating Sponsor Logos */}
                 <div
                     className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
-                    style={{ backgroundImage: "url('/source/overlay/ifl/IFL_overlays_logo.png')" }}
+                    style={{
+                        backgroundImage: `url('${SPONSOR_LOGOS[currentLogoIndex]}')`,
+                        opacity: logoOpacity,
+                        transition: `opacity ${FADE_DURATION}ms ease-in-out`,
+                    }}
                 />
                 <div
                     className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
