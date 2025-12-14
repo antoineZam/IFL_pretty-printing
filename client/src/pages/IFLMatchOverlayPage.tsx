@@ -7,7 +7,7 @@ const SPONSOR_LOGOS = [
     '/source/overlay/ifl/reversal_logo.png',
     '/source/overlay/ifl/tekkendojo_logo.png',
 ];
-const LOGO_ROTATION_INTERVAL = 5000; // 5 seconds per logo
+const LOGO_ROTATION_INTERVAL = 3000; // 3 seconds per logo
 const FADE_DURATION = 800; // ms for fade transition
 
 interface PlayerData {
