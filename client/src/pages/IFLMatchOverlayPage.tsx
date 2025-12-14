@@ -179,7 +179,7 @@ const IFLMatchOverlayPage = () => {
                 </div>
                 <div className="absolute bottom-[36px] right-[160px] text-[22px] font-bold text-shadow">
                     Road to Ingage
-                </div>
+                </div> /* I want to get rid of this ROAD TO INGAGE ugliness */
             </div>
         </div>
     );
