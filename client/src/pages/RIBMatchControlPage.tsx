@@ -44,7 +44,7 @@ const characters: Record<string, string> = {
     'leo': 'Leo',
     'lili': 'Lili',
     'nina': 'Nina',
-    'pikah', 'Pikah',
+    'pikah': 'Pikah',
     'reina': 'Reina',
     'steve': 'Steve',
     'zafina': 'Zafina',
