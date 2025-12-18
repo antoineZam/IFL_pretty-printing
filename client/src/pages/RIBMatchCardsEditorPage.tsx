@@ -28,6 +28,7 @@ const characters: Record<string, string> = {
     'leo': 'Leo',
     'lili': 'Lili',
     'nina': 'Nina',
+    'pikah': 'Pikah',
     'reina': 'Reina',
     'steve': 'Steve',
     'zafina': 'Zafina',
