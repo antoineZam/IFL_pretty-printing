@@ -4,6 +4,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const fs = require('fs');
 const path = require('path');
+const dbHelpers = require('./dbHelpers');
 
 // Set default connection key
 const CONNECTION_KEY = process.env.CONNECTION_KEY;
@@ -41,16 +42,8 @@ app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'sour
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Define absolute paths for safety
+// Define absolute paths for safety (still needed for static file serving)
 const SOURCE_DIR = path.join(__dirname, 'client', 'public', 'source');
-const DATA_FILE = path.join(SOURCE_DIR, 'data/ifl-data.json');
-const TAG_TEAM_FILE = path.join(SOURCE_DIR, 'data/tag-team-data.json');
-const PLAYER_HISTORY_FILE = path.join(SOURCE_DIR, 'data/player-history.json');
-
-// Run It Back files
-const RIB_MATCH_CARDS_FILE = path.join(SOURCE_DIR, 'data/run-it-back/match-cards.json');
-const RIB_PLAYER_STATS_FILE = path.join(SOURCE_DIR, 'data/run-it-back/player-stats.json');
-const RIB_STREAM_DATA_FILE = path.join(SOURCE_DIR, 'data/run-it-back/stream-data.json');
 
 // Ensure the source directory exists
 if (!fs.existsSync(SOURCE_DIR)) {
@@ -58,181 +51,57 @@ if (!fs.existsSync(SOURCE_DIR)) {
 }
 
 // --- DATA MANAGEMENT ---
+// All data is now loaded from database
 
-function loadData() {
+// Initialize state variables (will be loaded asynchronously)
+let overlayData = null;
+let tagTeamData = null;
+let playerHistory = [];
+let ribMatchCards = null;
+let ribPlayerStats = null;
+let ribStreamData = null;
+
+// Load initial state from database
+async function initializeData() {
   try {
-    // Try to read the file
-    if (!fs.existsSync(DATA_FILE)) throw new Error('File does not exist');
-    const rawData = fs.readFileSync(DATA_FILE, 'utf8');
-    if (!rawData.trim()) throw new Error('File is empty');
-    
-    return JSON.parse(rawData);
+    overlayData = await dbHelpers.loadIFLData();
+    tagTeamData = await dbHelpers.loadTagTeamData();
+    playerHistory = await dbHelpers.loadPlayerHistory();
+    ribMatchCards = await dbHelpers.loadRIBMatchCards();
+    ribPlayerStats = await dbHelpers.loadRIBPlayerStats();
+    ribStreamData = await dbHelpers.loadRIBStreamData();
+    console.log('Data loaded from database successfully');
   } catch (error) {
-    console.log('Creating new 1v1 data file...');
-    const defaultData = {
+    console.error('Error initializing data from database:', error);
+    // Set defaults on error
+    overlayData = {
       p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1',
       p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2',
       p1Score: 0, p2Score: 0,
       round: 'Winners Round 1', eventNumber: '1'
     };
-    saveData(defaultData);
-    return defaultData;
-  }
-}
-
-function saveData(data) {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('Error saving 1v1 data:', error);
-  }
-}
-
-function loadTagTeamData() {
-  try {
-    if (!fs.existsSync(TAG_TEAM_FILE)) throw new Error('File does not exist');
-    const rawData = fs.readFileSync(TAG_TEAM_FILE, 'utf8');
-    if (!rawData.trim()) throw new Error('File is empty');
-    
-    return JSON.parse(rawData);
-  } catch (error) {
-    console.log('Creating new Tag Team data file...');
-    const defaultData = {
-      team1: {
-        name: 'Team 1',
-        tag: 'T1',
-        players: [
-          { name: 'Omnis', sponsor: 'IFF', active: true },
-          { name: 'Kuro', sponsor: 'IFF', active: false }
-        ],
-        score: 0
-      },
-      team2: {
-        name: 'Team 2',
-        tag: 'T2',
-        players: [
-          { name: 'Challenger 1', sponsor: '', active: true },
-          { name: 'Challenger 2', sponsor: '', active: false }
-        ],
-        score: 0
-      },
+    tagTeamData = {
+      team1: { name: 'Team 1', tag: 'T1', players: [], score: 0 },
+      team2: { name: 'Team 2', tag: 'T2', players: [], score: 0 },
       round: 'Winners Round 1'
     };
-    saveTagTeamData(defaultData);
-    return defaultData;
+    playerHistory = [];
+    ribMatchCards = {
+      eventTitle: "THE RUNBACK",
+      eventSubtitle: "THE FINAL CHAPTER",
+      partNumber: "01",
+      mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
+      matches: [],
+      singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
+      sponsors: { presenter: "", association: "" }
+    };
+    ribPlayerStats = { players: [] };
+    ribStreamData = { matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0 };
   }
 }
 
-function saveTagTeamData(data) {
-  try {
-    fs.writeFileSync(TAG_TEAM_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('Error saving tag team data:', error);
-  }
-}
-
-function loadPlayerHistory() {
-    try {
-        if (!fs.existsSync(PLAYER_HISTORY_FILE)) return [];
-        const rawData = fs.readFileSync(PLAYER_HISTORY_FILE, 'utf8');
-        return JSON.parse(rawData);
-    } catch (error) {
-        console.error('Error loading player history:', error);
-        return [];
-    }
-}
-
-function savePlayerHistory(data) {
-    try {
-        fs.writeFileSync(PLAYER_HISTORY_FILE, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('Error saving player history:', error);
-    }
-}
-
-// --- RUN IT BACK DATA MANAGEMENT ---
-
-function loadRIBMatchCards() {
-    try {
-        if (!fs.existsSync(RIB_MATCH_CARDS_FILE)) throw new Error('File does not exist');
-        const rawData = fs.readFileSync(RIB_MATCH_CARDS_FILE, 'utf8');
-        if (!rawData.trim()) throw new Error('File is empty');
-        return JSON.parse(rawData);
-    } catch (error) {
-        console.log('Creating new Run It Back match cards file...');
-        const defaultData = {
-            eventTitle: "THE RUNBACK",
-            eventSubtitle: "THE FINAL CHAPTER",
-            partNumber: "01",
-            mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-            matches: [],
-            singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-            sponsors: { presenter: "", association: "" }
-        };
-        saveRIBMatchCards(defaultData);
-        return defaultData;
-    }
-}
-
-function saveRIBMatchCards(data) {
-    try {
-        fs.writeFileSync(RIB_MATCH_CARDS_FILE, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('Error saving RIB match cards:', error);
-    }
-}
-
-function loadRIBPlayerStats() {
-    try {
-        if (!fs.existsSync(RIB_PLAYER_STATS_FILE)) throw new Error('File does not exist');
-        const rawData = fs.readFileSync(RIB_PLAYER_STATS_FILE, 'utf8');
-        if (!rawData.trim()) throw new Error('File is empty');
-        return JSON.parse(rawData);
-    } catch (error) {
-        console.log('Creating new Run It Back player stats file...');
-        const defaultData = { players: [] };
-        saveRIBPlayerStats(defaultData);
-        return defaultData;
-    }
-}
-
-function saveRIBPlayerStats(data) {
-    try {
-        fs.writeFileSync(RIB_PLAYER_STATS_FILE, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('Error saving RIB player stats:', error);
-    }
-}
-
-function loadRIBStreamData() {
-    try {
-        if (!fs.existsSync(RIB_STREAM_DATA_FILE)) throw new Error('File does not exist');
-        const rawData = fs.readFileSync(RIB_STREAM_DATA_FILE, 'utf8');
-        if (!rawData.trim()) throw new Error('File is empty');
-        return JSON.parse(rawData);
-    } catch (error) {
-        console.log('Creating new Run It Back stream data file...');
-        const defaultData = { matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0 };
-        saveRIBStreamData(defaultData);
-        return defaultData;
-    }
-}
-
-function saveRIBStreamData(data) {
-    try {
-        fs.writeFileSync(RIB_STREAM_DATA_FILE, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('Error saving RIB stream data:', error);
-    }
-}
-
-// Load initial state
-let overlayData = loadData();
-let tagTeamData = loadTagTeamData();
-let playerHistory = loadPlayerHistory();
-let ribMatchCards = loadRIBMatchCards();
-let ribPlayerStats = loadRIBPlayerStats();
-let ribStreamData = loadRIBStreamData();
+// Initialize data on startup
+initializeData();
 
 // Run It Back overlay visibility state
 let ribOverlayState = {
@@ -274,80 +143,111 @@ app.get('/api/rib-auth/required', (req, res) => {
     res.status(200).json({ required: !!RIB_ACCESS_KEY });
 });
 
-app.get('/api/history', (req, res) => {
-    res.status(200).json(playerHistory);
-});
-
-app.post('/api/history', (req, res) => {
-    const newPlayers = req.body; // Expecting an array of players
-    let updated = false;
-
-    newPlayers.forEach(player => {
-        if (!player.name) return; // Skip if no name
-        const existingIndex = playerHistory.findIndex(p => p.name === player.name);
-        if (existingIndex > -1) {
-            // Update existing player
-            playerHistory[existingIndex] = { ...playerHistory[existingIndex], ...player };
-        } else {
-            // Add new player
-            playerHistory.push(player);
-        }
-        updated = true;
-    });
-    
-    if (updated) {
-        savePlayerHistory(playerHistory);
+app.get('/api/history', async (req, res) => {
+    try {
+        const history = await dbHelpers.loadPlayerHistory();
+        res.status(200).json(history);
+    } catch (error) {
+        console.error('Error loading history:', error);
+        res.status(500).json({ error: 'Failed to load history' });
     }
-    
-    res.status(200).json(playerHistory);
 });
 
-app.delete('/api/history', (req, res) => {
-    const { name } = req.body;
-    const initialLength = playerHistory.length;
-    playerHistory = playerHistory.filter(p => p.name !== name);
+app.post('/api/history', async (req, res) => {
+    try {
+        const newPlayers = req.body; // Expecting an array of players
+        await dbHelpers.savePlayerHistory(newPlayers);
+        const updatedHistory = await dbHelpers.loadPlayerHistory();
+        res.status(200).json(updatedHistory);
+    } catch (error) {
+        console.error('Error saving history:', error);
+        res.status(500).json({ error: 'Failed to save history' });
+    }
+});
 
-    if (playerHistory.length < initialLength) {
-        savePlayerHistory(playerHistory);
-        res.status(200).json({ success: true, message: 'Player deleted.' });
-    } else {
-        res.status(404).json({ success: false, message: 'Player not found.' });
+app.delete('/api/history', async (req, res) => {
+    try {
+        const { name } = req.body;
+        const pool = require('./db');
+        const [result] = await pool.execute('DELETE FROM users WHERE username = ?', [name]);
+        
+        if (result.affectedRows > 0) {
+            res.status(200).json({ success: true, message: 'Player deleted.' });
+        } else {
+            res.status(404).json({ success: false, message: 'Player not found.' });
+        }
+    } catch (error) {
+        console.error('Error deleting player:', error);
+        res.status(500).json({ error: 'Failed to delete player' });
     }
 });
 
 // --- RUN IT BACK API ROUTES ---
 
-app.get('/api/rib/match-cards', (req, res) => {
-    res.status(200).json(ribMatchCards);
+app.get('/api/rib/match-cards', async (req, res) => {
+    try {
+        const data = await dbHelpers.loadRIBMatchCards();
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error loading RIB match cards:', error);
+        res.status(500).json({ error: 'Failed to load match cards' });
+    }
 });
 
-app.post('/api/rib/match-cards', (req, res) => {
-    ribMatchCards = req.body;
-    saveRIBMatchCards(ribMatchCards);
-    io.emit('rib-match-cards-update', ribMatchCards);
-    res.status(200).json(ribMatchCards);
+app.post('/api/rib/match-cards', async (req, res) => {
+    try {
+        ribMatchCards = req.body;
+        await dbHelpers.saveRIBMatchCards(ribMatchCards);
+        io.emit('rib-match-cards-update', ribMatchCards);
+        res.status(200).json(ribMatchCards);
+    } catch (error) {
+        console.error('Error saving RIB match cards:', error);
+        res.status(500).json({ error: 'Failed to save match cards' });
+    }
 });
 
-app.get('/api/rib/player-stats', (req, res) => {
-    res.status(200).json(ribPlayerStats);
+app.get('/api/rib/player-stats', async (req, res) => {
+    try {
+        const data = await dbHelpers.loadRIBPlayerStats();
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error loading RIB player stats:', error);
+        res.status(500).json({ error: 'Failed to load player stats' });
+    }
 });
 
-app.post('/api/rib/player-stats', (req, res) => {
-    ribPlayerStats = req.body;
-    saveRIBPlayerStats(ribPlayerStats);
-    io.emit('rib-player-stats-update', ribPlayerStats);
-    res.status(200).json(ribPlayerStats);
+app.post('/api/rib/player-stats', async (req, res) => {
+    try {
+        ribPlayerStats = req.body;
+        await dbHelpers.saveRIBPlayerStats(ribPlayerStats);
+        io.emit('rib-player-stats-update', ribPlayerStats);
+        res.status(200).json(ribPlayerStats);
+    } catch (error) {
+        console.error('Error saving RIB player stats:', error);
+        res.status(500).json({ error: 'Failed to save player stats' });
+    }
 });
 
-app.get('/api/rib/stream-data', (req, res) => {
-    res.status(200).json(ribStreamData);
+app.get('/api/rib/stream-data', async (req, res) => {
+    try {
+        const data = await dbHelpers.loadRIBStreamData();
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error loading RIB stream data:', error);
+        res.status(500).json({ error: 'Failed to load stream data' });
+    }
 });
 
-app.post('/api/rib/stream-data', (req, res) => {
-    ribStreamData = req.body;
-    saveRIBStreamData(ribStreamData);
-    io.emit('rib-stream-data-update', ribStreamData);
-    res.status(200).json(ribStreamData);
+app.post('/api/rib/stream-data', async (req, res) => {
+    try {
+        ribStreamData = req.body;
+        await dbHelpers.saveRIBStreamData(ribStreamData);
+        io.emit('rib-stream-data-update', ribStreamData);
+        res.status(200).json(ribStreamData);
+    } catch (error) {
+        console.error('Error saving RIB stream data:', error);
+        res.status(500).json({ error: 'Failed to save stream data' });
+    }
 });
 
 app.get('/api/rib/overlay-state', (req, res) => {
@@ -369,75 +269,104 @@ io.use((socket, next) => {
   else next(new Error('Invalid connection key'));
 });
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   console.log('Client connected:', socket.id);
 
   // Send current state immediately on connection
-  socket.emit('data-update', overlayData);
-  socket.emit('tag-team-data', tagTeamData);
-  
-  // Send Run It Back state
-  socket.emit('rib-match-cards-update', ribMatchCards);
-  socket.emit('rib-player-stats-update', ribPlayerStats);
-  socket.emit('rib-stream-data-update', ribStreamData);
-  socket.emit('rib-overlay-state-update', ribOverlayState);
+  // Load fresh data from database
+  try {
+    const currentOverlayData = await dbHelpers.loadIFLData();
+    const currentTagTeamData = await dbHelpers.loadTagTeamData();
+    const currentRibMatchCards = await dbHelpers.loadRIBMatchCards();
+    const currentRibPlayerStats = await dbHelpers.loadRIBPlayerStats();
+    const currentRibStreamData = await dbHelpers.loadRIBStreamData();
+    
+    socket.emit('data-update', currentOverlayData);
+    socket.emit('tag-team-data', currentTagTeamData);
+    socket.emit('rib-match-cards-update', currentRibMatchCards);
+    socket.emit('rib-player-stats-update', currentRibPlayerStats);
+    socket.emit('rib-stream-data-update', currentRibStreamData);
+    socket.emit('rib-overlay-state-update', ribOverlayState);
+  } catch (error) {
+    console.error('Error loading initial data for socket:', error);
+    // Send cached data as fallback
+    socket.emit('data-update', overlayData);
+    socket.emit('tag-team-data', tagTeamData);
+    socket.emit('rib-match-cards-update', ribMatchCards);
+    socket.emit('rib-player-stats-update', ribPlayerStats);
+    socket.emit('rib-stream-data-update', ribStreamData);
+    socket.emit('rib-overlay-state-update', ribOverlayState);
+  }
 
   // Handle 1v1 Updates
-  socket.on('update-data', (data) => {
-    overlayData = data;
-    saveData(overlayData);
+  socket.on('update-data', async (data) => {
+    try {
+      overlayData = data;
+      await dbHelpers.saveIFLData(overlayData);
 
-    // Also update player history from socket updates
-    const playersToSave = [
-        { name: data.p1Name, team: data.p1Team, flag: data.p1Flag },
-        { name: data.p2Name, team: data.p2Team, flag: data.p2Flag },
-    ].filter(p => p.name); // Only save players with names
+      // Also update player history from socket updates
+      const playersToSave = [
+          { name: data.p1Name, team: data.p1Team, flag: data.p1Flag },
+          { name: data.p2Name, team: data.p2Team, flag: data.p2Flag },
+      ].filter(p => p.name); // Only save players with names
 
-    if (playersToSave.length > 0) {
-        playersToSave.forEach(player => {
-            const existingIndex = playerHistory.findIndex(p => p.name === player.name);
-            if (existingIndex > -1) {
-                playerHistory[existingIndex] = { ...playerHistory[existingIndex], ...player };
-            } else {
-                playerHistory.push(player);
-            }
-        });
-        savePlayerHistory(playerHistory);
-        // Inform all clients about the history update
-        io.emit('history-update', playerHistory);
+      if (playersToSave.length > 0) {
+          await dbHelpers.savePlayerHistory(playersToSave);
+          const updatedHistory = await dbHelpers.loadPlayerHistory();
+          // Inform all clients about the history update
+          io.emit('history-update', updatedHistory);
+      }
+
+      io.emit('data-update', overlayData);
+    } catch (error) {
+      console.error('Error handling update-data:', error);
     }
-
-    io.emit('data-update', overlayData);
   });
 
   // Handle Tag Team Updates
-  socket.on('tag-team-update', (data) => {
-    console.log('Received Tag Team Update');
-    tagTeamData = data;
-    saveTagTeamData(tagTeamData);
-    io.emit('tag-team-data', tagTeamData);
+  socket.on('tag-team-update', async (data) => {
+    try {
+      console.log('Received Tag Team Update');
+      tagTeamData = data;
+      await dbHelpers.saveTagTeamData(tagTeamData);
+      io.emit('tag-team-data', tagTeamData);
+    } catch (error) {
+      console.error('Error handling tag-team-update:', error);
+    }
   });
 
   // Handle Run It Back Updates
-  socket.on('rib-match-cards-update', (data) => {
-    console.log('Received RIB Match Cards Update');
-    ribMatchCards = data;
-    saveRIBMatchCards(ribMatchCards);
-    io.emit('rib-match-cards-update', ribMatchCards);
+  socket.on('rib-match-cards-update', async (data) => {
+    try {
+      console.log('Received RIB Match Cards Update');
+      ribMatchCards = data;
+      await dbHelpers.saveRIBMatchCards(ribMatchCards);
+      io.emit('rib-match-cards-update', ribMatchCards);
+    } catch (error) {
+      console.error('Error handling rib-match-cards-update:', error);
+    }
   });
 
-  socket.on('rib-player-stats-update', (data) => {
-    console.log('Received RIB Player Stats Update');
-    ribPlayerStats = data;
-    saveRIBPlayerStats(ribPlayerStats);
-    io.emit('rib-player-stats-update', ribPlayerStats);
+  socket.on('rib-player-stats-update', async (data) => {
+    try {
+      console.log('Received RIB Player Stats Update');
+      ribPlayerStats = data;
+      await dbHelpers.saveRIBPlayerStats(ribPlayerStats);
+      io.emit('rib-player-stats-update', ribPlayerStats);
+    } catch (error) {
+      console.error('Error handling rib-player-stats-update:', error);
+    }
   });
 
-  socket.on('rib-stream-data-update', (data) => {
-    console.log('Received RIB Stream Data Update');
-    ribStreamData = data;
-    saveRIBStreamData(ribStreamData);
-    io.emit('rib-stream-data-update', ribStreamData);
+  socket.on('rib-stream-data-update', async (data) => {
+    try {
+      console.log('Received RIB Stream Data Update');
+      ribStreamData = data;
+      await dbHelpers.saveRIBStreamData(ribStreamData);
+      io.emit('rib-stream-data-update', ribStreamData);
+    } catch (error) {
+      console.error('Error handling rib-stream-data-update:', error);
+    }
   });
 
   socket.on('rib-overlay-state-update', (data) => {
