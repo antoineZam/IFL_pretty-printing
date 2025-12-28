@@ -52,6 +52,15 @@ The application will automatically:
 - Load match data from the database
 - Save match updates to the database
 
+## start.gg Integration
+
+This application also integrates with the start.gg API to fetch tournament data. See `STARTGG_INTEGRATION.md` for details.
+
+To use start.gg integration:
+1. Get a start.gg API key from https://developer.start.gg/
+2. Add `STARTGG_API_KEY=your_key_here` to your `.env` file
+3. Use the API endpoints to search and sync tournaments
+
 ## Troubleshooting
 
 If you see database connection errors:
@@ -59,4 +68,9 @@ If you see database connection errors:
 2. Check that the database `tournament_handler` exists
 3. Verify your `.env` file has correct credentials
 4. Ensure the tables from the SQL script have been created
+
+If you see start.gg API errors:
+1. Verify `STARTGG_API_KEY` is set in `.env`
+2. Check that your API key is valid
+3. See `STARTGG_INTEGRATION.md` for more details
 

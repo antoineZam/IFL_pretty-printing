@@ -5,6 +5,8 @@ const socketIo = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 const dbHelpers = require('./dbHelpers');
+const startggSync = require('./startggSync');
+const startgg = require('./startgg');
 
 // Set default connection key
 const CONNECTION_KEY = process.env.CONNECTION_KEY;
@@ -258,6 +260,182 @@ app.post('/api/rib/overlay-state', (req, res) => {
     ribOverlayState = { ...ribOverlayState, ...req.body };
     io.emit('rib-overlay-state-update', ribOverlayState);
     res.status(200).json(ribOverlayState);
+});
+
+// --- START.GG API ROUTES ---
+
+// Search for tournaments (e.g., "iron-fist-league")
+app.get('/api/startgg/search', async (req, res) => {
+    try {
+        const { term } = req.query;
+        if (!term) {
+            return res.status(400).json({ error: 'Search term is required' });
+        }
+        const tournaments = await startggSync.findTournamentsByTerm(term);
+        res.status(200).json(tournaments);
+    } catch (error) {
+        console.error('Error searching tournaments:', error);
+        res.status(500).json({ error: error.message || 'Failed to search tournaments' });
+    }
+});
+
+// Get tournament information
+app.get('/api/startgg/tournament/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const data = await startgg.getTournamentBySlug(slug);
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch tournament' });
+    }
+});
+
+// Get tournament events and matches
+app.get('/api/startgg/tournament/:slug/events', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const { eventSlug } = req.query;
+        const data = await startgg.getTournamentEvents(slug, eventSlug || null);
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching tournament events:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch tournament events' });
+    }
+});
+
+// Get all matches (sets) for a tournament
+app.get('/api/startgg/tournament/:slug/matches', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const { eventSlug } = req.query;
+        const matches = await startgg.getAllTournamentSets(slug, eventSlug || null);
+        res.status(200).json({ matches });
+    } catch (error) {
+        console.error('Error fetching matches:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch matches' });
+    }
+});
+
+// Get tournament participants
+app.get('/api/startgg/tournament/:slug/participants', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const { eventSlug } = req.query;
+        const data = await startgg.getTournamentParticipants(slug, eventSlug || null);
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching participants:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch participants' });
+    }
+});
+
+// Get player information
+app.get('/api/startgg/player/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const data = await startgg.getPlayerInfo(slug);
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching player:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch player' });
+    }
+});
+
+// Sync tournament from start.gg to database
+app.post('/api/startgg/sync/tournament/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const { eventSlug } = req.body;
+        const result = await startggSync.syncTournamentFromStartGG(slug, eventSlug || null);
+        res.status(200).json({
+            success: true,
+            message: 'Tournament synced successfully',
+            ...result
+        });
+    } catch (error) {
+        console.error('Error syncing tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to sync tournament' });
+    }
+});
+
+// Sync player from start.gg to database
+app.post('/api/startgg/sync/player/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const userId = await startggSync.syncPlayerFromStartGG(slug);
+        res.status(200).json({
+            success: true,
+            message: 'Player synced successfully',
+            userId
+        });
+    } catch (error) {
+        console.error('Error syncing player:', error);
+        res.status(500).json({ error: error.message || 'Failed to sync player' });
+    }
+});
+
+// Get match history for a player from database
+app.get('/api/startgg/player/:playerId/matches', async (req, res) => {
+    try {
+        const { playerId } = req.params;
+        const pool = require('./db');
+        const [matches] = await pool.execute(
+            `SELECT m.*, 
+                    p1.username as p1Name, p1.country as p1Flag,
+                    p2.username as p2Name, p2.country as p2Flag,
+                    t.name as tournamentName, t.start_date
+             FROM matches m
+             LEFT JOIN users p1 ON m.player1_id = p1.user_id
+             LEFT JOIN users p2 ON m.player2_id = p2.user_id
+             LEFT JOIN tournaments t ON m.tournament_id = t.tournament_id
+             WHERE m.player1_id = ? OR m.player2_id = ?
+             ORDER BY m.match_time DESC
+             LIMIT 100`,
+            [playerId, playerId]
+        );
+        res.status(200).json({ matches });
+    } catch (error) {
+        console.error('Error fetching player matches:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch player matches' });
+    }
+});
+
+// Get all tournaments from database
+app.get('/api/startgg/tournaments', async (req, res) => {
+    try {
+        const pool = require('./db');
+        const [tournaments] = await pool.execute(
+            'SELECT * FROM tournaments ORDER BY start_date DESC'
+        );
+        res.status(200).json({ tournaments });
+    } catch (error) {
+        console.error('Error fetching tournaments:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch tournaments' });
+    }
+});
+
+// Get matches for a tournament from database
+app.get('/api/startgg/tournament/:tournamentId/matches', async (req, res) => {
+    try {
+        const { tournamentId } = req.params;
+        const pool = require('./db');
+        const [matches] = await pool.execute(
+            `SELECT m.*, 
+                    p1.username as p1Name, p1.country as p1Flag,
+                    p2.username as p2Name, p2.country as p2Flag
+             FROM matches m
+             LEFT JOIN users p1 ON m.player1_id = p1.user_id
+             LEFT JOIN users p2 ON m.player2_id = p2.user_id
+             WHERE m.tournament_id = ?
+             ORDER BY m.match_time DESC`,
+            [tournamentId]
+        );
+        res.status(200).json({ matches });
+    } catch (error) {
+        console.error('Error fetching tournament matches:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch tournament matches' });
+    }
 });
 
 
