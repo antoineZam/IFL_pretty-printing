@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, ChevronRight, Lock } from 'lucide-react';
-import GlassCard from '../components/ui/GlassCard';
+import { Trophy, Menu, X, ChevronRight, Zap, Gamepad2, Database, Flame } from 'lucide-react';
 
 const DashboardPage = () => {
     const [searchParams] = useSearchParams();
-    const [key, setKey] = useState<string | null>(null);
-    const [ribUnlocked, setRibUnlocked] = useState(false);
-    const [ribKeyRequired, setRibKeyRequired] = useState(true);
+    const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -17,187 +14,203 @@ const DashboardPage = () => {
             navigate('/auth');
             return;
         }
-        
-        setKey(connectionKey);
-        
-        // Check RIB access
-        checkRibAccess();
-
     }, [searchParams, navigate]);
 
-    const checkRibAccess = async () => {
-        try {
-            // Check if RIB key is required
-            const requiredRes = await fetch('/api/rib-auth/required');
-            const requiredData = await requiredRes.json();
-            
-            if (!requiredData.required) {
-                setRibKeyRequired(false);
-                setRibUnlocked(true);
-                return;
-            }
-
-            // Check if we have a valid stored key
-            const storedKey = localStorage.getItem('ribAccessKey');
-            if (storedKey) {
-                const res = await fetch('/api/rib-auth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: storedKey })
-                });
-                
-                if (res.ok) {
-                    setRibUnlocked(true);
-                }
-            }
-        } catch (err) {
-            console.error('Error checking RIB access:', err);
-        }
-    };
-
-    const iflRoutes = [
-        { name: "IFL Match Control", path: "/ifl/match-control" },
-        { name: "IFL Match Overlay", path: "/ifl/match-overlay" },
-        { name: "Tag Team Control", path: "/tag/match-control" },
-        { name: "Tag Team Overlay", path: "/tag/match-overlay" },
-    ];
-
-    const ribRoutes = [
-        { name: "RIB Match Control", path: "/rib/match-control" },
-        { name: "RIB Unified Overlay", path: "/rib/unified-overlay", primary: true },
-        { name: "RIB Single Match Overlay", path: "/rib/single-match-overlay" },
-        { name: "RIB Player Stats Overlay", path: "/rib/player-stats-overlay" },
-        { name: "RIB Part One Overlay", path: "/rib/part-one-overlay" },
-        { name: "RIB Stream Overlay", path: "/rib/stream-overlay" },
-    ];
-
     return (
-        <div className="min-h-screen p-8 max-w-7xl mx-auto">
-            <header className="flex justify-between items-center mb-12 animate-slide-up">
-                <div>
-                    <h1 className="text-4xl font-archivo-expanded-bold text-white">DASHBOARD</h1>
-                    <p className="text-gray-500 mt-1">Welcome to the IFL broadcast network.</p>
+        <div className="min-h-screen relative overflow-hidden">
+            {/* YouTube Video Background */}
+            <div className="absolute inset-0 z-0 overflow-hidden">
+                <div className="absolute inset-0 scale-[1.5] origin-center">
+                    <iframe
+                        src="https://www.youtube.com/embed/fzqvmFrV46c?autoplay=1&mute=1&loop=1&playlist=fzqvmFrV46c&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1"
+                        title="Background Video"
+                        className="w-full h-full pointer-events-none"
+                        style={{ 
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '177.78vh', /* 16:9 aspect ratio */
+                            height: '100vh',
+                            minWidth: '100%',
+                            minHeight: '56.25vw' /* 16:9 aspect ratio */
+                        }}
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen={false}
+                        frameBorder="0"
+                    />
                 </div>
-                <div className="px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> SYSTEM ONLINE
-                </div>
-            </header>
+                {/* Dimming overlay */}
+                <div className="absolute inset-0 bg-black/75" />
+                {/* Gradient overlay for depth */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
+            </div>
 
-            {/* IFL Section */}
-            <section className="mb-12">
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                    <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
-                    TDEU Overlays
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {iflRoutes.map((route, idx) => (
-                        <GlassCard key={route.path} className={`p-1 overflow-hidden group animate-slide-up`} style={{ animationDelay: `${idx * 100}ms` }}>
-                            <div className="bg-surfaceHighlight/50 p-4 flex justify-between items-center border-b border-white/5">
-                                <h3 className="font-bold text-white tracking-wide">{route.name}</h3>
-                                <Link 
-                                    to={`${route.path}?key=${key}`}
-                                    target="_blank"
-                                    className="text-xs font-bold text-primary hover:text-white transition-colors flex items-center gap-1"
-                                >
-                                    OPEN NEW WINDOW <ExternalLink size={12} />
-                                </Link>
-                            </div>
-                            <div className="relative h-64 bg-black">
-                                <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] pointer-events-none z-10 opacity-20" />
-                                <iframe
-                                    src={`${route.path}?key=${key}`}
-                                    className="w-[1920px] h-[1080px] border-0 origin-top-left scale-[0.335] opacity-70 group-hover:opacity-100 transition-opacity duration-500"
-                                    title={route.name}
-                                />
-                            </div>
-                        </GlassCard>
-                    ))}
-                </div>
-            </section>
-
-            {/* Run It Back Section */}
-            <section className="relative">
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                    <span className="w-1 h-6 bg-red-500 rounded-full"></span>
-                    Run It Back
-                    {ribKeyRequired && !ribUnlocked && (
-                        <span className="ml-2 px-2 py-1 bg-red-500/20 border border-red-500/30 rounded text-xs text-red-400 flex items-center gap-1">
-                            <Lock size={12} /> Locked
-                        </span>
-                    )}
-                </h2>
-                
-                {/* Blur overlay when locked */}
-                {ribKeyRequired && !ribUnlocked && (
-                    <div className="absolute inset-0 top-12 z-10 backdrop-blur-md bg-black/40 rounded-xl flex items-center justify-center">
-                        <div className="text-center p-8">
-                            <Lock size={48} className="text-red-500 mx-auto mb-4" />
-                            <h3 className="text-xl font-bold text-white mb-2">Section Locked</h3>
-                            <p className="text-gray-400 mb-4">This section requires an additional access key</p>
-                            <Link 
-                                to="/rib/match-control"
-                                className="inline-block px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
-                            >
-                                Enter Access Key
-                            </Link>
-                        </div>
-                    </div>
+            {/* Burger Menu Button */}
+            <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="fixed top-6 right-6 z-50 p-3 rounded-xl bg-black/50 backdrop-blur-md border border-white/10 hover:border-cyan-500/50 transition-all duration-300 group"
+            >
+                {menuOpen ? (
+                    <X size={24} className="text-white group-hover:text-cyan-400 transition-colors" />
+                ) : (
+                    <Menu size={24} className="text-white group-hover:text-cyan-400 transition-colors" />
                 )}
-                
-                {/* Quick Access Links */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <Link 
-                        to="/rib/match-control"
-                        className="block bg-gradient-to-r from-red-600/20 to-red-900/20 border border-red-500/30 rounded-xl p-4 hover:border-red-500/50 transition-all group"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-xl font-bold text-red-400">RIB Control Panel</h3>
-                                <p className="text-gray-400 text-sm">Manage overlays, match cards, and player stats</p>
+            </button>
+
+            {/* Slide-out Menu */}
+            <div className={`
+                fixed top-0 right-0 h-full w-full max-w-sm z-40 transform transition-transform duration-300 ease-out
+                ${menuOpen ? 'translate-x-0' : 'translate-x-full'}
+            `}>
+                <div className="h-full bg-black/95 backdrop-blur-xl border-l border-white/10 overflow-y-auto">
+                    <div className="p-6 pt-24">
+                        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-6">Select Tournament System</h2>
+                        
+                        {/* TDEU Dashboard Link */}
+                        <Link 
+                            to="/dashboard/tdeu" 
+                            onClick={() => setMenuOpen(false)}
+                            className="block mb-4"
+                        >
+                            <div className="p-5 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 hover:border-cyan-400 hover:from-cyan-500/20 hover:to-blue-500/10 transition-all group">
+                                <div className="flex items-center gap-4 mb-3">
+                                    <div className="p-3 rounded-xl bg-cyan-500/20">
+                                        <Trophy size={24} className="text-cyan-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">TDEU</h3>
+                                        <p className="text-cyan-400/70 text-sm">Iron Fist League & Tag Team</p>
+                                    </div>
+                                    <ChevronRight size={20} className="ml-auto text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <p className="text-gray-400 text-sm">
+                                    Access IFL match controls, tag team overlays, tournament data sync, and league standings.
+                                </p>
                             </div>
-                            <ChevronRight size={24} className="text-red-400 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+
+                        {/* RIB Dashboard Link */}
+                        <Link 
+                            to="/dashboard/rib" 
+                            onClick={() => setMenuOpen(false)}
+                            className="block"
+                        >
+                            <div className="p-5 rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 to-orange-500/5 hover:border-red-400 hover:from-red-500/20 hover:to-orange-500/10 transition-all group">
+                                <div className="flex items-center gap-4 mb-3">
+                                    <div className="p-3 rounded-xl bg-red-500/20">
+                                        <Flame size={24} className="text-red-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">IFF</h3>
+                                        <p className="text-red-400/70 text-sm">Run It Back Series</p>
+                                    </div>
+                                    <ChevronRight size={20} className="ml-auto text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <p className="text-gray-400 text-sm">
+                                    Manage Run It Back tournament broadcasts, player stats, and stream overlays.
+                                </p>
+                            </div>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+
+            {/* Menu Backdrop */}
+            {menuOpen && (
+                <div 
+                    className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+                    onClick={() => setMenuOpen(false)}
+                />
+            )}
+
+            {/* Main Content - Landing Page */}
+            <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
+                {/* Logo / Branding */}
+                <div className="text-center mb-12">
+                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 mb-8 shadow-2xl shadow-cyan-500/30">
+                        <Trophy size={48} className="text-white" />
+                    </div>
+                    
+                    <h1 className="text-5xl md:text-7xl font-black text-white mb-4 tracking-tight">
+                        <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">
+                            IFL
+                        </span>
+                        <span className="text-white/90"> Broadcast</span>
+                    </h1>
+                    
+                    <p className="text-xl md:text-2xl text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
+                        The ultimate broadcast control system for 
+                        <span className="text-cyan-400 font-medium"> Iron Fist League </span> 
+                        and competitive Tekken tournaments
+                    </p>
+                </div>
+
+                {/* Feature Highlights */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full mb-12">
+                    <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-cyan-500/30 transition-all group">
+                        <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Gamepad2 size={24} className="text-cyan-400" />
                         </div>
+                        <h3 className="text-lg font-semibold text-white mb-2">Match Control</h3>
+                        <p className="text-gray-400 text-sm">Real-time overlay control for 1v1 and team matches with player history integration</p>
+                    </div>
+
+                    <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-purple-500/30 transition-all group">
+                        <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Database size={24} className="text-purple-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-white mb-2">Start.gg Sync</h3>
+                        <p className="text-gray-400 text-sm">Automatic synchronization with start.gg for brackets, players, and match data</p>
+                    </div>
+
+                    <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-amber-500/30 transition-all group">
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Zap size={24} className="text-amber-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-white mb-2">Live Overlays</h3>
+                        <p className="text-gray-400 text-sm">Professional stream overlays that update in real-time via WebSocket</p>
+                    </div>
+                </div>
+
+                {/* Quick Access Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <Link
+                        to="/dashboard/tdeu"
+                        className="group relative px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-lg shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105"
+                    >
+                        <span className="flex items-center gap-3">
+                            <Trophy size={20} />
+                            TDEU Dashboard
+                            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                        </span>
                     </Link>
-                    <Link 
-                        to={`/rib/unified-overlay?key=${key}`}
-                        target="_blank"
-                        className="block bg-gradient-to-r from-orange-600/20 to-red-900/20 border border-orange-500/30 rounded-xl p-4 hover:border-orange-500/50 transition-all group"
+
+                    <Link
+                        to="/dashboard/rib"
+                        className="group relative px-8 py-4 rounded-2xl bg-gradient-to-r from-red-500 to-orange-600 text-white font-semibold text-lg shadow-xl shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-300 hover:scale-105"
                     >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-xl font-bold text-orange-400">RIB Unified Overlay</h3>
-                                <p className="text-gray-400 text-sm">Single display for all RIB overlays (for OBS)</p>
-                            </div>
-                            <ExternalLink size={20} className="text-orange-400 group-hover:scale-110 transition-transform" />
-                        </div>
+                        <span className="flex items-center gap-3">
+                            <Flame size={20} />
+                            IFF Dashboard
+                            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                        </span>
                     </Link>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {ribRoutes.filter(r => r.path !== '/rib/match-control').map((route, idx) => (
-                        <GlassCard key={route.path} className={`p-1 overflow-hidden group animate-slide-up`} style={{ animationDelay: `${(idx + iflRoutes.length) * 100}ms` }}>
-                            <div className="bg-surfaceHighlight/50 p-4 flex justify-between items-center border-b border-white/5">
-                                <h3 className="font-bold text-white tracking-wide">{route.name}</h3>
-                                <Link 
-                                    to={`${route.path}?key=${key}`}
-                                    target="_blank"
-                                    className="text-xs font-bold text-red-400 hover:text-white transition-colors flex items-center gap-1"
-                                >
-                                    OPEN NEW WINDOW <ExternalLink size={12} />
-                                </Link>
-                            </div>
-                            <div className="relative h-64 bg-black">
-                                <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] pointer-events-none z-10 opacity-20" />
-                                <iframe
-                                    src={`${route.path}?key=${key}`}
-                                    className="w-[1920px] h-[1080px] border-0 origin-top-left scale-[0.335] opacity-70 group-hover:opacity-100 transition-opacity duration-500"
-                                    title={route.name}
-                                />
-                            </div>
-                        </GlassCard>
-                    ))}
+                {/* Connection Status */}
+                <div className="mt-8 flex items-center gap-2 px-4 py-2 rounded-full bg-black/30 backdrop-blur-sm border border-white/10">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-gray-400 text-sm">Connected</span>
                 </div>
-            </section>
+            </div>
+
+            {/* Footer */}
+            <footer className="absolute bottom-0 left-0 right-0 z-10 p-6">
+                <p className="text-center text-gray-600 text-sm">
+                    TEKKEN 8 Tournament Broadcast • Powered by TDEU & IFF
+                </p>
+            </footer>
         </div>
     );
 };
