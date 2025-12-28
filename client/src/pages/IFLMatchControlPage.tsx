@@ -21,9 +21,10 @@ interface PlayerData {
 }
 
 interface PlayerHistoryItem {
-    name: string;
-    team: string;
-    flag: string;
+    name: string;      // Full display name for showing in list (e.g., "Sponsor | PlayerName")
+    username: string;  // Raw username (just the player name, no sponsor)
+    team: string;      // Sponsor/team
+    flag: string;      // Country code for flag
 }
 
 const IFLMatchControlPage = () => {
@@ -84,16 +85,24 @@ const IFLMatchControlPage = () => {
         const newData = { ...data, [id]: value };
         setData(newData);
 
-        // Handle Autocomplete
+        // Handle Autocomplete - search on both full display name and raw username
         if (id === 'p1Name' && value) {
-            const filtered = playerHistory.filter(p => p.name.toLowerCase().startsWith(value.toLowerCase()));
+            const searchTerm = value.toLowerCase();
+            const filtered = playerHistory.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) || 
+                (p.username && p.username.toLowerCase().includes(searchTerm))
+            );
             setP1Suggestions(filtered);
         } else {
             setP1Suggestions([]);
         }
 
         if (id === 'p2Name' && value) {
-            const filtered = playerHistory.filter(p => p.name.toLowerCase().startsWith(value.toLowerCase()));
+            const searchTerm = value.toLowerCase();
+            const filtered = playerHistory.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) || 
+                (p.username && p.username.toLowerCase().includes(searchTerm))
+            );
             setP2Suggestions(filtered);
         } else {
             setP2Suggestions([]);
@@ -102,11 +111,15 @@ const IFLMatchControlPage = () => {
 
     const handleSuggestionClick = (player: 'p1' | 'p2', suggestion: PlayerHistoryItem) => {
         if (!data) return;
+        // Use username (raw player name) for the Name field, team for the Team/Sponsor field
+        // The overlay will display them as "Team | Name"
+        // Convert flag to uppercase to match the countries dropdown options
+        const flag = suggestion.flag ? suggestion.flag.toUpperCase() : '';
         if (player === 'p1') {
-            setData({ ...data, p1Name: suggestion.name, p1Team: suggestion.team, p1Flag: suggestion.flag });
+            setData({ ...data, p1Name: suggestion.username, p1Team: suggestion.team, p1Flag: flag });
             setP1Suggestions([]);
         } else {
-            setData({ ...data, p2Name: suggestion.name, p2Team: suggestion.team, p2Flag: suggestion.flag });
+            setData({ ...data, p2Name: suggestion.username, p2Team: suggestion.team, p2Flag: flag });
             setP2Suggestions([]);
         }
     };
@@ -216,14 +229,23 @@ const IFLMatchControlPage = () => {
                             <div className="relative">
                                 <CyberInput id="p1Name" label="Player Name" value={data.p1Name} onChange={handleInputChange} autoComplete="off" />
                                 {p1Suggestions.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden">
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden max-h-64 overflow-y-auto">
                                         {p1Suggestions.map(s => (
                                             <div 
                                                 key={s.name} 
                                                 onClick={() => handleSuggestionClick('p1', s)}
-                                                className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer"
+                                                className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-2"
                                             >
-                                                {s.name} <span className="text-xs text-gray-500 ml-2">{s.team}</span>
+                                                {s.flag && (
+                                                    <img 
+                                                        src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} 
+                                                        alt={s.flag} 
+                                                        className="w-5 h-auto"
+                                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                    />
+                                                )}
+                                                <span>{s.name}</span>
+                                                {s.team && <span className="text-xs text-gray-500 ml-auto">{s.team}</span>}
                                             </div>
                                         ))}
                                     </div>
@@ -290,14 +312,23 @@ const IFLMatchControlPage = () => {
                              <div className="relative">
                                 <CyberInput id="p2Name" label="Player Name" value={data.p2Name} onChange={handleInputChange} style={{textAlign: 'right'}} autoComplete="off"/>
                                 {p2Suggestions.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden">
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden max-h-64 overflow-y-auto">
                                         {p2Suggestions.map(s => (
                                             <div 
                                                 key={s.name} 
                                                 onClick={() => handleSuggestionClick('p2', s)}
-                                                className="px-4 py-2 hover:bg-red-500/20 cursor-pointer text-right"
+                                                className="px-4 py-2 hover:bg-red-500/20 cursor-pointer flex items-center gap-2 justify-end"
                                             >
-                                                {s.name} <span className="text-xs text-gray-500 ml-2">{s.team}</span>
+                                                {s.team && <span className="text-xs text-gray-500 mr-auto">{s.team}</span>}
+                                                <span>{s.name}</span>
+                                                {s.flag && (
+                                                    <img 
+                                                        src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} 
+                                                        alt={s.flag} 
+                                                        className="w-5 h-auto"
+                                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                    />
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -350,10 +381,19 @@ const IFLMatchControlPage = () => {
                             .map(p => (
                             <div key={p.name} className="flex items-center justify-between p-3 bg-surfaceHighlight/50 rounded-lg group">
                                 <div className="flex items-center gap-4">
-                                    <img src={`https://flagcdn.com/w40/${p.flag.toLowerCase()}.png`} alt={p.flag} className="w-8 h-auto" />
+                                    {p.flag ? (
+                                        <img 
+                                            src={`https://flagcdn.com/w40/${p.flag.toLowerCase()}.png`} 
+                                            alt={p.flag} 
+                                            className="w-8 h-auto"
+                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-6 bg-gray-700 rounded flex items-center justify-center text-gray-500 text-xs">?</div>
+                                    )}
                                     <div>
                                         <div className="font-bold text-white">{p.name}</div>
-                                        <div className="text-xs text-gray-400">{p.team}</div>
+                                        <div className="text-xs text-gray-400">{p.team || 'No sponsor'}</div>
                                     </div>
                                 </div>
                                 <NeonButton 

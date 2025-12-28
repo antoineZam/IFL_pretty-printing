@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
+import TournamentDataPage from './pages/TournamentDataPage';
 import IFLMatchControlPage from './pages/IFLMatchControlPage';
 import IFLMatchOverlayPage from './pages/IFLMatchOverlayPage';
 import TagTeamControlPage from './pages/TagTeamControlPage';
@@ -22,6 +23,7 @@ function App() {
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/tournament-data" element={<TournamentDataPage />} />
         <Route path="/ifl/match-control" element={<IFLMatchControlPage />} />
         <Route path="/ifl/match-overlay" element={<IFLMatchOverlayPage />} />
         <Route path="/tag/match-control" element={<TagTeamControlPage />} />

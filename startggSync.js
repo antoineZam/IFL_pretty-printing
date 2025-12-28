@@ -2,21 +2,69 @@ const startgg = require('./startgg');
 const dbHelpers = require('./dbHelpers');
 const pool = require('./db');
 
+// Country name to ISO 2-letter code mapping
+const COUNTRY_CODE_MAP = {
+  'france': 'fr', 'germany': 'de', 'united kingdom': 'gb', 'uk': 'gb', 'england': 'gb',
+  'united states': 'us', 'usa': 'us', 'spain': 'es', 'italy': 'it', 'portugal': 'pt',
+  'netherlands': 'nl', 'belgium': 'be', 'switzerland': 'ch', 'austria': 'at',
+  'poland': 'pl', 'sweden': 'se', 'norway': 'no', 'denmark': 'dk', 'finland': 'fi',
+  'ireland': 'ie', 'canada': 'ca', 'australia': 'au', 'japan': 'jp', 'south korea': 'kr',
+  'korea': 'kr', 'china': 'cn', 'brazil': 'br', 'mexico': 'mx', 'argentina': 'ar',
+  'russia': 'ru', 'ukraine': 'ua', 'turkey': 'tr', 'greece': 'gr', 'czech republic': 'cz',
+  'czechia': 'cz', 'hungary': 'hu', 'romania': 'ro', 'bulgaria': 'bg', 'croatia': 'hr',
+  'serbia': 'rs', 'morocco': 'ma', 'algeria': 'dz', 'tunisia': 'tn', 'egypt': 'eg',
+  'south africa': 'za', 'india': 'in', 'pakistan': 'pk', 'philippines': 'ph',
+  'indonesia': 'id', 'malaysia': 'my', 'singapore': 'sg', 'thailand': 'th', 'vietnam': 'vn',
+  'taiwan': 'tw', 'hong kong': 'hk', 'new zealand': 'nz', 'chile': 'cl', 'colombia': 'co',
+  'peru': 'pe', 'venezuela': 've', 'saudi arabia': 'sa', 'uae': 'ae', 'united arab emirates': 'ae',
+  'israel': 'il', 'luxembourg': 'lu', 'iceland': 'is', 'estonia': 'ee', 'latvia': 'lv',
+  'lithuania': 'lt', 'slovakia': 'sk', 'slovenia': 'si', 'reunion': 're', 'réunion': 're',
+  'martinique': 'mq', 'guadeloupe': 'gp', 'french guiana': 'gf', 'mayotte': 'yt'
+};
+
+// Convert country name to 2-letter code
+function getCountryCode(countryName) {
+  if (!countryName) return null;
+  
+  // If already a 2-letter code, return it
+  if (countryName.length === 2) return countryName.toLowerCase();
+  
+  // Look up in map
+  const normalized = countryName.toLowerCase().trim();
+  return COUNTRY_CODE_MAP[normalized] || null;
+}
+
 // Map start.gg data to our database schema
 
 // Sync a tournament from start.gg to our database
 async function syncTournamentFromStartGG(slug, eventSlug = null) {
   try {
-    console.log(`Syncing tournament: ${slug}${eventSlug ? ` (event: ${eventSlug})` : ''}`);
+    console.log(`\n========================================`);
+    console.log(`Syncing tournament: ${slug}`);
+    console.log(`========================================`);
+    
+    // Test database connection first
+    console.log('  Testing database connection...');
+    try {
+      const connection = await pool.getConnection();
+      connection.release();
+      console.log('  ✓ Database connected');
+    } catch (dbError) {
+      console.error('  ✗ Database connection failed:', dbError.message);
+      throw new Error(`Database not connected: ${dbError.message}`);
+    }
     
     // Get tournament data
+    console.log('  Fetching tournament data from start.gg...');
     const tournamentData = await startgg.getTournamentBySlug(slug);
     
     if (!tournamentData || !tournamentData.tournament) {
+      console.log('  ✗ Tournament not found on start.gg');
       throw new Error(`Tournament not found: ${slug}`);
     }
 
     const tournament = tournamentData.tournament;
+    console.log(`  ✓ Found: ${tournament.name}`);
     
     // Find or create tournament in database
     let [tournamentRows] = await pool.execute(
@@ -28,57 +76,138 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     if (tournamentRows.length === 0) {
       // Create new tournament
       const startDate = tournament.startAt ? new Date(tournament.startAt * 1000) : null;
+      const endDate = tournament.endAt ? new Date(tournament.endAt * 1000) : startDate;
+      
+      // Determine status based on dates
+      const now = new Date();
+      let status = 'registration';
+      if (endDate && now > endDate) {
+        status = 'completed';
+      } else if (startDate && now >= startDate) {
+        status = 'active';
+      }
+      
       const [result] = await pool.execute(
         'INSERT INTO tournaments (name, season, start_date, status, game_version) VALUES (?, ?, ?, ?, ?)',
-        [tournament.name, 'Season 1', startDate, 'completed', 'Tekken 8']
+        [tournament.name, 'Season 1', startDate, status, 'Tekken 8']
       );
       tournamentId = result.insertId;
+      console.log(`  Created tournament with status: ${status}`);
     } else {
       tournamentId = tournamentRows[0].tournament_id;
+      
+      // Update status if tournament exists
+      const startDate = tournament.startAt ? new Date(tournament.startAt * 1000) : null;
+      const endDate = tournament.endAt ? new Date(tournament.endAt * 1000) : startDate;
+      const now = new Date();
+      let status = 'registration';
+      if (endDate && now > endDate) {
+        status = 'completed';
+      } else if (startDate && now >= startDate) {
+        status = 'active';
+      }
+      
+      await pool.execute(
+        'UPDATE tournaments SET status = ? WHERE tournament_id = ?',
+        [status, tournamentId]
+      );
     }
 
     // Get events data
-    const eventsData = await startgg.getTournamentEvents(slug, eventSlug);
+    console.log('  Fetching events and matches...');
+    const eventsData = await startgg.getTournamentEvents(slug);
     
     if (!eventsData || !eventsData.tournament || !eventsData.tournament.events) {
-      console.warn('No events found for tournament');
+      console.log('  ✗ No events found for tournament');
+      console.log('  Response:', JSON.stringify(eventsData, null, 2).substring(0, 500));
       return { tournamentId, playersSynced: 0, matchesSynced: 0 };
     }
 
     const events = eventsData.tournament.events;
+    console.log(`  ✓ Found ${events.length} event(s)`);
+    
     let playersSynced = 0;
+    let playersUpdated = 0;
     let matchesSynced = 0;
+    let matchesUpdated = 0;
 
     // Process each event
     for (const event of events) {
-      if (!event.sets || !event.sets.nodes) continue;
-
-      // Sync players from entrants
-      const participantsData = await startgg.getTournamentParticipants(slug, event.slug);
+      console.log(`  Processing event: ${event.name}`);
       
-      if (participantsData && participantsData.tournament && participantsData.tournament.events) {
-        for (const evt of participantsData.tournament.events) {
-          if (evt.entrants && evt.entrants.nodes) {
-            for (const entrant of evt.entrants.nodes) {
-              if (entrant.participants && entrant.participants.length > 0) {
-                for (const participant of entrant.participants) {
-                  const player = participant.player;
-                  if (player && player.gamerTag) {
-                    const username = player.gamerTag;
-                    const country = null; // start.gg doesn't always provide country
+      if (!event.sets || !event.sets.nodes) {
+        console.log(`    ✗ No sets/matches in this event`);
+        continue;
+      }
+      
+      const totalSets = event.sets.pageInfo?.total || event.sets.nodes.length;
+      console.log(`    Found ${event.sets.nodes.length} matches (${totalSets} total)`);
+
+      // Sync players from entrants with sponsor and country info
+      try {
+        const participantsData = await startgg.getTournamentParticipants(slug);
+        
+        if (participantsData && participantsData.tournament && participantsData.tournament.events) {
+          for (const evt of participantsData.tournament.events) {
+            if (evt.entrants && evt.entrants.nodes) {
+              for (const entrant of evt.entrants.nodes) {
+                if (entrant.participants && entrant.participants.length > 0) {
+                  for (const participant of entrant.participants) {
+                    const gamerTag = participant.gamerTag || (participant.player && participant.player.gamerTag);
+                    if (!gamerTag) continue;
                     
-                    // Get or create user
+                    // Get sponsor prefix from participant or player
+                    const sponsor = participant.prefix || (participant.player && participant.player.prefix) || null;
+                    
+                    // Get country from user location (try participant.user first, then player.user)
+                    let countryName = null;
+                    if (participant.user && participant.user.location && participant.user.location.country) {
+                      countryName = participant.user.location.country;
+                    } else if (participant.player && participant.player.user && participant.player.user.location && participant.player.user.location.country) {
+                      countryName = participant.player.user.location.country;
+                    }
+                    
+                    // Convert country name to 2-letter code for flag display
+                    const countryCode = getCountryCode(countryName);
+                    
+                    // Get or create user - search by multiple possible formats to avoid duplicates
+                    // Check for: exact username, or old format "SPONSOR | username", or username ending with the gamerTag
+                    const oldFormatName = sponsor ? `${sponsor} | ${gamerTag}` : null;
+                    
                     let [userRows] = await pool.execute(
-                      'SELECT user_id FROM users WHERE username = ?',
-                      [username]
+                      `SELECT user_id, username, sponsor, country FROM users 
+                       WHERE username = ? 
+                       OR username = ?
+                       OR username LIKE ?`,
+                      [gamerTag, oldFormatName || gamerTag, `% | ${gamerTag}`]
                     );
 
                     if (userRows.length === 0) {
+                      // Create new user with all available info
                       await pool.execute(
-                        'INSERT INTO users (username, country, main_character) VALUES (?, ?, ?)',
-                        [username, country, null]
+                        'INSERT INTO users (username, sponsor, country, main_character) VALUES (?, ?, ?, ?)',
+                        [gamerTag, sponsor, countryCode, null]
                       );
                       playersSynced++;
+                    } else {
+                      // Found existing user - update with latest data and fix username if it's in old format
+                      const existingUser = userRows[0];
+                      const needsUsernameFixed = existingUser.username.includes(' | ');
+                      const newSponsor = sponsor || existingUser.sponsor;
+                      const newCountry = countryCode || existingUser.country;
+                      
+                      // Check if anything needs updating
+                      const usernameNeedsFix = needsUsernameFixed;
+                      const sponsorChanged = sponsor && sponsor !== existingUser.sponsor;
+                      const countryChanged = countryCode && countryCode !== existingUser.country;
+                      
+                      if (usernameNeedsFix || sponsorChanged || countryChanged) {
+                        await pool.execute(
+                          'UPDATE users SET username = ?, sponsor = ?, country = ? WHERE user_id = ?',
+                          [gamerTag, newSponsor, newCountry, existingUser.user_id]
+                        );
+                        playersUpdated++;
+                      }
                     }
                   }
                 }
@@ -86,27 +215,42 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
             }
           }
         }
+      } catch (participantError) {
+        console.log(`    ⚠ Could not sync participants: ${participantError.message}`);
+        // Continue with matches anyway
       }
 
-      // Sync matches (sets)
+      // Sync matches (sets) - use entrant names directly
+      let processedSets = 0;
+      let skippedNoSlots = 0;
+      let skippedNoEntrant = 0;
+      let skippedNoName = 0;
+      let matchesUpdatedInEvent = 0;
+      
       for (const set of event.sets.nodes) {
-        if (!set.slots || set.slots.length < 2) continue;
+        if (!set.slots || set.slots.length < 2) {
+          skippedNoSlots++;
+          continue;
+        }
 
         const slot1 = set.slots[0];
         const slot2 = set.slots[1];
 
-        if (!slot1.entrant || !slot2.entrant) continue;
+        if (!slot1.entrant || !slot2.entrant) {
+          skippedNoEntrant++;
+          continue;
+        }
 
-        // Get player names
-        const p1Name = slot1.entrant.participants && slot1.entrant.participants.length > 0
-          ? slot1.entrant.participants[0].gamerTag || slot1.entrant.participants[0].player?.gamerTag
-          : slot1.entrant.name;
+        // Get player names from entrant.name
+        const p1Name = slot1.entrant.name;
+        const p2Name = slot2.entrant.name;
+
+        if (!p1Name || !p2Name) {
+          skippedNoName++;
+          continue;
+        }
         
-        const p2Name = slot2.entrant.participants && slot2.entrant.participants.length > 0
-          ? slot2.entrant.participants[0].gamerTag || slot2.entrant.participants[0].player?.gamerTag
-          : slot2.entrant.name;
-
-        if (!p1Name || !p2Name) continue;
+        processedSets++;
 
         // Get or create players
         let [p1Rows] = await pool.execute('SELECT user_id FROM users WHERE username = ?', [p1Name]);
@@ -133,33 +277,59 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
           p2Id = p2Rows[0].user_id;
         }
 
-        // Parse scores from displayScore (format: "2-3" or similar)
+        // Parse scores from displayScore
+        // Format: "PlayerName 2 - PlayerName 3" or "DQ" or similar
         let scoreP1 = 0;
         let scoreP2 = 0;
+        let isDQ = false;
+        
         if (set.displayScore) {
-          const scores = set.displayScore.split('-').map(s => parseInt(s.trim()) || 0);
-          if (scores.length >= 2) {
-            scoreP1 = scores[0];
-            scoreP2 = scores[1];
+          if (set.displayScore === 'DQ' || set.displayScore.includes('DQ')) {
+            isDQ = true;
+          } else {
+            // Try to extract scores - format is usually "Name 2 - Name 3"
+            const parts = set.displayScore.split(' - ');
+            if (parts.length === 2) {
+              // Extract last number from each part (the score is at the end)
+              const p1Match = parts[0].match(/(\d+)$/);
+              const p2Match = parts[1].match(/(\d+)$/);
+              if (p1Match) scoreP1 = parseInt(p1Match[1]) || 0;
+              if (p2Match) scoreP2 = parseInt(p2Match[1]) || 0;
+            }
           }
         }
 
-        // Determine winner
+        // Determine winner - use start.gg winnerId first
         let winnerId = null;
         if (set.winnerId) {
-          if (set.winnerId === slot1.entrant.id) {
+          // Convert to number for comparison since IDs might be strings or numbers
+          const winnerIdNum = parseInt(set.winnerId);
+          const slot1IdNum = parseInt(slot1.entrant.id);
+          const slot2IdNum = parseInt(slot2.entrant.id);
+          
+          if (winnerIdNum === slot1IdNum) {
             winnerId = p1Id;
-          } else if (set.winnerId === slot2.entrant.id) {
+          } else if (winnerIdNum === slot2IdNum) {
             winnerId = p2Id;
           }
         }
+        
+        // Fallback: determine winner from scores if winnerId didn't match
+        if (!winnerId && !isDQ && (scoreP1 > 0 || scoreP2 > 0)) {
+          if (scoreP1 > scoreP2) {
+            winnerId = p1Id;
+          } else if (scoreP2 > scoreP1) {
+            winnerId = p2Id;
+          }
+        }
+
 
         // Check if match already exists
         const matchTime = set.completedAt ? new Date(set.completedAt * 1000) : new Date();
         const roundName = set.fullRoundText || set.round || 'Unknown Round';
 
         const [existingMatches] = await pool.execute(
-          'SELECT match_id FROM matches WHERE tournament_id = ? AND player1_id = ? AND player2_id = ? AND round_name = ?',
+          'SELECT match_id, score_p1, score_p2, winner_id FROM matches WHERE tournament_id = ? AND player1_id = ? AND player2_id = ? AND round_name = ?',
           [tournamentId, p1Id, p2Id, roundName]
         );
 
@@ -171,14 +341,43 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
             [tournamentId, p1Id, p2Id, winnerId, roundName, scoreP1, scoreP2, matchTime]
           );
           matchesSynced++;
+        } else {
+          // Match exists - update if we have better data (actual scores instead of 0-0)
+          const existingMatch = existingMatches[0];
+          const existingHasScores = (existingMatch.score_p1 > 0 || existingMatch.score_p2 > 0);
+          const newHasScores = (scoreP1 > 0 || scoreP2 > 0);
+          const existingHasWinner = existingMatch.winner_id !== null;
+          const newHasWinner = winnerId !== null;
+          
+          // Update if: new data has scores and existing doesn't, OR new data has winner and existing doesn't
+          if ((newHasScores && !existingHasScores) || (newHasWinner && !existingHasWinner)) {
+            await pool.execute(
+              `UPDATE matches SET score_p1 = ?, score_p2 = ?, winner_id = ?, match_time = ? WHERE match_id = ?`,
+              [
+                newHasScores ? scoreP1 : existingMatch.score_p1,
+                newHasScores ? scoreP2 : existingMatch.score_p2,
+                newHasWinner ? winnerId : existingMatch.winner_id,
+                matchTime,
+                existingMatch.match_id
+              ]
+            );
+            matchesUpdated++;
+            matchesUpdatedInEvent++;
+          }
         }
       }
+      
+      // Debug logging
+      console.log(`    Processed: ${processedSets}, Skipped: noSlots=${skippedNoSlots}, noEntrant=${skippedNoEntrant}, noName=${skippedNoName}, Updated: ${matchesUpdatedInEvent}`);
+      
+      // Log first set for debugging if nothing was processed
     }
 
-    console.log(`Sync complete: ${playersSynced} players, ${matchesSynced} matches`);
-    return { tournamentId, playersSynced, matchesSynced };
+    console.log(`  ✓ Sync complete: ${playersSynced} players added, ${playersUpdated} players updated, ${matchesSynced} matches added, ${matchesUpdated} matches updated`);
+    console.log(`========================================\n`);
+    return { tournamentId, playersSynced, playersUpdated, matchesSynced, matchesUpdated };
   } catch (error) {
-    console.error('Error syncing tournament from start.gg:', error);
+    console.error('✗ Error syncing tournament from start.gg:', error.message);
     throw error;
   }
 }

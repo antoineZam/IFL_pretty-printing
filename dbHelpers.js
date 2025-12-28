@@ -26,31 +26,55 @@ async function getOrCreateCurrentTournament() {
 }
 
 // Helper function to get or create a user
-async function getOrCreateUser(username, team = null, flag = null) {
+async function getOrCreateUser(displayName, team = null, flag = null) {
   try {
+    // Parse displayName to extract sponsor and actual username
+    // Format: "SPONSOR | PlayerName" or just "PlayerName"
+    let username = displayName;
+    let sponsor = team || null;
+    
+    if (displayName && displayName.includes(' | ')) {
+      const parts = displayName.split(' | ');
+      sponsor = parts[0];
+      username = parts.slice(1).join(' | ');
+    }
+    
+    // Search by multiple possible formats to avoid duplicates:
+    // 1. Exact username match
+    // 2. The full displayName (old format like "SPONSOR | Name")
+    // 3. Any username ending with the player name after " | "
     let [rows] = await pool.execute(
-      'SELECT * FROM users WHERE username = ?',
-      [username]
+      `SELECT * FROM users 
+       WHERE username = ? 
+       OR username = ?
+       OR username LIKE ?`,
+      [username, displayName, `% | ${username}`]
     );
 
     if (rows.length === 0) {
-      // Create new user
+      // Create new user with sponsor in dedicated column
       const [result] = await pool.execute(
-        'INSERT INTO users (username, country) VALUES (?, ?)',
-        [username, flag || null]
+        'INSERT INTO users (username, sponsor, country) VALUES (?, ?, ?)',
+        [username, sponsor, flag || null]
       );
       return result.insertId;
     }
 
-    // Update user if team/flag provided
-    if (team || flag) {
+    // Found existing user - update with latest data and fix username if needed
+    const existingUser = rows[0];
+    const needsUsernameFixed = existingUser.username.includes(' | ');
+    const newSponsor = sponsor || existingUser.sponsor;
+    const newFlag = flag || existingUser.country;
+    
+    // Update if username needs fixing, or sponsor/flag changed
+    if (needsUsernameFixed || (sponsor && sponsor !== existingUser.sponsor) || (flag && flag !== existingUser.country)) {
       await pool.execute(
-        'UPDATE users SET country = ? WHERE user_id = ?',
-        [flag || rows[0].country, rows[0].user_id]
+        'UPDATE users SET username = ?, sponsor = ?, country = ? WHERE user_id = ?',
+        [username, newSponsor, newFlag, existingUser.user_id]
       );
     }
 
-    return rows[0].user_id;
+    return existingUser.user_id;
   } catch (error) {
     console.error('Error getting/creating user:', error);
     throw error;
@@ -154,13 +178,21 @@ async function saveIFLData(data) {
 async function loadPlayerHistory() {
   try {
     const [rows] = await pool.execute(
-      'SELECT username as name, country as flag FROM users ORDER BY username'
+      'SELECT username, sponsor, country FROM users ORDER BY username'
     );
-    return rows.map(row => ({
-      name: row.name,
-      flag: row.flag || '',
-      team: '' // Teams not stored in users table
-    }));
+    return rows.map(row => {
+      // Build display name with sponsor prefix for overlay controllers
+      const username = row.username || '';
+      const sponsor = row.sponsor || '';
+      const displayName = sponsor ? `${sponsor} | ${username}` : username;
+      
+      return {
+        name: displayName, // Full display name with sponsor for overlay
+        username: username, // Raw username for searching
+        flag: row.country || '',
+        team: sponsor // Sponsor/team from dedicated column
+      };
+    });
   } catch (error) {
     console.error('Error loading player history:', error);
     return [];

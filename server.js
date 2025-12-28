@@ -29,6 +29,13 @@ if (RIB_ACCESS_KEY) {
     console.log('RIB access key loaded successfully.');
 }
 
+// Check for start.gg API key
+if (process.env.STARTGG_API_KEY) {
+    console.log('start.gg API key loaded successfully.');
+} else {
+    console.warn('WARNING: STARTGG_API_KEY is not defined - start.gg integration disabled');
+}
+
 const port = 3000;
 const app = express();
 const server = http.createServer(app);
@@ -279,6 +286,141 @@ app.get('/api/startgg/search', async (req, res) => {
     }
 });
 
+// Get all Iron Fist League tournaments
+app.get('/api/startgg/ifl/tournaments', async (req, res) => {
+    try {
+        const tournaments = await startgg.searchIronFistLeagueTournaments(50);
+        res.status(200).json(tournaments);
+    } catch (error) {
+        console.error('Error fetching IFL tournaments:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch IFL tournaments' });
+    }
+});
+
+// Test fetching a specific slug directly
+app.get('/api/startgg/test/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        console.log(`Testing slug: ${slug}`);
+        const data = await startgg.getTournamentBySlug(slug);
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error testing slug:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Test endpoint - search for a tournament by full slug (no DB needed)
+app.get('/api/startgg/search-slug/:slug', async (req, res) => {
+    try {
+        const slug = req.params.slug;
+        console.log(`\nSearching for tournament slug: ${slug}`);
+        
+        // Try with and without tournament/ prefix
+        const slugsToTry = [
+            slug,
+            `tournament/${slug}`,
+            slug.replace('tournament/', '')
+        ];
+        
+        for (const s of slugsToTry) {
+            try {
+                console.log(`  Trying: ${s}`);
+                const data = await startgg.getTournamentBySlug(s);
+                if (data && data.tournament) {
+                    console.log(`  ✓ Found: ${data.tournament.name}`);
+                    return res.json(data);
+                }
+            } catch (e) {
+                console.log(`  ✗ Not found: ${e.message}`);
+            }
+        }
+        
+        res.status(404).json({ error: 'Tournament not found with any slug variation' });
+    } catch (error) {
+        console.error('Error:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get specific IFL tournament by number (e.g., iron-fist-league-1, iron-fist-league-2-finals)
+app.get('/api/startgg/ifl/:number', async (req, res) => {
+    try {
+        const { number } = req.params;
+        const { suffix } = req.query; // Optional suffix like "finals", "grand-finals"
+        const data = await startgg.getIFLTournamentByNumber(number, suffix || '');
+        if (!data) {
+            return res.status(404).json({ error: 'Tournament not found' });
+        }
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching IFL tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch IFL tournament' });
+    }
+});
+
+// Sync all Iron Fist League tournaments to database
+app.post('/api/startgg/ifl/sync-all', async (req, res) => {
+    console.log('\n========================================');
+    console.log('SYNC ALL IFL TOURNAMENTS - Starting');
+    console.log('========================================\n');
+    
+    try {
+        console.log('Step 1: Searching for IFL tournaments...');
+        const tournaments = await startgg.searchIronFistLeagueTournaments(50);
+        console.log(`Found ${tournaments.length} tournaments to sync\n`);
+        
+        const results = [];
+        
+        for (let i = 0; i < tournaments.length; i++) {
+            const tournament = tournaments[i];
+            console.log(`\n[${i + 1}/${tournaments.length}] Syncing: ${tournament.name}`);
+            console.log(`  Slug: ${tournament.slug}`);
+            
+            try {
+                const result = await startggSync.syncTournamentFromStartGG(tournament.slug);
+                console.log(`  ✓ Success: ${result.playersSynced} players added, ${result.playersUpdated || 0} updated, ${result.matchesSynced} matches added, ${result.matchesUpdated || 0} updated`);
+                results.push({
+                    slug: tournament.slug,
+                    name: tournament.name,
+                    success: true,
+                    ...result
+                });
+            } catch (e) {
+                console.error(`  ✗ FAILED: ${e.message}`);
+                console.error(`  Stack: ${e.stack}`);
+                results.push({
+                    slug: tournament.slug,
+                    name: tournament.name,
+                    success: false,
+                    error: e.message
+                });
+            }
+        }
+        
+        console.log('\n========================================');
+        console.log('SYNC COMPLETE');
+        console.log(`  Total: ${tournaments.length}`);
+        console.log(`  Success: ${results.filter(r => r.success).length}`);
+        console.log(`  Failed: ${results.filter(r => !r.success).length}`);
+        console.log('========================================\n');
+        
+        res.status(200).json({
+            totalFound: tournaments.length,
+            synced: results.filter(r => r.success).length,
+            failed: results.filter(r => !r.success).length,
+            results
+        });
+    } catch (error) {
+        console.error('========================================');
+        console.error('SYNC FAILED WITH ERROR:');
+        console.error(error.message);
+        console.error(error.stack);
+        console.error('========================================');
+        res.status(500).json({ error: error.message || 'Failed to sync IFL tournaments' });
+    }
+});
+
 // Get tournament information
 app.get('/api/startgg/tournament/:slug', async (req, res) => {
     try {
@@ -401,8 +543,8 @@ app.get('/api/startgg/player/:playerId/matches', async (req, res) => {
     }
 });
 
-// Get all tournaments from database
-app.get('/api/startgg/tournaments', async (req, res) => {
+// Get all tournaments from DATABASE (use /api/db/ prefix)
+app.get('/api/db/tournaments', async (req, res) => {
     try {
         const pool = require('./db');
         const [tournaments] = await pool.execute(
@@ -415,13 +557,127 @@ app.get('/api/startgg/tournaments', async (req, res) => {
     }
 });
 
-// Get matches for a tournament from database
-app.get('/api/startgg/tournament/:tournamentId/matches', async (req, res) => {
+// Get tournament stats with participant counts for charts - fetches from start.gg for accurate attendee counts
+app.get('/api/db/tournaments/stats', async (req, res) => {
+    try {
+        const startgg = require('./startgg');
+        const pool = require('./db');
+        
+        // Fetch IFL tournaments from start.gg for accurate numAttendees
+        const iflTournaments = await startgg.searchIronFistLeagueTournaments(15);
+        
+        // Sort by date and format for the chart
+        const stats = iflTournaments
+            .sort((a, b) => (a.startAt || 0) - (b.startAt || 0))
+            .map(t => {
+                // Extract IFL number from name or slug if possible
+                const iflMatch = t.name.match(/(?:Iron Fist League|IFL)\s*#?(\d+)/i) || 
+                                 t.slug.match(/iron-fist-league-(\d+)/i);
+                const iflNumber = iflMatch ? parseInt(iflMatch[1]) : null;
+                
+                return {
+                    tournament_id: t.id,
+                    name: t.name,
+                    start_date: t.startAt ? new Date(t.startAt * 1000).toISOString() : null,
+                    status: 'completed',
+                    participant_count: t.numAttendees || 0,
+                    match_count: 0, // Will be enriched from DB if needed
+                    ifl_number: iflNumber
+                };
+            });
+        
+        // Optionally enrich with match counts from local DB
+        const enrichedStats = await Promise.all(stats.map(async (tournament) => {
+            try {
+                // Try to find matching tournament in local DB by name
+                const [dbMatches] = await pool.execute(
+                    `SELECT COUNT(*) as match_count FROM matches m 
+                     JOIN tournaments t ON m.tournament_id = t.tournament_id 
+                     WHERE t.name LIKE ?`,
+                    [`%${tournament.name.substring(0, 30)}%`]
+                );
+                return {
+                    ...tournament,
+                    match_count: dbMatches[0]?.match_count || 0
+                };
+            } catch {
+                return tournament;
+            }
+        }));
+        
+        res.status(200).json({ stats: enrichedStats });
+    } catch (error) {
+        console.error('Error fetching tournament stats:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch tournament stats' });
+    }
+});
+
+// Get league standings from start.gg API
+app.get('/api/db/league/standings', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 8;
+        const startgg = require('./startgg');
+        
+        // Fetch standings directly from start.gg league API
+        const standings = await startgg.getLeagueStandings('iron-fist-league', limit);
+        
+        // Map country names to 2-letter codes for flag display
+        const countryCodeMap = {
+            'france': 'fr', 'germany': 'de', 'united states': 'us', 'united kingdom': 'gb',
+            'spain': 'es', 'italy': 'it', 'japan': 'jp', 'south korea': 'kr', 'china': 'cn',
+            'canada': 'ca', 'australia': 'au', 'brazil': 'br', 'mexico': 'mx', 'netherlands': 'nl',
+            'belgium': 'be', 'sweden': 'se', 'poland': 'pl', 'portugal': 'pt', 'switzerland': 'ch',
+            'austria': 'at', 'denmark': 'dk', 'norway': 'no', 'finland': 'fi', 'ireland': 'ie',
+            'russia': 'ru', 'turkey': 'tr', 'greece': 'gr', 'czech republic': 'cz', 'romania': 'ro',
+            'hungary': 'hu', 'slovakia': 'sk', 'croatia': 'hr', 'slovenia': 'si', 'bulgaria': 'bg',
+            'estonia': 'ee', 'latvia': 'lv', 'lithuania': 'lt', 'malta': 'mt', 'saudi arabia': 'sa',
+            'uae': 'ae', 'israel': 'il', 'south africa': 'za', 'egypt': 'eg', 'morocco': 'ma',
+            'tunisia': 'tn', 'algeria': 'dz', 'nigeria': 'ng', 'kenya': 'ke', 'pakistan': 'pk',
+            'india': 'in', 'singapore': 'sg', 'malaysia': 'my', 'philippines': 'ph', 'indonesia': 'id',
+            'thailand': 'th', 'vietnam': 'vn', 'taiwan': 'tw', 'hong kong': 'hk', 'new zealand': 'nz',
+            'argentina': 'ar', 'chile': 'cl', 'colombia': 'co', 'peru': 'pe', 'venezuela': 've',
+            'puerto rico': 'pr'
+        };
+        
+        const formattedStandings = standings.map(player => {
+            // Convert country name to code if needed
+            let countryCode = player.country;
+            if (player.country && player.country.length > 2) {
+                countryCode = countryCodeMap[player.country.toLowerCase()] || null;
+            }
+            
+            return {
+                rank: player.rank,
+                user_id: player.playerId,
+                username: player.username,
+                sponsor: player.sponsor,
+                country: countryCode,
+                wins: 0, // Not provided by standings API
+                losses: 0,
+                total_matches: 0,
+                tournaments_played: 0,
+                points: player.points
+            };
+        });
+        
+        res.status(200).json({ standings: formattedStandings });
+    } catch (error) {
+        console.error('Error fetching league standings:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch league standings' });
+    }
+});
+
+// Get matches for a tournament from DATABASE (use /api/db/tournament/... to distinguish from start.gg API)
+app.get('/api/db/tournament/:tournamentId/matches', async (req, res) => {
     try {
         const { tournamentId } = req.params;
         const pool = require('./db');
+        
+        console.log(`[DB] Fetching matches for tournament_id: ${tournamentId}`);
+        
         const [matches] = await pool.execute(
-            `SELECT m.*, 
+            `SELECT m.match_id, m.tournament_id, m.player1_id, m.player2_id, 
+                    m.winner_id, m.round_name, m.score_p1, m.score_p2, m.match_time,
                     p1.username as p1Name, p1.country as p1Flag,
                     p2.username as p2Name, p2.country as p2Flag
              FROM matches m
@@ -431,10 +687,263 @@ app.get('/api/startgg/tournament/:tournamentId/matches', async (req, res) => {
              ORDER BY m.match_time DESC`,
             [tournamentId]
         );
+        
+        console.log(`[DB] Found ${matches.length} matches for tournament ${tournamentId}`);
+        if (matches.length > 0) {
+            console.log(`[DB] First match: ${matches[0].p1Name} vs ${matches[0].p2Name}`);
+        }
+        
         res.status(200).json({ matches });
     } catch (error) {
         console.error('Error fetching tournament matches:', error);
         res.status(500).json({ error: error.message || 'Failed to fetch tournament matches' });
+    }
+});
+
+// Debug endpoint to check database state
+app.get('/api/debug/db-check', async (req, res) => {
+    try {
+        const pool = require('./db');
+        
+        // Get table structures
+        const [usersColumns] = await pool.execute('DESCRIBE users');
+        const [matchesColumns] = await pool.execute('DESCRIBE matches');
+        
+        // Check tables
+        const [users] = await pool.execute('SELECT COUNT(*) as count FROM users');
+        const [matches] = await pool.execute('SELECT COUNT(*) as count FROM matches');
+        const [tournaments] = await pool.execute('SELECT COUNT(*) as count FROM tournaments');
+        
+        // Get sample data
+        const [sampleUsers] = await pool.execute('SELECT * FROM users LIMIT 5');
+        const [sampleMatches] = await pool.execute('SELECT * FROM matches LIMIT 5');
+        
+        // Test the JOIN query
+        const [joinTest] = await pool.execute(`
+            SELECT m.*, p1.username as p1Name, p2.username as p2Name
+            FROM matches m
+            LEFT JOIN users p1 ON m.player1_id = p1.user_id
+            LEFT JOIN users p2 ON m.player2_id = p2.user_id
+            LIMIT 3
+        `);
+        
+        res.json({
+            tableStructures: {
+                users: usersColumns.map(c => ({ field: c.Field, type: c.Type })),
+                matches: matchesColumns.map(c => ({ field: c.Field, type: c.Type }))
+            },
+            counts: {
+                users: users[0].count,
+                matches: matches[0].count,
+                tournaments: tournaments[0].count
+            },
+            sampleUsers,
+            sampleMatches,
+            joinTest
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message, stack: error.stack });
+    }
+});
+
+// Get all players from database
+app.get('/api/startgg/players', async (req, res) => {
+    try {
+        const pool = require('./db');
+        const [players] = await pool.execute(
+            `SELECT u.*, 
+                    COUNT(DISTINCT m.match_id) as total_matches,
+                    SUM(CASE WHEN m.winner_id = u.user_id THEN 1 ELSE 0 END) as wins
+             FROM users u
+             LEFT JOIN matches m ON u.user_id = m.player1_id OR u.user_id = m.player2_id
+             GROUP BY u.user_id
+             ORDER BY total_matches DESC, u.username ASC`
+        );
+        res.status(200).json({ players });
+    } catch (error) {
+        console.error('Error fetching players:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch players' });
+    }
+});
+
+// Update player info
+app.put('/api/db/player/:playerId', async (req, res) => {
+    try {
+        const { playerId } = req.params;
+        const { username, sponsor, country, main_character } = req.body;
+        const pool = require('./db');
+        
+        // Build dynamic update query based on provided fields
+        const updates = [];
+        const values = [];
+        
+        if (username !== undefined) {
+            updates.push('username = ?');
+            values.push(username);
+        }
+        if (sponsor !== undefined) {
+            updates.push('sponsor = ?');
+            values.push(sponsor || null);
+        }
+        if (country !== undefined) {
+            updates.push('country = ?');
+            values.push(country || null);
+        }
+        if (main_character !== undefined) {
+            updates.push('main_character = ?');
+            values.push(main_character || null);
+        }
+        
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No fields to update' });
+        }
+        
+        values.push(playerId);
+        
+        await pool.execute(
+            `UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`,
+            values
+        );
+        
+        // Return updated player
+        const [players] = await pool.execute(
+            `SELECT u.*, 
+                    COUNT(DISTINCT m.match_id) as total_matches,
+                    SUM(CASE WHEN m.winner_id = u.user_id THEN 1 ELSE 0 END) as wins
+             FROM users u
+             LEFT JOIN matches m ON u.user_id = m.player1_id OR u.user_id = m.player2_id
+             WHERE u.user_id = ?
+             GROUP BY u.user_id`,
+            [playerId]
+        );
+        
+        // Broadcast updated player history to all connected overlay controllers
+        try {
+            const updatedHistory = await dbHelpers.loadPlayerHistory();
+            playerHistory = updatedHistory; // Update cached history
+            io.emit('history-update', updatedHistory);
+            console.log(`[Player Update] Player ${playerId} updated, broadcasted to ${io.engine.clientsCount} clients`);
+        } catch (historyError) {
+            console.error('Error broadcasting player history:', historyError);
+        }
+        
+        res.status(200).json({ success: true, player: players[0] });
+    } catch (error) {
+        console.error('Error updating player:', error);
+        res.status(500).json({ error: error.message || 'Failed to update player' });
+    }
+});
+
+// Cleanup player names - extract sponsors from "Sponsor | PlayerName" format and merge duplicates
+app.post('/api/db/players/cleanup', async (req, res) => {
+    try {
+        const pool = require('./db');
+        
+        // Find all players with " | " in their username (old format)
+        const [playersToFix] = await pool.execute(
+            "SELECT user_id, username, sponsor, country FROM users WHERE username LIKE '% | %'"
+        );
+        
+        let fixed = 0;
+        let merged = 0;
+        
+        for (const player of playersToFix) {
+            const parts = player.username.split(' | ');
+            if (parts.length >= 2) {
+                const extractedSponsor = parts[0];
+                const actualName = parts.slice(1).join(' | '); // Handle cases like "A | B | C"
+                
+                // Check if a player with the clean name already exists
+                const [existingPlayers] = await pool.execute(
+                    'SELECT user_id, sponsor, country FROM users WHERE username = ? AND user_id != ?',
+                    [actualName, player.user_id]
+                );
+                
+                if (existingPlayers.length > 0) {
+                    // Duplicate exists! Merge by updating match references and deleting the old format player
+                    const keepPlayer = existingPlayers[0];
+                    const deletePlayerId = player.user_id;
+                    const keepPlayerId = keepPlayer.user_id;
+                    
+                    // Update all match references from old player to the kept player
+                    await pool.execute(
+                        'UPDATE matches SET player1_id = ? WHERE player1_id = ?',
+                        [keepPlayerId, deletePlayerId]
+                    );
+                    await pool.execute(
+                        'UPDATE matches SET player2_id = ? WHERE player2_id = ?',
+                        [keepPlayerId, deletePlayerId]
+                    );
+                    await pool.execute(
+                        'UPDATE matches SET winner_id = ? WHERE winner_id = ?',
+                        [keepPlayerId, deletePlayerId]
+                    );
+                    
+                    // Update the kept player with sponsor/country if they don't have it
+                    const newSponsor = keepPlayer.sponsor || extractedSponsor;
+                    const newCountry = keepPlayer.country || player.country;
+                    await pool.execute(
+                        'UPDATE users SET sponsor = ?, country = ? WHERE user_id = ?',
+                        [newSponsor, newCountry, keepPlayerId]
+                    );
+                    
+                    // Delete the duplicate (old format) player
+                    await pool.execute('DELETE FROM users WHERE user_id = ?', [deletePlayerId]);
+                    
+                    merged++;
+                    console.log(`[Cleanup] Merged: "${player.username}" (id:${deletePlayerId}) -> "${actualName}" (id:${keepPlayerId})`);
+                } else {
+                    // No duplicate - just fix the name format
+                    await pool.execute(
+                        'UPDATE users SET username = ?, sponsor = ? WHERE user_id = ?',
+                        [actualName, extractedSponsor, player.user_id]
+                    );
+                    fixed++;
+                    console.log(`[Cleanup] Fixed: "${player.username}" -> username: "${actualName}", sponsor: "${extractedSponsor}"`);
+                }
+            }
+        }
+        
+        // Broadcast updated player history
+        const updatedHistory = await dbHelpers.loadPlayerHistory();
+        playerHistory = updatedHistory;
+        io.emit('history-update', updatedHistory);
+        
+        const message = `Fixed ${fixed} player names, merged ${merged} duplicates`;
+        res.status(200).json({ 
+            success: true, 
+            message,
+            fixed,
+            merged
+        });
+    } catch (error) {
+        console.error('Error cleaning up player names:', error);
+        res.status(500).json({ error: error.message || 'Failed to cleanup player names' });
+    }
+});
+
+// Get player match history from database
+app.get('/api/startgg/player/:playerId/matches', async (req, res) => {
+    try {
+        const { playerId } = req.params;
+        const pool = require('./db');
+        const [matches] = await pool.execute(
+            `SELECT m.*, 
+                    p1.username as p1Name, p1.country as p1Flag,
+                    p2.username as p2Name, p2.country as p2Flag,
+                    t.name as tournamentName
+             FROM matches m
+             LEFT JOIN users p1 ON m.player1_id = p1.user_id
+             LEFT JOIN users p2 ON m.player2_id = p2.user_id
+             LEFT JOIN tournaments t ON m.tournament_id = t.tournament_id
+             WHERE m.player1_id = ? OR m.player2_id = ?
+             ORDER BY m.match_time DESC`,
+            [playerId, playerId]
+        );
+        res.status(200).json({ matches });
+    } catch (error) {
+        console.error('Error fetching player matches:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch player matches' });
     }
 });
 
