@@ -99,8 +99,8 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
         return <div className="w-[1920px] h-[1080px]" />;
     }
     
-    const p1CharImg = `/source/overlay/run_it_back/characters/vs_screen/P1/${match.p1Character.toLowerCase()}.png`;
-    const p2CharImg = `/source/overlay/run_it_back/characters/vs_screen/P2/${match.p2Character.toLowerCase()}.png`;
+    const p1CharImg = `/source/overlay/characters/vs_screen/P1/${match.p1Character.toLowerCase()}.png`;
+    const p2CharImg = `/source/overlay/characters/vs_screen/P2/${match.p2Character.toLowerCase()}.png`;
     
     // Format display based on winScore
     const winScore = matchCards.winScore || 3;

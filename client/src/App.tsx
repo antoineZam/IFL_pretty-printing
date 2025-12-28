@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
+import TDEUDashboardPage from './pages/TDEUDashboardPage';
+import RIBDashboardPage from './pages/RIBDashboardPage';
 import TournamentDataPage from './pages/TournamentDataPage';
 import IFLMatchControlPage from './pages/IFLMatchControlPage';
 import IFLMatchOverlayPage from './pages/IFLMatchOverlayPage';
@@ -22,6 +24,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard/tdeu" element={<TDEUDashboardPage />} />
+        <Route path="/dashboard/rib" element={<RIBDashboardPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/tournament-data" element={<TournamentDataPage />} />
         <Route path="/ifl/match-control" element={<IFLMatchControlPage />} />
