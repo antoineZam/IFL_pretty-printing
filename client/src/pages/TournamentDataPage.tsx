@@ -48,6 +48,26 @@ interface Player {
     wins?: number;
 }
 
+interface TournamentStanding {
+    user_id: number;
+    username: string;
+    sponsor?: string;
+    country?: string;
+    wins: number;
+    losses: number;
+    total_matches: number;
+    placement: number;
+}
+
+interface PlayerRanking {
+    tournament_id: number;
+    tournament_name: string;
+    start_date: string;
+    wins: number;
+    losses: number;
+    total_matches: number;
+}
+
 const TournamentDataPage = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'database' | 'startgg' | 'players'>('database');
@@ -77,6 +97,14 @@ const TournamentDataPage = () => {
     const [editForm, setEditForm] = useState({ username: '', sponsor: '', country: '', main_character: '' });
     const [savingPlayer, setSavingPlayer] = useState(false);
     const [playerSearch, setPlayerSearch] = useState('');
+    
+    // Tournament standings state
+    const [tournamentStandings, setTournamentStandings] = useState<TournamentStanding[]>([]);
+    const [loadingStandings, setLoadingStandings] = useState(false);
+    
+    // Player rankings state
+    const [playerRankings, setPlayerRankings] = useState<PlayerRanking[]>([]);
+    const [loadingRankings, setLoadingRankings] = useState(false);
 
     useEffect(() => {
         const connectionKey = localStorage.getItem('connectionKey');
@@ -112,6 +140,32 @@ const TournamentDataPage = () => {
             console.error('Error loading matches:', error);
         } finally {
             setLoadingMatches(false);
+        }
+    };
+
+    const loadTournamentStandings = async (tournamentId: number) => {
+        setLoadingStandings(true);
+        try {
+            const res = await fetch(`/api/db/tournament/${tournamentId}/standings?limit=8`);
+            const data = await res.json();
+            setTournamentStandings(data.standings || []);
+        } catch (error) {
+            console.error('Error loading standings:', error);
+        } finally {
+            setLoadingStandings(false);
+        }
+    };
+
+    const loadPlayerRankings = async (playerId: number) => {
+        setLoadingRankings(true);
+        try {
+            const res = await fetch(`/api/db/player/${playerId}/rankings`);
+            const data = await res.json();
+            setPlayerRankings(data.rankings || []);
+        } catch (error) {
+            console.error('Error loading rankings:', error);
+        } finally {
+            setLoadingRankings(false);
         }
     };
 
@@ -311,7 +365,7 @@ const TournamentDataPage = () => {
 
                 {/* Database Tab */}
                 {activeTab === 'database' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                         {/* Tournaments List */}
                         <div className="lg:col-span-2">
                             <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
@@ -336,6 +390,7 @@ const TournamentDataPage = () => {
                                                 onClick={() => {
                                                     setSelectedTournament(tournament);
                                                     loadTournamentMatches(tournament.tournament_id);
+                                                    loadTournamentStandings(tournament.tournament_id);
                                                 }}
                                                 className={`
                                                     w-full text-left p-4 border-b border-white/5 transition-all
@@ -410,6 +465,82 @@ const TournamentDataPage = () => {
                                                     </div>
                                                     <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded whitespace-nowrap shrink-0">
                                                         {match.round_name}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Tournament Top 8 */}
+                        <div className="lg:col-span-2">
+                            <div className="bg-gradient-to-b from-amber-500/5 to-transparent border border-amber-500/10 rounded-xl overflow-hidden">
+                                <div className="p-4 border-b border-white/5 flex items-center gap-2">
+                                    <Trophy size={16} className="text-amber-400" />
+                                    <h2 className="font-medium text-white text-sm">Top 8</h2>
+                                </div>
+
+                                {!selectedTournament ? (
+                                    <div className="text-center py-12 text-gray-600">
+                                        <Trophy size={28} className="mx-auto mb-2 opacity-30" />
+                                        <p className="text-xs">Select a tournament</p>
+                                    </div>
+                                ) : loadingStandings ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <RefreshCw className="animate-spin text-gray-600" size={20} />
+                                    </div>
+                                ) : tournamentStandings.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-600">
+                                        <Trophy size={28} className="mx-auto mb-2 opacity-30" />
+                                        <p className="text-xs">No standings data</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-white/5">
+                                        {tournamentStandings.map((player) => (
+                                            <div 
+                                                key={player.user_id}
+                                                className={`px-3 py-2 flex items-center gap-2 ${
+                                                    player.placement <= 3 ? 'bg-gradient-to-r from-amber-500/5 to-transparent' : ''
+                                                }`}
+                                            >
+                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                                    player.placement === 1 ? 'bg-amber-500 text-black' :
+                                                    player.placement === 2 ? 'bg-gray-400 text-black' :
+                                                    player.placement === 3 ? 'bg-amber-700 text-white' :
+                                                    'bg-white/10 text-gray-400'
+                                                }`}>
+                                                    {player.placement}
+                                                </div>
+
+                                                {player.country ? (
+                                                    <img 
+                                                        src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`}
+                                                        alt={player.country}
+                                                        className="w-4 h-auto"
+                                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                    />
+                                                ) : (
+                                                    <div className="w-4" />
+                                                )}
+
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-baseline gap-1 truncate">
+                                                        {player.sponsor && (
+                                                            <span className="text-[9px] text-gray-500">{player.sponsor}</span>
+                                                        )}
+                                                        <span className={`text-xs font-medium truncate ${
+                                                            player.placement === 1 ? 'text-amber-400' : 'text-white'
+                                                        }`}>
+                                                            {player.username}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-right shrink-0">
+                                                    <span className="text-[10px] text-gray-500">
+                                                        {player.wins}W-{player.losses}L
                                                     </span>
                                                 </div>
                                             </div>
@@ -587,7 +718,7 @@ const TournamentDataPage = () => {
 
                 {/* Players Tab */}
                 {activeTab === 'players' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                         {/* Players List */}
                         <div className="lg:col-span-2">
                             <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
@@ -645,6 +776,7 @@ const TournamentDataPage = () => {
                                                         onClick={() => {
                                                             setSelectedPlayer(player);
                                                             loadPlayerMatches(player.user_id);
+                                                            loadPlayerRankings(player.user_id);
                                                         }}
                                                         className="min-w-0 flex-1 text-left"
                                                     >
@@ -745,6 +877,61 @@ const TournamentDataPage = () => {
                                                         <span className={`text-sm font-medium truncate block ${match.winner_id === match.player2_id ? 'text-emerald-400' : 'text-gray-300'}`}>
                                                             {match.p2Name || 'Unknown'}
                                                         </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Player Tournament Results */}
+                        <div className="lg:col-span-2">
+                            <div className="bg-gradient-to-b from-purple-500/5 to-transparent border border-purple-500/10 rounded-xl overflow-hidden">
+                                <div className="p-4 border-b border-white/5 flex items-center gap-2">
+                                    <Trophy size={16} className="text-purple-400" />
+                                    <h2 className="font-medium text-white text-sm">Tournament Results</h2>
+                                </div>
+
+                                {!selectedPlayer ? (
+                                    <div className="text-center py-12 text-gray-600">
+                                        <Trophy size={28} className="mx-auto mb-2 opacity-30" />
+                                        <p className="text-xs">Select a player</p>
+                                    </div>
+                                ) : loadingRankings ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <RefreshCw className="animate-spin text-gray-600" size={20} />
+                                    </div>
+                                ) : playerRankings.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-600">
+                                        <Trophy size={28} className="mx-auto mb-2 opacity-30" />
+                                        <p className="text-xs">No tournament results</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto">
+                                        {playerRankings.map((ranking) => (
+                                            <div 
+                                                key={ranking.tournament_id}
+                                                className="px-3 py-2.5 hover:bg-white/[0.02]"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-medium text-white truncate">
+                                                            {ranking.tournament_name}
+                                                        </p>
+                                                        <p className="text-[10px] text-gray-500 mt-0.5">
+                                                            {formatDate(ranking.start_date)}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="text-right shrink-0">
+                                                        <p className={`text-sm font-bold ${ranking.wins > ranking.losses ? 'text-emerald-400' : ranking.wins < ranking.losses ? 'text-red-400' : 'text-gray-300'}`}>
+                                                            {ranking.wins}W - {ranking.losses}L
+                                                        </p>
+                                                        <p className="text-[10px] text-gray-500">
+                                                            {ranking.total_matches} sets
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>

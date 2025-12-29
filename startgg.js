@@ -538,6 +538,146 @@ async function getLeagueStandings(leagueSlug = 'iron-fist-league', limit = 8) {
   }
 }
 
+// Get event standings from start.gg (top placements for a tournament event)
+async function getEventStandings(eventSlug, limit = 8) {
+  const query = `
+    query EventStandings($slug: String!, $page: Int!, $perPage: Int!) {
+      event(slug: $slug) {
+        id
+        name
+        standings(query: { page: $page, perPage: $perPage }) {
+          nodes {
+            placement
+            entrant {
+              id
+              name
+              participants {
+                gamerTag
+                prefix
+                user {
+                  location {
+                    country
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const data = await queryStartGG(query, { 
+      slug: eventSlug, 
+      page: 1, 
+      perPage: limit 
+    });
+    
+    if (!data || !data.event || !data.event.standings) {
+      return [];
+    }
+
+    return data.event.standings.nodes.map(node => {
+      const participant = node.entrant?.participants?.[0];
+      const entrantName = node.entrant?.name || '';
+      
+      let username = participant?.gamerTag || entrantName;
+      let sponsor = participant?.prefix || null;
+      
+      if (!sponsor && entrantName.includes(' | ')) {
+        const parts = entrantName.split(' | ');
+        sponsor = parts[0];
+        username = parts.slice(1).join(' | ');
+      }
+      
+      return {
+        placement: node.placement,
+        entrantId: node.entrant?.id,
+        username: username || 'Unknown',
+        sponsor: sponsor,
+        country: participant?.user?.location?.country || null
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching event standings:', error.message);
+    return [];
+  }
+}
+
+// Get player's placements across tournaments in a league
+async function getPlayerLeaguePlacements(leagueSlug, playerName, limit = 20) {
+  // First get all events in the league
+  const query = `
+    query LeagueEvents($slug: String!) {
+      league(slug: $slug) {
+        id
+        name
+        events(query: { page: 1, perPage: 50 }) {
+          nodes {
+            id
+            name
+            slug
+            tournament {
+              name
+            }
+            standings(query: { page: 1, perPage: 64 }) {
+              nodes {
+                placement
+                entrant {
+                  name
+                  participants {
+                    gamerTag
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const data = await queryStartGG(query, { slug: leagueSlug });
+    
+    if (!data || !data.league || !data.league.events) {
+      return [];
+    }
+
+    const placements = [];
+    const normalizedPlayerName = playerName.toLowerCase().trim();
+
+    for (const event of data.league.events.nodes) {
+      if (!event.standings?.nodes) continue;
+      
+      for (const standing of event.standings.nodes) {
+        const gamerTag = standing.entrant?.participants?.[0]?.gamerTag || standing.entrant?.name || '';
+        const normalizedTag = gamerTag.toLowerCase().trim();
+        
+        // Check if this is the player we're looking for
+        if (normalizedTag === normalizedPlayerName || 
+            normalizedTag.includes(normalizedPlayerName) ||
+            normalizedPlayerName.includes(normalizedTag)) {
+          placements.push({
+            eventId: event.id,
+            eventName: event.name,
+            tournamentName: event.tournament?.name || event.name,
+            placement: standing.placement,
+            slug: event.slug
+          });
+          break;
+        }
+      }
+    }
+
+    return placements.slice(0, limit);
+  } catch (error) {
+    console.error('Error fetching player placements:', error.message);
+    return [];
+  }
+}
+
 module.exports = {
   getTournamentBySlug,
   getTournamentEvents,
@@ -551,6 +691,8 @@ module.exports = {
   getIFLTournamentByNumber,
   getAllTournamentSets,
   getLeagueStandings,
+  getEventStandings,
+  getPlayerLeaguePlacements,
   queryStartGG
 };
 
