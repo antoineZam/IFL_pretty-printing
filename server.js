@@ -700,6 +700,96 @@ app.get('/api/db/tournament/:tournamentId/matches', async (req, res) => {
     }
 });
 
+// Get tournament standings (top 8) - calculates from matches in DB
+app.get('/api/db/tournament/:tournamentId/standings', async (req, res) => {
+    try {
+        const { tournamentId } = req.params;
+        const limit = Math.min(Math.max(parseInt(req.query.limit) || 8, 1), 64); // Sanitize limit
+        const pool = require('./db');
+        
+        // Calculate standings based on wins/losses in this tournament
+        const [standings] = await pool.execute(`
+            SELECT 
+                u.user_id,
+                u.username,
+                u.sponsor,
+                u.country,
+                SUM(CASE WHEN m.winner_id = u.user_id THEN 1 ELSE 0 END) as wins,
+                SUM(CASE WHEN m.winner_id IS NOT NULL AND m.winner_id != u.user_id THEN 1 ELSE 0 END) as losses,
+                COUNT(*) as total_matches
+            FROM users u
+            JOIN matches m ON (m.player1_id = u.user_id OR m.player2_id = u.user_id)
+            WHERE m.tournament_id = ?
+            GROUP BY u.user_id, u.username, u.sponsor, u.country
+            ORDER BY wins DESC, losses ASC, total_matches DESC
+            LIMIT ${limit}
+        `, [tournamentId]);
+        
+        // Add placement numbers
+        const standingsWithPlacement = standings.map((player, idx) => ({
+            user_id: player.user_id,
+            username: player.username,
+            sponsor: player.sponsor,
+            country: player.country,
+            wins: parseInt(player.wins) || 0,
+            losses: parseInt(player.losses) || 0,
+            total_matches: parseInt(player.total_matches) || 0,
+            placement: idx + 1
+        }));
+        
+        res.status(200).json({ standings: standingsWithPlacement });
+    } catch (error) {
+        console.error('Error fetching tournament standings:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch tournament standings' });
+    }
+});
+
+// Get player's results across all tournaments
+app.get('/api/db/player/:playerId/rankings', async (req, res) => {
+    try {
+        const { playerId } = req.params;
+        const pool = require('./db');
+        
+        // Get all tournaments the player participated in with their stats
+        const [tournaments] = await pool.execute(`
+            SELECT DISTINCT t.tournament_id, t.name as tournament_name, t.start_date
+            FROM tournaments t
+            JOIN matches m ON m.tournament_id = t.tournament_id
+            WHERE m.player1_id = ? OR m.player2_id = ?
+            ORDER BY t.start_date DESC
+        `, [playerId, playerId]);
+        
+        // For each tournament, get player's wins and losses
+        const rankings = await Promise.all(tournaments.map(async (t) => {
+            const [stats] = await pool.execute(`
+                SELECT 
+                    COUNT(*) as total_matches,
+                    SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as wins
+                FROM matches 
+                WHERE tournament_id = ? AND (player1_id = ? OR player2_id = ?)
+            `, [playerId, t.tournament_id, playerId, playerId]);
+            
+            const wins = parseInt(stats[0]?.wins) || 0;
+            const total = parseInt(stats[0]?.total_matches) || 0;
+            const losses = total - wins;
+            
+            return {
+                tournament_id: t.tournament_id,
+                tournament_name: t.tournament_name,
+                start_date: t.start_date,
+                wins: wins,
+                losses: losses,
+                total_matches: total
+            };
+        }));
+        
+        res.status(200).json({ rankings });
+    } catch (error) {
+        console.error('Error fetching player rankings:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch player rankings' });
+    }
+});
+
 // Debug endpoint to check database state
 app.get('/api/debug/db-check', async (req, res) => {
     try {
