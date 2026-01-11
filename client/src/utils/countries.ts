@@ -38,6 +38,7 @@ export const countries: { [key: string]: string } = {
     "RO": "Romania",
     "RU": "Russia",
     "SA": "Saudi Arabia",
+    "RS": "Serbia",
     "SK": "Slovakia",
     "SI": "Slovenia",
     "ZA": "South Africa",
