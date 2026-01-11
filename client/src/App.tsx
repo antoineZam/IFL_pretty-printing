@@ -16,6 +16,9 @@ import RIBPlayerStatsOverlay from './pages/RIBPlayerStatsOverlay';
 import RIBPartOneOverlay from './pages/RIBPartOneOverlay';
 import RIBStreamOverlay from './pages/RIBStreamOverlay';
 import RIBUnifiedOverlay from './pages/RIBUnifiedOverlay';
+// IFF EWGF Player pages
+import IFFPlayerImportPage from './pages/IFFPlayerImportPage';
+import IFFPlayerRadarOverlay from './pages/IFFPlayerRadarOverlay';
 // Access Guard
 import RIBAccessGuard from './components/RIBAccessGuard';
 
@@ -26,7 +29,7 @@ function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/dashboard/tdeu" element={<TDEUDashboardPage />} />
-        <Route path="/dashboard/rib" element={<RIBDashboardPage />} />
+        <Route path="/dashboard/rib" element={<RIBAccessGuard><RIBDashboardPage /></RIBAccessGuard>} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/tournament-data" element={<TournamentDataPage />} />
         <Route path="/ifl/match-control" element={<IFLMatchControlPage />} />
@@ -41,6 +44,9 @@ function App() {
         <Route path="/rib/player-stats-overlay" element={<RIBPlayerStatsOverlay />} />
         <Route path="/rib/part-one-overlay" element={<RIBPartOneOverlay />} />
         <Route path="/rib/stream-overlay" element={<RIBStreamOverlay />} />
+        {/* IFF EWGF Player routes */}
+        <Route path="/iff/player-import" element={<RIBAccessGuard><IFFPlayerImportPage /></RIBAccessGuard>} />
+        <Route path="/iff/player-stats/:polarisId" element={<IFFPlayerRadarOverlay />} />
       </Routes>
     </BrowserRouter>
   );

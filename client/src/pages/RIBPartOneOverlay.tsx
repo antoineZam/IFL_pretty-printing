@@ -119,7 +119,7 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
             {/* Background Image */}
             <img 
                 key={`bg-${animKey}`}
-                src="/source/overlay/run_it_back/match_card/background.png"
+                src="/source/overlay/match_card/background.png"
                 alt="Background"
                 className="absolute inset-0 w-full h-full object-cover"
                 style={{ animation: `fadeIn 0.4s ease-out` }}
@@ -143,10 +143,10 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                 
                 // Active match uses active_match.png, main event uses guest_match.png, others use regular_match.png
                 const cardBg = isActiveMatch
-                    ? '/source/overlay/run_it_back/match_card/active_match.png'
+                    ? '/source/overlay/match_card/active_match.png'
                     : isMainEvent 
-                        ? '/source/overlay/run_it_back/match_card/guest_match.png'
-                        : '/source/overlay/run_it_back/match_card/regular_match.png';
+                        ? '/source/overlay/match_card/guest_match.png'
+                        : '/source/overlay/match_card/regular_match.png';
                 
                 // Active match and main event both use the "featured" styling (white text)
                 const useFeaturedStyle = isActiveMatch || isMainEvent;

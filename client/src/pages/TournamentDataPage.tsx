@@ -186,14 +186,23 @@ const TournamentDataPage = () => {
     };
 
     const syncTournament = async (slug: string) => {
+        // Strip "tournament/" prefix if present - start.gg returns full path slugs
+        const cleanSlug = slug.replace(/^tournament\//, '');
+        console.log('[syncTournament] Original slug:', slug);
+        console.log('[syncTournament] Clean slug:', cleanSlug);
+        console.log('[syncTournament] API URL:', `/api/startgg/sync/tournament/${cleanSlug}`);
+        
         setSyncingSlug(slug);
         setSyncResult(null);
         try {
-            const res = await fetch(`/api/startgg/sync/tournament/${slug}`, {
+            const res = await fetch(`/api/startgg/sync/tournament/${cleanSlug}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
+            console.log('[syncTournament] Response status:', res.status, res.statusText);
             const data = await res.json();
+            console.log('[syncTournament] Response data:', data);
+            
             if (data.success) {
                 const playerUpdatedMsg = data.playersUpdated ? ` (${data.playersUpdated} updated)` : '';
                 const matchUpdatedMsg = data.matchesUpdated ? `, ${data.matchesUpdated} updated` : '';
@@ -203,6 +212,7 @@ const TournamentDataPage = () => {
                 setSyncResult({ success: false, message: data.error || 'Sync failed' });
             }
         } catch (error) {
+            console.error('[syncTournament] Error:', error);
             setSyncResult({ success: false, message: 'Failed to sync tournament' });
         } finally {
             setSyncingSlug(null);

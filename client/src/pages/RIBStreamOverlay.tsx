@@ -92,7 +92,7 @@ export default function RIBStreamOverlay({ forceShow = false, externalData, exte
             {/* Base Overlay Image */}
             <img 
                 key={`overlay-${animKey}`}
-                src="/source/overlay/run_it_back/match_overlay/runitback_overlay.png"
+                src="/source/overlay/match_overlay/runitback_overlay.png"
                 alt="Overlay"
                 className="absolute inset-0 w-full h-full pointer-events-none"
                 style={{ animation: `fadeIn 0.3s ease-out` }}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords } from 'lucide-react';
+import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database } from 'lucide-react';
 
 interface NavItem {
     name: string;
@@ -104,6 +104,15 @@ const RIBDashboardPage = () => {
         },
     ];
 
+    const ewgfItems: NavItem[] = [
+        {
+            name: "EWGF Player Import",
+            description: "Fetch player data from ewgf.gg",
+            path: "/iff/player-import",
+            icon: <Database size={20} />,
+        },
+    ];
+
     const isLocked = ribKeyRequired && !ribUnlocked;
 
     return (
@@ -173,6 +182,7 @@ const RIBDashboardPage = () => {
                         </Link>
                     </div>
                 ) : (
+                    <>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Main Controls */}
                         <div>
@@ -237,6 +247,46 @@ const RIBDashboardPage = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* EWGF Player Data Section */}
+                    <div className="mt-8">
+                        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+                            <div className="w-1 h-4 bg-cyan-500 rounded-full" />
+                            EWGF Player Data
+                        </h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            {ewgfItems.map((item) => (
+                                item.external ? (
+                                    <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                        <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all group">
+                                            <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
+                                                {item.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-white">{item.name}</h3>
+                                                <p className="text-gray-400 text-sm">{item.description}</p>
+                                            </div>
+                                            <ExternalLink size={16} className="text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                    </Link>
+                                ) : (
+                                    <Link key={item.path} to={item.path}>
+                                        <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all group">
+                                            <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
+                                                {item.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-white">{item.name}</h3>
+                                                <p className="text-gray-400 text-sm">{item.description}</p>
+                                            </div>
+                                            <ChevronLeft size={18} className="text-cyan-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                    </Link>
+                                )
+                            ))}
+                        </div>
+                    </div>
+                    </>
                 )}
             </div>
         </div>

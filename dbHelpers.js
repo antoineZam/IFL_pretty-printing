@@ -345,6 +345,143 @@ async function saveRIBStreamData(data) {
   }
 }
 
+// --- IFF Player Data Functions (iff_players table) ---
+
+async function getAllIFFPlayers() {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT * FROM iff_players ORDER BY name ASC`
+    );
+    return rows;
+  } catch (error) {
+    console.error('Error getting all IFF players:', error);
+    throw error;
+  }
+}
+
+async function getIFFPlayer(id) {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT * FROM iff_players WHERE id = ?`,
+      [id]
+    );
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    console.error('Error getting IFF player:', error);
+    throw error;
+  }
+}
+
+async function saveIFFPlayer(playerData) {
+  try {
+    const {
+      id,
+      name,
+      polaris_id,
+      character_name,
+      division,
+      rank_name,
+      tekken_power,
+      prowess,
+      iff8_ranking,
+      iff8_record,
+      iff8_record_details,
+      iff_history,
+      ranked_wins,
+      ranked_losses,
+      ranked_wl_rate,
+      player_wins,
+      player_losses,
+      player_wl_rate,
+      offense_rating,
+      defense_rating,
+      consistency_rating,
+      adaptability_rating,
+      clutch_rating,
+      experience_rating
+    } = playerData;
+
+    if (id) {
+      // Update existing player
+      await pool.execute(
+        `UPDATE iff_players SET
+          name = ?,
+          polaris_id = ?,
+          character_name = ?,
+          division = ?,
+          rank_name = ?,
+          tekken_power = ?,
+          prowess = ?,
+          iff8_ranking = ?,
+          iff8_record = ?,
+          iff8_record_details = ?,
+          iff_history = ?,
+          ranked_wins = ?,
+          ranked_losses = ?,
+          ranked_wl_rate = ?,
+          player_wins = ?,
+          player_losses = ?,
+          player_wl_rate = ?,
+          offense_rating = ?,
+          defense_rating = ?,
+          consistency_rating = ?,
+          adaptability_rating = ?,
+          clutch_rating = ?,
+          experience_rating = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+        [
+          name, polaris_id || null, character_name || null, division || null,
+          rank_name || null, tekken_power || 0, prowess || 0,
+          iff8_ranking || null, iff8_record || null, iff8_record_details || null,
+          iff_history || null, ranked_wins || 0, ranked_losses || 0,
+          ranked_wl_rate || '0%', player_wins || 0, player_losses || 0,
+          player_wl_rate || '0%', offense_rating || 50, defense_rating || 50,
+          consistency_rating || 50, adaptability_rating || 50,
+          clutch_rating || 50, experience_rating || 50, id
+        ]
+      );
+      return await getIFFPlayer(id);
+    } else {
+      // Insert new player
+      const [result] = await pool.execute(
+        `INSERT INTO iff_players (
+          name, polaris_id, character_name, division, rank_name,
+          tekken_power, prowess, iff8_ranking, iff8_record, iff8_record_details,
+          iff_history, ranked_wins, ranked_losses, ranked_wl_rate,
+          player_wins, player_losses, player_wl_rate,
+          offense_rating, defense_rating, consistency_rating,
+          adaptability_rating, clutch_rating, experience_rating
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          name, polaris_id || null, character_name || null, division || null,
+          rank_name || null, tekken_power || 0, prowess || 0,
+          iff8_ranking || null, iff8_record || null, iff8_record_details || null,
+          iff_history || null, ranked_wins || 0, ranked_losses || 0,
+          ranked_wl_rate || '0%', player_wins || 0, player_losses || 0,
+          player_wl_rate || '0%', offense_rating || 50, defense_rating || 50,
+          consistency_rating || 50, adaptability_rating || 50,
+          clutch_rating || 50, experience_rating || 50
+        ]
+      );
+      return await getIFFPlayer(result.insertId);
+    }
+  } catch (error) {
+    console.error('Error saving IFF player:', error);
+    throw error;
+  }
+}
+
+async function deleteIFFPlayer(id) {
+  try {
+    await pool.execute(`DELETE FROM iff_players WHERE id = ?`, [id]);
+    return true;
+  } catch (error) {
+    console.error('Error deleting IFF player:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   loadIFLData,
   saveIFLData,
@@ -357,6 +494,11 @@ module.exports = {
   loadRIBPlayerStats,
   saveRIBPlayerStats,
   loadRIBStreamData,
-  saveRIBStreamData
+  saveRIBStreamData,
+  // IFF Player functions
+  getAllIFFPlayers,
+  getIFFPlayer,
+  saveIFFPlayer,
+  deleteIFFPlayer
 };
 

@@ -438,7 +438,8 @@ async function findTournamentsByTerm(searchTerm) {
     return data.tournaments.nodes.map(t => ({
       id: t.id,
       name: t.name,
-      slug: t.slug,
+      // Strip "tournament/" prefix if present - start.gg returns full path slugs
+      slug: t.slug ? t.slug.replace(/^tournament\//, '') : t.slug,
       startAt: t.startAt ? new Date(t.startAt * 1000) : null,
       endAt: t.endAt ? new Date(t.endAt * 1000) : null,
       events: t.events || []

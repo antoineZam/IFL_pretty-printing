@@ -138,7 +138,7 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
             {/* Background - VS Background with branding */}
             <img 
                 key={`bg-${animKey}`}
-                src="/source/overlay/run_it_back/player_vs/vs_background.png"
+                src="/source/overlay/player_vs/vs_background.png"
                 alt="Background"
                 className="absolute"
                 style={{ 
@@ -509,8 +509,8 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                     {/* Victory Background Image */}
                     <img 
                         src={p1Victory 
-                            ? '/source/overlay/run_it_back/player_vs/p1_victory.png' 
-                            : '/source/overlay/run_it_back/player_vs/p2_victory.png'
+                            ? '/source/overlay/player_vs/p1_victory.png' 
+                            : '/source/overlay/player_vs/p2_victory.png'
                         }
                         alt="Victory"
                         className="absolute inset-0 w-full h-full object-cover"

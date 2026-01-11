@@ -95,7 +95,7 @@ export default function RIBUnifiedOverlay() {
                 }}
             >
                 <img 
-                    src={`/source/overlay/run_it_back/main_page/Runitback_main_page_part-${matchCards?.partNumber}.png`}
+                    src={`/source/overlay/main_page/Runitback_main_page_part-${matchCards?.partNumber}.png`}
                     alt="Run It Back Main Page"
                     className="w-full h-full object-cover"
                 />

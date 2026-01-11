@@ -10,7 +10,7 @@ const startgg = require('./startgg');
 
 // Set default connection key
 const CONNECTION_KEY = process.env.CONNECTION_KEY;
-const RIB_ACCESS_KEY = process.env.RIB_ACCESS_KEY;
+const IFF_ACCESS_KEY = process.env.IFF_ACCESS_KEY;
 
 if (!CONNECTION_KEY) {
     console.error("FATAL ERROR: CONNECTION_KEY is not defined in your .env file.");
@@ -19,13 +19,13 @@ if (!CONNECTION_KEY) {
     process.exit(1); // Stop the server if the key is not configured
 }
 
-if (!RIB_ACCESS_KEY) {
-    console.warn("WARNING: RIB_ACCESS_KEY is not defined in your .env file.");
+if (!IFF_ACCESS_KEY) {
+    console.warn("WARNING: IFF_ACCESS_KEY is not defined in your .env file.");
     console.warn("Run It Back section will be accessible without additional authentication.");
 }
 
 console.log('Connection key loaded successfully.');
-if (RIB_ACCESS_KEY) {
+if (IFF_ACCESS_KEY) {
     console.log('RIB access key loaded successfully.');
 }
 
@@ -135,12 +135,12 @@ app.post('/api/auth', (req, res) => {
 // RIB Access Key Authentication
 app.post('/api/rib-auth', (req, res) => {
     // If no RIB key is configured, allow access
-    if (!RIB_ACCESS_KEY) {
+    if (!IFF_ACCESS_KEY) {
         res.status(200).json({ success: true, message: 'No RIB key required' });
         return;
     }
     
-    if (req.body.key === RIB_ACCESS_KEY) {
+    if (req.body.key === IFF_ACCESS_KEY) {
         res.status(200).json({ success: true });
     } else {
         res.status(401).json({ success: false, message: 'Invalid RIB access key' });
@@ -149,7 +149,7 @@ app.post('/api/rib-auth', (req, res) => {
 
 // Check if RIB key is required
 app.get('/api/rib-auth/required', (req, res) => {
-    res.status(200).json({ required: !!RIB_ACCESS_KEY });
+    res.status(200).json({ required: !!IFF_ACCESS_KEY });
 });
 
 app.get('/api/history', async (req, res) => {
@@ -486,17 +486,26 @@ app.get('/api/startgg/player/:slug', async (req, res) => {
 
 // Sync tournament from start.gg to database
 app.post('/api/startgg/sync/tournament/:slug', async (req, res) => {
+    console.log('[API /sync/tournament] Received request');
+    console.log('[API /sync/tournament] Slug param:', req.params.slug);
+    console.log('[API /sync/tournament] Full URL:', req.originalUrl);
+    console.log('[API /sync/tournament] Body:', req.body);
+    
     try {
         const { slug } = req.params;
         const { eventSlug } = req.body;
+        console.log('[API /sync/tournament] Starting sync for slug:', slug);
+        
         const result = await startggSync.syncTournamentFromStartGG(slug, eventSlug || null);
+        console.log('[API /sync/tournament] Sync completed successfully:', result);
+        
         res.status(200).json({
             success: true,
             message: 'Tournament synced successfully',
             ...result
         });
     } catch (error) {
-        console.error('Error syncing tournament:', error);
+        console.error('[API /sync/tournament] Error syncing tournament:', error);
         res.status(500).json({ error: error.message || 'Failed to sync tournament' });
     }
 });
@@ -1037,6 +1046,87 @@ app.get('/api/startgg/player/:playerId/matches', async (req, res) => {
     }
 });
 
+
+// --- IFF PLAYER API ROUTES ---
+
+// Get all IFF players
+app.get('/api/iff/players', async (req, res) => {
+    try {
+        const players = await dbHelpers.getAllIFFPlayers();
+        res.status(200).json({ players });
+    } catch (error) {
+        console.error('Error fetching IFF players:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch IFF players' });
+    }
+});
+
+// Get single IFF player by ID
+app.get('/api/iff/player/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const player = await dbHelpers.getIFFPlayer(id);
+        if (!player) {
+            return res.status(404).json({ error: 'Player not found' });
+        }
+        res.status(200).json({ player });
+    } catch (error) {
+        console.error('Error fetching IFF player:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch IFF player' });
+    }
+});
+
+// Add new IFF player
+app.post('/api/iff/player', async (req, res) => {
+    try {
+        const playerData = req.body;
+        if (!playerData.name) {
+            return res.status(400).json({ error: 'Player name is required' });
+        }
+        
+        const player = await dbHelpers.saveIFFPlayer(playerData);
+        
+        // Broadcast update to connected clients
+        io.emit('iff-player-update', player);
+        
+        res.status(200).json({ success: true, player });
+    } catch (error) {
+        console.error('Error saving IFF player:', error);
+        res.status(500).json({ error: error.message || 'Failed to save IFF player' });
+    }
+});
+
+// Update existing IFF player
+app.put('/api/iff/player/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const playerData = { ...req.body, id: parseInt(id) };
+        
+        const player = await dbHelpers.saveIFFPlayer(playerData);
+        if (!player) {
+            return res.status(404).json({ error: 'Player not found' });
+        }
+        
+        // Broadcast update to connected clients
+        io.emit('iff-player-update', player);
+        
+        res.status(200).json({ success: true, player });
+    } catch (error) {
+        console.error('Error updating IFF player:', error);
+        res.status(500).json({ error: error.message || 'Failed to update IFF player' });
+    }
+});
+
+// Delete IFF player
+app.delete('/api/iff/player/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await dbHelpers.deleteIFFPlayer(id);
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error deleting IFF player:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete IFF player' });
+    }
+});
 
 // --- SOCKET.IO ---
 

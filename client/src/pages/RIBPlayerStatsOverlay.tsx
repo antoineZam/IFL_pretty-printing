@@ -107,7 +107,7 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
             <div 
                 className="absolute inset-0"
                 style={{ 
-                    backgroundImage: 'url(/source/overlay/run_it_back/stat_screen/background.png)',
+                    backgroundImage: 'url(/source/overlay/stat_screen/background.png)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     animation: `fadeIn 0.5s ease-out both`
