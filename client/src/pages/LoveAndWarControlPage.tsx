@@ -18,23 +18,23 @@ interface Team {
     activePlayer: number;
 }
 
-interface TagTeamData {
+interface LoveAndWarData {
     caster1: string;
     caster2: string;
     team1: Team;
     team2: Team;
 }
 
-const initialData: TagTeamData = {
+const initialData: LoveAndWarData = {
     caster1: 'Caster 1',
     caster2: 'Caster 2',
     team1: { name: 'TEAM 1', p1: { name: 'Player 1', sponsor: 'Sponsor' }, p2: { name: 'Player 2', sponsor: 'Sponsor' }, score: 0, activePlayer: 0 },
     team2: { name: 'TEAM 2', p1: { name: 'Player 3', sponsor: 'Sponsor' }, p2: { name: 'Player 4', sponsor: 'Sponsor' }, score: 0, activePlayer: 0 },
 };
 
-const TagTeamControlPage = () => {
+const LoveAndWarControlPage = () => {
     const [socket, setSocket] = useState<Socket | null>(null);
-    const [data, setData] = useState<TagTeamData>(initialData);
+    const [data, setData] = useState<LoveAndWarData>(initialData);
 
     useEffect(() => {
         const newSocket = io();
@@ -42,14 +42,14 @@ const TagTeamControlPage = () => {
         
         newSocket.on('connect', () => {
             console.log('Connected to server');
-            newSocket.emit('requestTagTeamData');
+            newSocket.emit('requestLoveAndWarData');
         });
 
-        newSocket.on('updateTagTeamData', (newData: TagTeamData) => {
+        newSocket.on('updateLoveAndWarData', (newData: LoveAndWarData) => {
             setData(newData);
         });
 
-        newSocket.on('initialTagTeamData', (initialData: TagTeamData) => {
+        newSocket.on('initialLoveAndWarData', (initialData: LoveAndWarData) => {
             setData(initialData);
         });
 
@@ -58,8 +58,8 @@ const TagTeamControlPage = () => {
         };
     }, []);
 
-    const sendUpdate = (updatedData: TagTeamData) => {
-        socket?.emit('updateTagTeamData', updatedData);
+    const sendUpdate = (updatedData: LoveAndWarData) => {
+        socket?.emit('updateLoveAndWarData', updatedData);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +127,7 @@ const TagTeamControlPage = () => {
         <div className="min-h-screen p-6 pb-24 max-w-[1600px] mx-auto text-white">
             {/* Top Bar */}
             <div className="flex justify-between items-end mb-8">
-                <h1 className="text-2xl font-archivo-expanded-bold text-white/80">TAG TEAM CONTROLLER</h1>
+                <h1 className="text-2xl font-archivo-expanded-bold text-white/80">LOVE&WAR CONTROLLER</h1>
                 <div className="flex gap-4">
                     <NeonButton variant="ghost" onClick={resetScores} className="text-sm">
                         <RotateCcw size={16} /> Reset Scores
@@ -214,4 +214,4 @@ const TagTeamControlPage = () => {
     );
 };
 
-export default TagTeamControlPage;
+export default LoveAndWarControlPage;
