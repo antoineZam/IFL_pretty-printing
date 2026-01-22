@@ -158,19 +158,19 @@ export default function LoveAndWarTeamStatsOverlay() {
                 style={{ animation: 'fadeIn 0.6s ease-out both' }}
             >
                 <div className="text-center">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/50">In Association With</span>
-                    <div className="text-[16px] text-white/90" style={{ fontFamily: "'ED Manteca', serif" }}>IRON FROOT FEDERATION</div>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-white">In Association With</span>
+                    <div className="text-[16px] text-white/90" style={{ fontFamily: "'ED Manteca', serif", fontWeight: 900 }}>IRON FROOT FEDERATION</div>
                 </div>
                 <div className="text-center">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/50">Proudly Presented By</span>
-                    <div className="text-[16px] text-white/90" style={{ fontFamily: "'ED Manteca', serif" }}>THE HAUS OF LOAF</div>
+                    <span className="text-[12px] uppercase tracking-[0.2em] text-white">Proudly Presented By</span>
+                    <div className="text-[16px] text-white/90" style={{ fontFamily: "'ED Manteca', serif", fontWeight: 900 }}>THE HAUS OF LOAF</div>
                 </div>
                 <div className="text-center">
-                    <span className="text-[14px] text-white/70">TEKKEN 8 ™</span>
-                    <div className="text-[10px] text-white/50">© BANDAI NAMCO</div>
+                    <span className="text-[14px] text-white">TEKKEN 8 ™</span>
+                    <div className="text-[10px] text-white">© BANDAI NAMCO</div>
                 </div>
                 <div className="text-center">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/50">All Rights Reserved</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-white">All Rights Reserved</span>
                     <div className="text-[16px] text-white/90">2026</div>
                 </div>
             </div>
@@ -201,7 +201,8 @@ export default function LoveAndWarTeamStatsOverlay() {
                     <h1 
                         className="text-[120px] leading-none text-white"
                         style={{ 
-                            fontFamily: "'ED Manteca Black', 'ED Manteca', serif",
+                            fontFamily: "'ED Manteca', serif",
+                            fontWeight: 900,
                             textShadow: '4px 4px 20px rgba(0,0,0,0.5)',
                             letterSpacing: '-0.02em'
                         }}
@@ -212,7 +213,8 @@ export default function LoveAndWarTeamStatsOverlay() {
                         <h1 
                             className="text-[120px] leading-none text-white"
                             style={{ 
-                                fontFamily: "'ED Manteca Black', 'ED Manteca', serif",
+                                fontFamily: "'ED Manteca', serif",
+                                fontWeight: 900,
                                 textShadow: '4px 4px 20px rgba(0,0,0,0.5)',
                                 letterSpacing: '-0.02em'
                             }}
@@ -233,6 +235,7 @@ export default function LoveAndWarTeamStatsOverlay() {
                         className="text-[56px] text-white/90"
                         style={{ 
                             fontFamily: "'ED Manteca', serif",
+                            fontWeight: 900,
                             textShadow: '2px 2px 10px rgba(0,0,0,0.5)'
                         }}
                     >
@@ -242,6 +245,7 @@ export default function LoveAndWarTeamStatsOverlay() {
                         className="text-[56px] text-white/90"
                         style={{ 
                             fontFamily: "'ED Manteca', serif",
+                            fontWeight: 900,
                             textShadow: '2px 2px 10px rgba(0,0,0,0.5)'
                         }}
                     >
@@ -381,17 +385,21 @@ export default function LoveAndWarTeamStatsOverlay() {
             <style>{`
                 @font-face {
                     font-family: 'ED Manteca';
-                    src: url('/source/fonts/ED-Manteca/ED-Manteca.otf') format('opentype'),
-                         url('/source/fonts/ED-Manteca/ED-Manteca.ttf') format('truetype');
+                    src: url('/source/fonts/EDMantecaBlack/EDManteca-Regular.woff2') format('woff2'),
+                         url('/source/fonts/EDMantecaBlack/EDManteca-Regular.woff') format('woff'),
+                         url('/source/fonts/EDMantecaBlack/EDManteca-Regular.ttf') format('truetype');
                     font-weight: normal;
                     font-style: normal;
+                    font-display: swap;
                 }
                 @font-face {
-                    font-family: 'ED Manteca Black';
-                    src: url('/source/fonts/ED-Manteca/ED-Manteca-Black.otf') format('opentype'),
-                         url('/source/fonts/ED-Manteca/ED-Manteca-Black.ttf') format('truetype');
+                    font-family: 'ED Manteca';
+                    src: url('/source/fonts/EDMantecaBlack/EDMantecaBlack-Regular.woff2') format('woff2'),
+                         url('/source/fonts/EDMantecaBlack/EDMantecaBlack-Regular.woff') format('woff'),
+                         url('/source/fonts/EDMantecaBlack/EDMantecaBlack-Regular.ttf') format('truetype');
                     font-weight: 900;
                     font-style: normal;
+                    font-display: swap;
                 }
                 @keyframes fadeIn {
                     from { opacity: 0; }

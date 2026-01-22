@@ -123,6 +123,12 @@ let ribOverlayState = {
     animationTrigger: 0
 };
 
+// Love and War display state
+let loveAndWarDisplayState = {
+    teamId: null,
+    visible: false
+};
+
 // --- API ROUTES ---
 app.post('/api/auth', (req, res) => {
     if (req.body.key === CONNECTION_KEY) {
@@ -1331,6 +1337,20 @@ io.on('connection', async (socket) => {
     ribOverlayState = { ...ribOverlayState, ...data };
     io.emit('rib-overlay-state-update', ribOverlayState);
   });
+
+  // Handle Love and War team display selection
+  socket.on('love-and-war-display-select', (data) => {
+    console.log('[Love&War] Display selection:', data);
+    loveAndWarDisplayState = { 
+      teamId: data.teamId, 
+      visible: data.visible 
+    };
+    // Broadcast to all clients (including overlays)
+    io.emit('love-and-war-display-update', loveAndWarDisplayState);
+  });
+
+  // Send current Love and War display state to newly connected clients
+  socket.emit('love-and-war-display-update', loveAndWarDisplayState);
 });
 
 // Catch-all to serve React app
