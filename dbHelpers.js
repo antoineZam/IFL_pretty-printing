@@ -482,6 +482,158 @@ async function deleteIFFPlayer(id) {
   }
 }
 
+// --- Love and War Team Functions (iff_love_n_war_teams table) ---
+
+async function getAllLoveAndWarTeams() {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT 
+        t.id,
+        t.team_name,
+        t.player_1_id,
+        t.player_2_id,
+        t.created_at,
+        t.updated_at,
+        p1.name as player_1_name,
+        p1.character_name as player_1_character,
+        p1.division as player_1_division,
+        p1.rank_name as player_1_rank,
+        p1.tekken_power as player_1_tekken_power,
+        p1.prowess as player_1_prowess,
+        p1.iff8_ranking as player_1_iff8_ranking,
+        p1.iff8_record as player_1_iff8_record,
+        p1.iff8_record_details as player_1_iff8_record_details,
+        p1.iff_history as player_1_iff_history,
+        p1.ranked_wins as player_1_ranked_wins,
+        p1.ranked_losses as player_1_ranked_losses,
+        p1.ranked_wl_rate as player_1_ranked_wl_rate,
+        p1.player_wins as player_1_player_wins,
+        p1.player_losses as player_1_player_losses,
+        p1.player_wl_rate as player_1_player_wl_rate,
+        p2.name as player_2_name,
+        p2.character_name as player_2_character,
+        p2.division as player_2_division,
+        p2.rank_name as player_2_rank,
+        p2.tekken_power as player_2_tekken_power,
+        p2.prowess as player_2_prowess,
+        p2.iff8_ranking as player_2_iff8_ranking,
+        p2.iff8_record as player_2_iff8_record,
+        p2.iff8_record_details as player_2_iff8_record_details,
+        p2.iff_history as player_2_iff_history,
+        p2.ranked_wins as player_2_ranked_wins,
+        p2.ranked_losses as player_2_ranked_losses,
+        p2.ranked_wl_rate as player_2_ranked_wl_rate,
+        p2.player_wins as player_2_player_wins,
+        p2.player_losses as player_2_player_losses,
+        p2.player_wl_rate as player_2_player_wl_rate
+      FROM iff_love_n_war_teams t
+      LEFT JOIN iff_players p1 ON t.player_1_id = p1.id
+      LEFT JOIN iff_players p2 ON t.player_2_id = p2.id
+      ORDER BY t.team_name ASC`
+    );
+    return rows;
+  } catch (error) {
+    console.error('Error getting all Love and War teams:', error);
+    throw error;
+  }
+}
+
+async function getLoveAndWarTeam(id) {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT 
+        t.id,
+        t.team_name,
+        t.player_1_id,
+        t.player_2_id,
+        t.created_at,
+        t.updated_at,
+        p1.name as player_1_name,
+        p1.character_name as player_1_character,
+        p1.division as player_1_division,
+        p1.rank_name as player_1_rank,
+        p1.tekken_power as player_1_tekken_power,
+        p1.prowess as player_1_prowess,
+        p1.iff8_ranking as player_1_iff8_ranking,
+        p1.iff8_record as player_1_iff8_record,
+        p1.iff8_record_details as player_1_iff8_record_details,
+        p1.iff_history as player_1_iff_history,
+        p1.ranked_wins as player_1_ranked_wins,
+        p1.ranked_losses as player_1_ranked_losses,
+        p1.ranked_wl_rate as player_1_ranked_wl_rate,
+        p1.player_wins as player_1_player_wins,
+        p1.player_losses as player_1_player_losses,
+        p1.player_wl_rate as player_1_player_wl_rate,
+        p2.name as player_2_name,
+        p2.character_name as player_2_character,
+        p2.division as player_2_division,
+        p2.rank_name as player_2_rank,
+        p2.tekken_power as player_2_tekken_power,
+        p2.prowess as player_2_prowess,
+        p2.iff8_ranking as player_2_iff8_ranking,
+        p2.iff8_record as player_2_iff8_record,
+        p2.iff8_record_details as player_2_iff8_record_details,
+        p2.iff_history as player_2_iff_history,
+        p2.ranked_wins as player_2_ranked_wins,
+        p2.ranked_losses as player_2_ranked_losses,
+        p2.ranked_wl_rate as player_2_ranked_wl_rate,
+        p2.player_wins as player_2_player_wins,
+        p2.player_losses as player_2_player_losses,
+        p2.player_wl_rate as player_2_player_wl_rate
+      FROM iff_love_n_war_teams t
+      LEFT JOIN iff_players p1 ON t.player_1_id = p1.id
+      LEFT JOIN iff_players p2 ON t.player_2_id = p2.id
+      WHERE t.id = ?`,
+      [id]
+    );
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    console.error('Error getting Love and War team:', error);
+    throw error;
+  }
+}
+
+async function saveLoveAndWarTeam(teamData) {
+  try {
+    const { id, team_name, player_1_id, player_2_id } = teamData;
+
+    if (id) {
+      // Update existing team
+      await pool.execute(
+        `UPDATE iff_love_n_war_teams SET
+          team_name = ?,
+          player_1_id = ?,
+          player_2_id = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+        [team_name, player_1_id, player_2_id, id]
+      );
+      return await getLoveAndWarTeam(id);
+    } else {
+      // Insert new team
+      const [result] = await pool.execute(
+        `INSERT INTO iff_love_n_war_teams (team_name, player_1_id, player_2_id)
+         VALUES (?, ?, ?)`,
+        [team_name, player_1_id, player_2_id]
+      );
+      return await getLoveAndWarTeam(result.insertId);
+    }
+  } catch (error) {
+    console.error('Error saving Love and War team:', error);
+    throw error;
+  }
+}
+
+async function deleteLoveAndWarTeam(id) {
+  try {
+    await pool.execute(`DELETE FROM iff_love_n_war_teams WHERE id = ?`, [id]);
+    return true;
+  } catch (error) {
+    console.error('Error deleting Love and War team:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   loadIFLData,
   saveIFLData,
@@ -499,6 +651,11 @@ module.exports = {
   getAllIFFPlayers,
   getIFFPlayer,
   saveIFFPlayer,
-  deleteIFFPlayer
+  deleteIFFPlayer,
+  // Love and War Team functions
+  getAllLoveAndWarTeams,
+  getLoveAndWarTeam,
+  saveLoveAndWarTeam,
+  deleteLoveAndWarTeam
 };
 

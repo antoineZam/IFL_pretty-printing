@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -25,7 +25,7 @@ import {
     Youtube,
     ArrowLeftRight
 } from 'lucide-react';
-import { countries } from '../utils/countries';
+import { countries } from '../../utils/countries';
 
 // Available Tekken 8 characters
 const characters: Record<string, string> = {

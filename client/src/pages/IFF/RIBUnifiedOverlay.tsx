@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
@@ -7,8 +7,8 @@ import RIBSingleMatchOverlay from './RIBSingleMatchOverlay';
 import RIBPartOneOverlay from './RIBPartOneOverlay';
 import RIBPlayerStatsOverlay from './RIBPlayerStatsOverlay';
 import RIBStreamOverlay from './RIBStreamOverlay';
-import IntroVideoPlayer from '../components/IntroVideoPlayer';
-import SnowEffect from '../components/SnowEffect';
+import IntroVideoPlayer from '../../components/IntroVideoPlayer';
+import SnowEffect from '../../components/SnowEffect';
 
 interface OverlayState {
     showMatchCard: boolean;

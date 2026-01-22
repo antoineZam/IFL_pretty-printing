@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import { countries } from '../utils/countries';
+import { countries } from '../../utils/countries';
 import { Swords, RotateCcw, Trash2, Users } from 'lucide-react';
-import GlassCard from '../components/ui/GlassCard';
-import { CyberInput } from '../components/ui/CyberInput';
-import { NeonButton } from '../components/ui/NeonButton';
+import GlassCard from '../../components/ui/GlassCard';
+import { CyberInput } from '../../components/ui/CyberInput';
+import { NeonButton } from '../../components/ui/NeonButton';
 
 interface PlayerData {
     p1Flag: string;
@@ -261,7 +261,7 @@ const IFLMatchControlPage = () => {
                                         onChange={handleInputChange}
                                         className="bg-gray-900/70 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-blue-500 outline-none h-[50px] backdrop-blur-sm"
                                     >
-                                        {Object.entries(countries).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                                        {Object.entries(countries).map(([code, name]) => <option key={code} value={code}>{name as string}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -343,7 +343,7 @@ const IFLMatchControlPage = () => {
                                         onChange={handleInputChange}
                                         className="bg-gray-900/70 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-red-500 outline-none h-[50px] backdrop-blur-sm"
                                     >
-                                        {Object.entries(countries).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                                        {Object.entries(countries).map(([code, name]) => <option key={code} value={code}>{name as string}</option>)}
                                     </select>
                                 </div>
                                 <CyberInput id="p2Team" label="Team / Tag" value={data.p2Team} onChange={handleInputChange} style={{textAlign: 'right'}} />

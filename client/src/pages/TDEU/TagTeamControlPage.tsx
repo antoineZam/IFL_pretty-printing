@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Swords, RotateCcw } from 'lucide-react'; // Added Users icon
-import GlassCard from '../components/ui/GlassCard';
-import { CyberInput } from '../components/ui/CyberInput';
-import { NeonButton } from '../components/ui/NeonButton';
+import GlassCard from '../../components/ui/GlassCard';
+import { CyberInput } from '../../components/ui/CyberInput';
+import { NeonButton } from '../../components/ui/NeonButton';
 
 interface Player {
     name: string;

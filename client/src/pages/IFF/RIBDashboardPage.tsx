@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database } from 'lucide-react';
+import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database, Heart } from 'lucide-react';
 
 interface NavItem {
     name: string;
@@ -106,10 +106,19 @@ const RIBDashboardPage = () => {
 
     const ewgfItems: NavItem[] = [
         {
-            name: "EWGF Player Import",
-            description: "Fetch player data from ewgf.gg",
+            name: "IFF Player Manager",
+            description: "Manage player data and stats",
             path: "/iff/player-import",
             icon: <Database size={20} />,
+        },
+    ];
+
+    const loveAndWarItems: NavItem[] = [
+        {
+            name: "Love & War Control",
+            description: "Manage teams and access team stats overlays",
+            path: "/iff/love-and-war/control",
+            icon: <Heart size={20} />,
         },
     ];
 
@@ -183,67 +192,78 @@ const RIBDashboardPage = () => {
                     </div>
                 ) : (
                     <>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Main Controls */}
-                        <div>
-                            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                                <div className="w-1 h-4 bg-red-500 rounded-full" />
-                                Main Controls
-                            </h3>
-                            <div className="space-y-3">
-                                {controlItems.map((item) => (
-                                    item.external ? (
-                                        <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
-                                            <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
-                                                <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
-                                                    {item.icon}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-semibold text-white">{item.name}</h3>
-                                                    <p className="text-gray-400 text-sm">{item.description}</p>
-                                                </div>
-                                                <ExternalLink size={16} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                        </Link>
-                                    ) : (
-                                        <Link key={item.path} to={item.path}>
-                                            <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
-                                                <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
-                                                    {item.icon}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-semibold text-white">{item.name}</h3>
-                                                    <p className="text-gray-400 text-sm">{item.description}</p>
-                                                </div>
-                                                <ChevronLeft size={18} className="text-red-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                        </Link>
-                                    )
-                                ))}
+                    {/* RUN IT BACK Section - Wrapped in a visible container */}
+                    <div className="p-6 rounded-2xl border-2 border-red-500/30 bg-gradient-to-br from-red-500/5 via-orange-500/5 to-transparent mb-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 rounded-lg bg-red-500/20">
+                                <Swords size={20} className="text-red-400" />
                             </div>
+                            <h2 className="text-lg font-bold text-white">Run It Back</h2>
+                            <span className="px-2 py-0.5 bg-red-500/20 rounded text-red-400 text-xs font-medium uppercase tracking-wider">Event</span>
                         </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Main Controls */}
+                            <div>
+                                <h3 className="text-xs font-medium text-red-400/70 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-red-500 rounded-full" />
+                                    Controls
+                                </h3>
+                                <div className="space-y-3">
+                                    {controlItems.map((item) => (
+                                        item.external ? (
+                                            <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                                <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
+                                                    <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
+                                                        {item.icon}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-white">{item.name}</h3>
+                                                        <p className="text-gray-400 text-sm">{item.description}</p>
+                                                    </div>
+                                                    <ExternalLink size={16} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </div>
+                                            </Link>
+                                        ) : (
+                                            <Link key={item.path} to={item.path}>
+                                                <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
+                                                    <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
+                                                        {item.icon}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-white">{item.name}</h3>
+                                                        <p className="text-gray-400 text-sm">{item.description}</p>
+                                                    </div>
+                                                    <ChevronLeft size={18} className="text-red-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </div>
+                                            </Link>
+                                        )
+                                    ))}
+                                </div>
+                            </div>
 
-                        {/* Overlays */}
-                        <div>
-                            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                                <div className="w-1 h-4 bg-orange-500 rounded-full" />
-                                Stream Overlays
-                            </h3>
-                            <div className="space-y-3">
-                                {overlayItems.map((item) => (
-                                    <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
-                                        <div className="flex items-center gap-4 p-4 rounded-xl border border-orange-500/20 bg-orange-500/5 hover:border-orange-400 hover:bg-orange-500/10 transition-all group">
-                                            <div className="p-2.5 rounded-lg bg-orange-500/20 text-orange-400">
-                                                {item.icon}
+                            {/* Overlays */}
+                            <div>
+                                <h3 className="text-xs font-medium text-orange-400/70 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-orange-500 rounded-full" />
+                                    Stream Overlays
+                                </h3>
+                                <div className="space-y-3">
+                                    {overlayItems.map((item) => (
+                                        <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                            <div className="flex items-center gap-4 p-4 rounded-xl border border-orange-500/20 bg-orange-500/5 hover:border-orange-400 hover:bg-orange-500/10 transition-all group">
+                                                <div className="p-2.5 rounded-lg bg-orange-500/20 text-orange-400">
+                                                    {item.icon}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="font-semibold text-white">{item.name}</h3>
+                                                    <p className="text-gray-400 text-sm">{item.description}</p>
+                                                </div>
+                                                <ExternalLink size={16} className="text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </div>
-                                            <div className="flex-1">
-                                                <h3 className="font-semibold text-white">{item.name}</h3>
-                                                <p className="text-gray-400 text-sm">{item.description}</p>
-                                            </div>
-                                            <ExternalLink size={16} className="text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </div>
-                                    </Link>
-                                ))}
+                                        </Link>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -252,7 +272,7 @@ const RIBDashboardPage = () => {
                     <div className="mt-8">
                         <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
                             <div className="w-1 h-4 bg-cyan-500 rounded-full" />
-                            EWGF Player Data
+                            IFF Player Data
                         </h3>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                             {ewgfItems.map((item) => (
@@ -280,6 +300,49 @@ const RIBDashboardPage = () => {
                                                 <p className="text-gray-400 text-sm">{item.description}</p>
                                             </div>
                                             <ChevronLeft size={18} className="text-cyan-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                    </Link>
+                                )
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Love & War Section */}
+                    <div className="p-6 rounded-2xl border-2 border-pink-500/30 bg-gradient-to-br from-pink-500/5 via-red-500/5 to-transparent">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 rounded-lg bg-pink-500/20">
+                                <Heart size={20} className="text-pink-400" />
+                            </div>
+                            <h2 className="text-lg font-bold text-white">Love & War</h2>
+                            <span className="px-2 py-0.5 bg-pink-500/20 rounded text-pink-400 text-xs font-medium uppercase tracking-wider">Event</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            {loveAndWarItems.map((item) => (
+                                item.external ? (
+                                    <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                        <div className="flex items-center gap-4 p-4 rounded-xl border border-pink-500/20 bg-pink-500/5 hover:border-pink-400 hover:bg-pink-500/10 transition-all group">
+                                            <div className="p-2.5 rounded-lg bg-pink-500/20 text-pink-400">
+                                                {item.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-white">{item.name}</h3>
+                                                <p className="text-gray-400 text-sm">{item.description}</p>
+                                            </div>
+                                            <ExternalLink size={16} className="text-pink-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                    </Link>
+                                ) : (
+                                    <Link key={item.path} to={item.path}>
+                                        <div className="flex items-center gap-4 p-4 rounded-xl border border-pink-500/20 bg-pink-500/5 hover:border-pink-400 hover:bg-pink-500/10 transition-all group">
+                                            <div className="p-2.5 rounded-lg bg-pink-500/20 text-pink-400">
+                                                {item.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-white">{item.name}</h3>
+                                                <p className="text-gray-400 text-sm">{item.description}</p>
+                                            </div>
+                                            <ChevronLeft size={18} className="text-pink-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                     </Link>
                                 )

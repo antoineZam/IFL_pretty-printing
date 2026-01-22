@@ -9,7 +9,7 @@ import {
     Trophy,
     Swords
 } from 'lucide-react';
-import { countries } from '../utils/countries';
+import { countries } from '../../utils/countries';
 
 // Available Tekken 8 characters
 const characters: Record<string, string> = {

@@ -1128,6 +1128,96 @@ app.delete('/api/iff/player/:id', async (req, res) => {
     }
 });
 
+// --- LOVE AND WAR TEAM API ROUTES ---
+
+// Get all Love and War teams
+app.get('/api/iff/love-and-war/teams', async (req, res) => {
+    console.log('[API /love-and-war/teams] Fetching all teams');
+    try {
+        const teams = await dbHelpers.getAllLoveAndWarTeams();
+        console.log('[API /love-and-war/teams] Found', teams.length, 'teams');
+        res.status(200).json({ teams });
+    } catch (error) {
+        console.error('[API /love-and-war/teams] Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to get teams' });
+    }
+});
+
+// Get single Love and War team by ID
+app.get('/api/iff/love-and-war/team/:id', async (req, res) => {
+    const { id } = req.params;
+    console.log('[API /love-and-war/team/:id] Fetching team:', id);
+    try {
+        const team = await dbHelpers.getLoveAndWarTeam(id);
+        if (!team) {
+            console.log('[API /love-and-war/team/:id] Team not found:', id);
+            return res.status(404).json({ error: 'Team not found' });
+        }
+        console.log('[API /love-and-war/team/:id] Found team:', team.team_name);
+        res.status(200).json({ team });
+    } catch (error) {
+        console.error('[API /love-and-war/team/:id] Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to get team' });
+    }
+});
+
+// Create new Love and War team
+app.post('/api/iff/love-and-war/team', async (req, res) => {
+    console.log('[API POST /love-and-war/team] Creating new team:', req.body);
+    try {
+        const teamData = req.body;
+        if (!teamData.team_name) {
+            return res.status(400).json({ error: 'Team name is required' });
+        }
+        if (!teamData.player_1_id || !teamData.player_2_id) {
+            return res.status(400).json({ error: 'Both player IDs are required' });
+        }
+        const team = await dbHelpers.saveLoveAndWarTeam(teamData);
+        console.log('[API POST /love-and-war/team] Created team:', team.id);
+        io.emit('love-and-war-team-update', team);
+        res.status(201).json({ team });
+    } catch (error) {
+        console.error('[API POST /love-and-war/team] Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to create team' });
+    }
+});
+
+// Update existing Love and War team
+app.put('/api/iff/love-and-war/team/:id', async (req, res) => {
+    const { id } = req.params;
+    console.log('[API PUT /love-and-war/team/:id] Updating team:', id, req.body);
+    try {
+        const teamData = { ...req.body, id: parseInt(id) };
+        if (!teamData.team_name) {
+            return res.status(400).json({ error: 'Team name is required' });
+        }
+        if (!teamData.player_1_id || !teamData.player_2_id) {
+            return res.status(400).json({ error: 'Both player IDs are required' });
+        }
+        const team = await dbHelpers.saveLoveAndWarTeam(teamData);
+        console.log('[API PUT /love-and-war/team/:id] Updated team:', team.id);
+        io.emit('love-and-war-team-update', team);
+        res.status(200).json({ team });
+    } catch (error) {
+        console.error('[API PUT /love-and-war/team/:id] Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to update team' });
+    }
+});
+
+// Delete Love and War team
+app.delete('/api/iff/love-and-war/team/:id', async (req, res) => {
+    const { id } = req.params;
+    console.log('[API DELETE /love-and-war/team/:id] Deleting team:', id);
+    try {
+        await dbHelpers.deleteLoveAndWarTeam(id);
+        console.log('[API DELETE /love-and-war/team/:id] Deleted team:', id);
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('[API DELETE /love-and-war/team/:id] Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete team' });
+    }
+});
+
 // --- SOCKET.IO ---
 
 io.use((socket, next) => {

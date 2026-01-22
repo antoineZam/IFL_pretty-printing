@@ -1,24 +1,27 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
-import TDEUDashboardPage from './pages/TDEUDashboardPage';
-import RIBDashboardPage from './pages/RIBDashboardPage';
-import TournamentDataPage from './pages/TournamentDataPage';
-import IFLMatchControlPage from './pages/IFLMatchControlPage';
-import IFLMatchOverlayPage from './pages/IFLMatchOverlayPage';
-import TagTeamControlPage from './pages/TagTeamControlPage';
-import TagTeamOverlayPage from './pages/TagTeamOverlayPage';
+import TDEUDashboardPage from './pages/TDEU/TDEUDashboardPage';
+import RIBDashboardPage from './pages/IFF/RIBDashboardPage';
+import TournamentDataPage from './pages/TDEU/TournamentDataPage';
+import IFLMatchControlPage from './pages/TDEU/IFLMatchControlPage';
+import IFLMatchOverlayPage from './pages/TDEU/IFLMatchOverlayPage';
+import TagTeamControlPage from './pages/TDEU/TagTeamControlPage';
+import TagTeamOverlayPage from './pages/TDEU/TagTeamOverlayPage';
 // Run It Back pages
-import RIBMatchControlPage from './pages/RIBMatchControlPage';
-import RIBMatchCardsEditorPage from './pages/RIBMatchCardsEditorPage';
-import RIBSingleMatchOverlay from './pages/RIBSingleMatchOverlay';
-import RIBPlayerStatsOverlay from './pages/RIBPlayerStatsOverlay';
-import RIBPartOneOverlay from './pages/RIBPartOneOverlay';
-import RIBStreamOverlay from './pages/RIBStreamOverlay';
-import RIBUnifiedOverlay from './pages/RIBUnifiedOverlay';
+import RIBMatchControlPage from './pages/IFF/RIBMatchControlPage';
+import RIBMatchCardsEditorPage from './pages/IFF/RIBMatchCardsEditorPage';
+import RIBSingleMatchOverlay from './pages/IFF/RIBSingleMatchOverlay';
+import RIBPlayerStatsOverlay from './pages/IFF/RIBPlayerStatsOverlay';
+import RIBPartOneOverlay from './pages/IFF/RIBPartOneOverlay';
+import RIBStreamOverlay from './pages/IFF/RIBStreamOverlay';
+import RIBUnifiedOverlay from './pages/IFF/RIBUnifiedOverlay';
 // IFF EWGF Player pages
-import IFFPlayerImportPage from './pages/IFFPlayerImportPage';
-import IFFPlayerRadarOverlay from './pages/IFFPlayerRadarOverlay';
+import IFFPlayerImportPage from './pages/IFF/IFFPlayerImportPage';
+import IFFPlayerRadarOverlay from './pages/IFF/IFFPlayerRadarOverlay';
+// Love and War pages
+import LoveAndWarControlPage from './pages/IFF/LoveAndWarControlPage';
+import LoveAndWarTeamStatsOverlay from './pages/IFF/LoveAndWarTeamStatsOverlay';
 // Access Guard
 import RIBAccessGuard from './components/RIBAccessGuard';
 
@@ -47,6 +50,9 @@ function App() {
         {/* IFF EWGF Player routes */}
         <Route path="/iff/player-import" element={<RIBAccessGuard><IFFPlayerImportPage /></RIBAccessGuard>} />
         <Route path="/iff/player-stats/:polarisId" element={<IFFPlayerRadarOverlay />} />
+        {/* Love and War routes */}
+        <Route path="/iff/love-and-war/control" element={<RIBAccessGuard><LoveAndWarControlPage /></RIBAccessGuard>} />
+        <Route path="/iff/love-and-war/team-stats/:teamId" element={<LoveAndWarTeamStatsOverlay />} />
       </Routes>
     </BrowserRouter>
   );
