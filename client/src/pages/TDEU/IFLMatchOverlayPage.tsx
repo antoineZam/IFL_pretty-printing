@@ -138,7 +138,7 @@ const IFLMatchOverlayPage = () => {
                 <div className="absolute bottom-[34px] right-[215px] text-[24px] font-bold text-shadow">
                     IRON FIST LEAGUE
                 </div>
-                <div className="absolute bottom-[38px] left-[195px] text-[17px] font-bold text-shadow">
+                <div className="absolute bottom-[38px] left-[195px] text-[17px] font-archivo-bold text-shadow">
                     DISCORD.GG/TEKKENDOJOEU
                 </div>
             </div>
