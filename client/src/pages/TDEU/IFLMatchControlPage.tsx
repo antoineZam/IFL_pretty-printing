@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import { countries } from '../utils/countries';
+import { countries } from '../../utils/countries';
 import { Swords, RotateCcw, Trash2, Users } from 'lucide-react';
-import GlassCard from '../components/ui/GlassCard';
-import { CyberInput } from '../components/ui/CyberInput';
-import { NeonButton } from '../components/ui/NeonButton';
+import GlassCard from '../../components/ui/GlassCard';
+import { CyberInput } from '../../components/ui/CyberInput';
+import { NeonButton } from '../../components/ui/NeonButton';
 
 interface PlayerData {
     p1Flag: string;

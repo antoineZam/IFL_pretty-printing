@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import useDynamicFontSize from '../hooks/useDynamicFontSize';
+import useDynamicFontSize from '../../hooks/useDynamicFontSize';
 
 // Data interfaces
 interface Player {

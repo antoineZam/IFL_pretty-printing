@@ -20,6 +20,7 @@ export default {
         'archivo': ['Archivo', 'sans-serif'],
         'archivo-condensed-bold': ['Archivo Condensed Bold', 'sans-serif'],
         'archivo-expanded-regular': ['Archivo Expanded Regular', 'sans-serif'],
+        'archivo-semi-expanded-bold': ['Archivo Semi Expanded Bold', 'sans-serif'],
         'archivo-extra-condensed-bold': ['Archivo Extra Condensed Bold', 'sans-serif'],
         'archivo-extra-condensed-semibold': ['Archivo Extra Condensed SemiBold', 'sans-serif'],
         'gotham-bold': ['Gotham Bold', 'sans-serif'],

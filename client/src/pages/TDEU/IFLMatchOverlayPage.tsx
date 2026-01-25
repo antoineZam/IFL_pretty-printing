@@ -1,14 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 
-const SPONSOR_LOGOS = [
-    '/source/overlay/ifl/ingage_logo.png',
-    '/source/overlay/ifl/reversal_logo.png',
-    '/source/overlay/ifl/tekkendojo_logo.png',
-];
-const LOGO_ROTATION_INTERVAL = 3000; // 3 seconds per logo
-const FADE_DURATION = 800; // ms for fade transition
 
 interface PlayerData {
     p1Flag: string;
@@ -30,25 +23,7 @@ const IFLMatchOverlayPage = () => {
     const [searchParams] = useSearchParams();
     const [data, setData] = useState<PlayerData | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
-    const [logoOpacity, setLogoOpacity] = useState(1);
 
-    // Rotate through sponsor logos with fade animation
-    const rotateLogo = useCallback(() => {
-        // Fade out
-        setLogoOpacity(0);
-        
-        // After fade out completes, change logo and fade in
-        setTimeout(() => {
-            setCurrentLogoIndex((prev) => (prev + 1) % SPONSOR_LOGOS.length);
-            setLogoOpacity(1);
-        }, FADE_DURATION);
-    }, []);
-
-    useEffect(() => {
-        const intervalId = setInterval(rotateLogo, LOGO_ROTATION_INTERVAL);
-        return () => clearInterval(intervalId);
-    }, [rotateLogo]);
 
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
@@ -101,29 +76,12 @@ const IFLMatchOverlayPage = () => {
         : noFlagUrl;
 
     return (
-        <div className="w-[1920px] h-[1080px] bg-transparent text-white uppercase font-archivo overflow-hidden">
+        <div className="w-[1920px] h-[1080px] bg-transparent text-white uppercase font-archivo-semi-expanded-bold overflow-hidden">
             <div className="relative w-full h-full">
                 {/* Background Images */}
                 <div
                     className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
-                    style={{ backgroundImage: "url('/source/overlay/ifl/IFL_overlays_filled.png')" }}
-                />
-                <div
-                    className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
-                    style={{ backgroundImage: "url('/source/overlay/ifl/IFL_overlays_tracker.png')" }}
-                />
-                {/* Rotating Sponsor Logos */}
-                <div
-                    className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
-                    style={{
-                        backgroundImage: `url('${SPONSOR_LOGOS[currentLogoIndex]}')`,
-                        opacity: logoOpacity,
-                        transition: `opacity ${FADE_DURATION}ms ease-in-out`,
-                    }}
-                />
-                <div
-                    className="absolute top-0 left-0 w-[1920px] h-[1080px] bg-no-repeat"
-                    style={{ backgroundImage: "url('/source/overlay/ifl/bottom_bar_elements.png')" }}
+                    style={{ backgroundImage: "url('/source/overlay/ifl/overlay.png')" }}
                 />
 
                 {/* Player 1 Flag (with recolour filter) */}
@@ -174,8 +132,14 @@ const IFLMatchOverlayPage = () => {
                 <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[16px] text-center w-[600px] tracking-[3px] text-shadow">
                     {data.round}
                 </div>
-                <div className="absolute bottom-[36px] right-[480px] text-[22px] font-bold text-shadow">
-                    {data.eventNumber ? `${data.eventNumber}` : ''}
+                <div className="absolute bottom-[30px] right-[570px] text-[32px] font-bold text-shadow">
+                    {data.eventNumber ? `# ${data.eventNumber}` : ''}
+                </div>
+                <div className="absolute bottom-[34px] right-[215px] text-[24px] font-bold text-shadow">
+                    IRON FIST LEAGUE
+                </div>
+                <div className="absolute bottom-[38px] left-[195px] text-[17px] font-bold text-shadow">
+                    DISCORD.GG/TEKKENDOJOEU
                 </div>
             </div>
         </div>
