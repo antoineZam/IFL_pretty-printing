@@ -1,11 +1,15 @@
 node_modules
 .env
 
+# Build artifacts
+client/dist/
+dist/
+
 # Data files - contain runtime/user data
 client/public/source/data/
 public/source/data/
 **/source/data/
-client/dist/index.html
+
+# Package locks
 client/package-lock.json
 package-lock.json
-client/dist/index.html
