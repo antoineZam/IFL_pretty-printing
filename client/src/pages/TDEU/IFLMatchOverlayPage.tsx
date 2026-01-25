@@ -132,7 +132,7 @@ const IFLMatchOverlayPage = () => {
                 <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[16px] text-center w-[600px] tracking-[3px] text-shadow">
                     {data.round}
                 </div>
-                <div className="absolute bottom-[30px] right-[570px] text-[32px] font-bold text-shadow">
+                <div className="absolute bottom-[30px] right-[565px] text-[32px] font-bold text-shadow">
                     {data.eventNumber ? `# ${data.eventNumber}` : ''}
                 </div>
                 <div className="absolute bottom-[34px] right-[215px] text-[24px] font-archivo-semi-expanded-bold tracking-[0.05em] text-shadow">
