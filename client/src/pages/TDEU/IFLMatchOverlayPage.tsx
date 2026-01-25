@@ -135,10 +135,10 @@ const IFLMatchOverlayPage = () => {
                 <div className="absolute bottom-[30px] right-[570px] text-[32px] font-bold text-shadow">
                     {data.eventNumber ? `# ${data.eventNumber}` : ''}
                 </div>
-                <div className="absolute bottom-[34px] right-[215px] text-[24px] font-bold text-shadow">
+                <div className="absolute bottom-[34px] right-[215px] text-[24px] font-archivo-semi-expanded-bold tracking-[0.05em] text-shadow">
                     IRON FIST LEAGUE
                 </div>
-                <div className="absolute bottom-[38px] left-[195px] text-[17px] font-archivo-bold text-shadow">
+                <div className="absolute bottom-[36px] left-[195px] text-[24px] font-archivo-condensed-bold tracking-normal text-shadow">
                     DISCORD.GG/TEKKENDOJOEU
                 </div>
             </div>

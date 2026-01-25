@@ -18,6 +18,8 @@ export default {
       },
       fontFamily: {
         'archivo': ['Archivo', 'sans-serif'],
+        'archivo-bold': ['Archivo Bold', 'sans-serif'],
+        'archivo-condensed': ['Archivo Condensed Regular', 'sans-serif'],
         'archivo-condensed-bold': ['Archivo Condensed Bold', 'sans-serif'],
         'archivo-expanded-regular': ['Archivo Expanded Regular', 'sans-serif'],
         'archivo-semi-expanded-bold': ['Archivo Semi Expanded Bold', 'sans-serif'],
