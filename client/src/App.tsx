@@ -19,8 +19,19 @@ import RIBUnifiedOverlay from './pages/IFF/RIBUnifiedOverlay';
 // IFF EWGF Player pages
 import IFFPlayerImportPage from './pages/IFF/IFFPlayerImportPage';
 import IFFPlayerRadarOverlay from './pages/IFF/IFFPlayerRadarOverlay';
+<<<<<<< HEAD
+=======
+// Love & War pages
+import LoveAndWarDashboardPage from './pages/IFF/LoveAndWarDashboardPage';
+import LoveAndWarControlPage from './pages/IFF/LoveAndWarControlPage';
+import LoveAndWarTeamDisplayPage from './pages/IFF/LoveAndWarTeamDisplayPage';
+import LoveAndWarTeamStatsOverlay from './pages/IFF/LoveAndWarTeamStatsOverlay';
+import LoveAndWarTournamentsPage from './pages/IFF/LoveAndWarTournamentsPage';
+import LoveAndWarBracketPage from './pages/IFF/LoveAndWarBracketPage';
+import LoveAndWarRankingsPage from './pages/IFF/LoveAndWarRankingsPage';
+>>>>>>> lovenwar
 // Access Guard
-import RIBAccessGuard from './components/RIBAccessGuard';
+import IFFAccessGuard from './components/IFFAccessGuard';
 
 function App() {
   return (
@@ -29,7 +40,7 @@ function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/dashboard/tdeu" element={<TDEUDashboardPage />} />
-        <Route path="/dashboard/rib" element={<RIBAccessGuard><RIBDashboardPage /></RIBAccessGuard>} />
+        <Route path="/dashboard/rib" element={<IFFAccessGuard><RIBDashboardPage /></IFFAccessGuard>} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/tournament-data" element={<TournamentDataPage />} />
         <Route path="/ifl/match-control" element={<IFLMatchControlPage />} />
@@ -37,16 +48,24 @@ function App() {
         <Route path="/tag/match-control" element={<TagTeamControlPage />} />
         <Route path="/tag/match-overlay" element={<TagTeamOverlayPage />} />
         {/* Run It Back routes - Protected by RIB Access Key */}
-        <Route path="/rib/match-control" element={<RIBAccessGuard><RIBMatchControlPage /></RIBAccessGuard>} />
-        <Route path="/rib/match-cards-editor" element={<RIBAccessGuard><RIBMatchCardsEditorPage /></RIBAccessGuard>} />
+        <Route path="/rib/match-control" element={<IFFAccessGuard><RIBMatchControlPage /></IFFAccessGuard>} />
+        <Route path="/rib/match-cards-editor" element={<IFFAccessGuard><RIBMatchCardsEditorPage /></IFFAccessGuard>} />
         <Route path="/rib/unified-overlay" element={<RIBUnifiedOverlay />} />
         <Route path="/rib/single-match-overlay" element={<RIBSingleMatchOverlay />} />
         <Route path="/rib/player-stats-overlay" element={<RIBPlayerStatsOverlay />} />
         <Route path="/rib/part-one-overlay" element={<RIBPartOneOverlay />} />
         <Route path="/rib/stream-overlay" element={<RIBStreamOverlay />} />
         {/* IFF EWGF Player routes */}
-        <Route path="/iff/player-import" element={<RIBAccessGuard><IFFPlayerImportPage /></RIBAccessGuard>} />
+        <Route path="/iff/player-import" element={<IFFAccessGuard><IFFPlayerImportPage /></IFFAccessGuard>} />
         <Route path="/iff/player-stats/:polarisId" element={<IFFPlayerRadarOverlay />} />
+        {/* Love & War routes - Protected by IFF Access Key */}
+        <Route path="/iff/love-and-war" element={<IFFAccessGuard><LoveAndWarDashboardPage /></IFFAccessGuard>} />
+        <Route path="/iff/love-and-war/control" element={<IFFAccessGuard><LoveAndWarControlPage /></IFFAccessGuard>} />
+        <Route path="/iff/love-and-war/display" element={<IFFAccessGuard><LoveAndWarTeamDisplayPage /></IFFAccessGuard>} />
+        <Route path="/iff/love-and-war/overlay" element={<LoveAndWarTeamStatsOverlay />} />
+        <Route path="/iff/love-and-war/tournaments" element={<IFFAccessGuard><LoveAndWarTournamentsPage /></IFFAccessGuard>} />
+        <Route path="/iff/love-and-war/tournament/:id/bracket" element={<IFFAccessGuard><LoveAndWarBracketPage /></IFFAccessGuard>} />
+        <Route path="/iff/love-and-war/tournament/:id/rankings" element={<IFFAccessGuard><LoveAndWarRankingsPage /></IFFAccessGuard>} />
       </Routes>
     </BrowserRouter>
   );

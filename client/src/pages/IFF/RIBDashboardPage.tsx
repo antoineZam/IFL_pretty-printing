@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database } from 'lucide-react';
+import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database, Heart } from 'lucide-react';
 
 interface NavItem {
     name: string;
@@ -252,7 +252,7 @@ const RIBDashboardPage = () => {
                     <div className="mt-8">
                         <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
                             <div className="w-1 h-4 bg-cyan-500 rounded-full" />
-                            EWGF Player Data
+                            IFF Player Data
                         </h3>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                             {ewgfItems.map((item) => (
@@ -270,7 +270,7 @@ const RIBDashboardPage = () => {
                                         </div>
                                     </Link>
                                 ) : (
-                                    <Link key={item.path} to={item.path}>
+                                    <Link key={item.path} to={`${item.path}?key=${key}`}>
                                         <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all group">
                                             <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
                                                 {item.icon}
@@ -285,6 +285,26 @@ const RIBDashboardPage = () => {
                                 )
                             ))}
                         </div>
+                    </div>
+
+                    {/* Love & War Section */}
+                    <div className="mt-8">
+                        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+                            <div className="w-1 h-4 bg-pink-500 rounded-full" />
+                            Love & War Tournament
+                        </h3>
+                        <Link to={`/iff/love-and-war?key=${key}`}>
+                            <div className="flex items-center gap-4 p-6 rounded-xl border border-pink-500/30 bg-gradient-to-br from-pink-500/10 to-red-500/5 hover:border-pink-400 hover:from-pink-500/15 hover:to-red-500/10 transition-all group">
+                                <div className="p-3 rounded-lg bg-pink-500/20 text-pink-400">
+                                    <Heart size={28} />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-white text-lg mb-1">Love & War Dashboard</h3>
+                                    <p className="text-gray-400 text-sm">Manage 2v2 team tournaments, display team stats, and control live overlays</p>
+                                </div>
+                                <ChevronLeft size={20} className="text-pink-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                        </Link>
                     </div>
                     </>
                 )}
