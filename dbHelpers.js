@@ -631,35 +631,53 @@ async function getLnWTournament(id) {
     
     const tournament = tournaments[0];
     
-    // Get tournament teams with full team details
+    // Get groups in this tournament
+    const [groups] = await pool.execute(`
+      SELECT g.*,
+             COUNT(DISTINCT tt.team_id) as team_count,
+             COUNT(DISTINCT m.id) as match_count
+      FROM iff_lnw_groups g
+      LEFT JOIN iff_lnw_tournament_teams tt ON g.id = tt.group_id
+      LEFT JOIN iff_lnw_matches m ON g.id = m.group_id
+      WHERE g.tournament_id = ?
+      GROUP BY g.id
+      ORDER BY g.group_order ASC
+    `, [id]);
+    
+    // Get tournament teams with full team details (including group info)
     const [teams] = await pool.execute(`
       SELECT tt.*, 
              t.team_name,
              t.player_1_id, t.player_2_id,
              p1.name as player_1_name, p1.character_name as player_1_character,
-             p2.name as player_2_name, p2.character_name as player_2_character
+             p2.name as player_2_name, p2.character_name as player_2_character,
+             g.name as group_name
       FROM iff_lnw_tournament_teams tt
       JOIN iff_love_n_war_teams t ON tt.team_id = t.id
       LEFT JOIN iff_players p1 ON t.player_1_id = p1.id
       LEFT JOIN iff_players p2 ON t.player_2_id = p2.id
+      LEFT JOIN iff_lnw_groups g ON tt.group_id = g.id
       WHERE tt.tournament_id = ?
-      ORDER BY tt.seed ASC, tt.id ASC
+      ORDER BY tt.group_id ASC, tt.seed ASC, tt.id ASC
     `, [id]);
     
-    // Get matches
+    // Get matches (including group info)
     const [matches] = await pool.execute(`
       SELECT m.*,
              t1.team_name as team_1_name,
              t2.team_name as team_2_name,
-             w.team_name as winner_name
+             w.team_name as winner_name,
+             g.name as group_name
       FROM iff_lnw_matches m
       LEFT JOIN iff_love_n_war_teams t1 ON m.team_1_id = t1.id
       LEFT JOIN iff_love_n_war_teams t2 ON m.team_2_id = t2.id
       LEFT JOIN iff_love_n_war_teams w ON m.winner_team_id = w.id
+      LEFT JOIN iff_lnw_groups g ON m.group_id = g.id
       WHERE m.tournament_id = ?
-      ORDER BY m.round_order ASC, m.match_number ASC
+      ORDER BY m.group_id ASC, m.round_order ASC, m.match_number ASC
     `, [id]);
     
+    tournament.groups = groups;
     tournament.teams = teams;
     tournament.matches = matches;
     
@@ -700,9 +718,10 @@ async function saveLnWTournament(tournament) {
 
 async function deleteLnWTournament(id) {
   try {
-    // Delete all related data
+    // Delete all related data (order matters due to foreign key constraints)
     await pool.execute(`DELETE FROM iff_lnw_matches WHERE tournament_id = ?`, [id]);
     await pool.execute(`DELETE FROM iff_lnw_tournament_teams WHERE tournament_id = ?`, [id]);
+    await pool.execute(`DELETE FROM iff_lnw_groups WHERE tournament_id = ?`, [id]);
     await pool.execute(`DELETE FROM iff_lnw_tournaments WHERE id = ?`, [id]);
     return true;
   } catch (error) {
@@ -743,7 +762,7 @@ async function removeTeamFromTournament(tournamentId, teamId) {
 async function saveLnWMatch(match) {
   try {
     const { 
-      id, tournament_id, round, round_order, match_number,
+      id, tournament_id, group_id, round, round_order, match_number,
       team_1_id, team_2_id, team_1_score, team_2_score,
       winner_team_id, next_match_id, is_complete, bracket_position
     } = match;
@@ -753,10 +772,10 @@ async function saveLnWMatch(match) {
       await pool.execute(
         `UPDATE iff_lnw_matches 
          SET team_1_id = ?, team_2_id = ?, team_1_score = ?, team_2_score = ?,
-             winner_team_id = ?, is_complete = ?, next_match_id = ?
+             winner_team_id = ?, is_complete = ?, next_match_id = ?, group_id = ?
          WHERE id = ?`,
         [team_1_id || null, team_2_id || null, team_1_score || 0, team_2_score || 0,
-         winner_team_id || null, is_complete || false, next_match_id || null, id]
+         winner_team_id || null, is_complete || false, next_match_id || null, group_id || null, id]
       );
       
       // Update team records if match is complete
@@ -785,10 +804,10 @@ async function saveLnWMatch(match) {
       // Insert new match
       const [result] = await pool.execute(
         `INSERT INTO iff_lnw_matches 
-         (tournament_id, round, round_order, match_number, team_1_id, team_2_id,
+         (tournament_id, group_id, round, round_order, match_number, team_1_id, team_2_id,
           team_1_score, team_2_score, winner_team_id, next_match_id, is_complete, bracket_position)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [tournament_id, round, round_order, match_number, 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [tournament_id, group_id || null, round, round_order, match_number, 
          team_1_id || null, team_2_id || null, team_1_score || 0, team_2_score || 0,
          winner_team_id || null, next_match_id || null, is_complete || false, bracket_position || null]
       );
@@ -843,6 +862,156 @@ async function updateTournamentPlacements(tournamentId, placements) {
   }
 }
 
+// ===== Love & War Group Functions =====
+
+async function getLnWGroups(tournamentId) {
+  try {
+    const [groups] = await pool.execute(`
+      SELECT g.*,
+             COUNT(DISTINCT tt.team_id) as team_count,
+             COUNT(DISTINCT m.id) as match_count
+      FROM iff_lnw_groups g
+      LEFT JOIN iff_lnw_tournament_teams tt ON g.id = tt.group_id
+      LEFT JOIN iff_lnw_matches m ON g.id = m.group_id
+      WHERE g.tournament_id = ?
+      GROUP BY g.id
+      ORDER BY g.group_order ASC
+    `, [tournamentId]);
+    return groups;
+  } catch (error) {
+    console.error('Error getting LnW groups:', error);
+    throw error;
+  }
+}
+
+async function getLnWGroup(groupId) {
+  try {
+    const [groups] = await pool.execute(`
+      SELECT * FROM iff_lnw_groups WHERE id = ?
+    `, [groupId]);
+    
+    if (groups.length === 0) return null;
+    
+    const group = groups[0];
+    
+    // Get teams in this group
+    const [teams] = await pool.execute(`
+      SELECT tt.*, 
+             t.team_name,
+             t.player_1_id, t.player_2_id,
+             p1.name as player_1_name, p1.character_name as player_1_character,
+             p2.name as player_2_name, p2.character_name as player_2_character
+      FROM iff_lnw_tournament_teams tt
+      JOIN iff_love_n_war_teams t ON tt.team_id = t.id
+      LEFT JOIN iff_players p1 ON t.player_1_id = p1.id
+      LEFT JOIN iff_players p2 ON t.player_2_id = p2.id
+      WHERE tt.group_id = ?
+      ORDER BY tt.seed ASC, tt.id ASC
+    `, [groupId]);
+    
+    // Get matches for this group
+    const [matches] = await pool.execute(`
+      SELECT m.*,
+             t1.team_name as team_1_name,
+             t2.team_name as team_2_name,
+             w.team_name as winner_name
+      FROM iff_lnw_matches m
+      LEFT JOIN iff_love_n_war_teams t1 ON m.team_1_id = t1.id
+      LEFT JOIN iff_love_n_war_teams t2 ON m.team_2_id = t2.id
+      LEFT JOIN iff_love_n_war_teams w ON m.winner_team_id = w.id
+      WHERE m.group_id = ?
+      ORDER BY m.round_order ASC, m.match_number ASC
+    `, [groupId]);
+    
+    group.teams = teams;
+    group.matches = matches;
+    
+    return group;
+  } catch (error) {
+    console.error('Error getting LnW group:', error);
+    throw error;
+  }
+}
+
+async function saveLnWGroup(group) {
+  try {
+    const { id, tournament_id, name, group_order, status } = group;
+    
+    if (id) {
+      await pool.execute(
+        `UPDATE iff_lnw_groups 
+         SET name = ?, group_order = ?, status = ?
+         WHERE id = ?`,
+        [name, group_order || 1, status || 'setup', id]
+      );
+      return await getLnWGroup(id);
+    } else {
+      // Get the next group_order
+      const [maxOrder] = await pool.execute(
+        `SELECT COALESCE(MAX(group_order), 0) + 1 as next_order 
+         FROM iff_lnw_groups WHERE tournament_id = ?`,
+        [tournament_id]
+      );
+      const nextOrder = group_order || maxOrder[0].next_order;
+      
+      const [result] = await pool.execute(
+        `INSERT INTO iff_lnw_groups (tournament_id, name, group_order, status)
+         VALUES (?, ?, ?, ?)`,
+        [tournament_id, name, nextOrder, status || 'setup']
+      );
+      return await getLnWGroup(result.insertId);
+    }
+  } catch (error) {
+    console.error('Error saving LnW group:', error);
+    throw error;
+  }
+}
+
+async function deleteLnWGroup(groupId) {
+  try {
+    // Unassign teams from this group
+    await pool.execute(`UPDATE iff_lnw_tournament_teams SET group_id = NULL WHERE group_id = ?`, [groupId]);
+    // Delete matches for this group
+    await pool.execute(`DELETE FROM iff_lnw_matches WHERE group_id = ?`, [groupId]);
+    // Delete the group
+    await pool.execute(`DELETE FROM iff_lnw_groups WHERE id = ?`, [groupId]);
+    return true;
+  } catch (error) {
+    console.error('Error deleting LnW group:', error);
+    throw error;
+  }
+}
+
+async function assignTeamToGroup(tournamentId, teamId, groupId) {
+  try {
+    await pool.execute(
+      `UPDATE iff_lnw_tournament_teams 
+       SET group_id = ?
+       WHERE tournament_id = ? AND team_id = ?`,
+      [groupId, tournamentId, teamId]
+    );
+    return true;
+  } catch (error) {
+    console.error('Error assigning team to group:', error);
+    throw error;
+  }
+}
+
+async function removeTeamFromGroup(tournamentId, teamId) {
+  try {
+    await pool.execute(
+      `UPDATE iff_lnw_tournament_teams 
+       SET group_id = NULL
+       WHERE tournament_id = ? AND team_id = ?`,
+      [tournamentId, teamId]
+    );
+    return true;
+  } catch (error) {
+    console.error('Error removing team from group:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   loadIFLData,
   saveIFLData,
@@ -875,6 +1044,13 @@ module.exports = {
   removeTeamFromTournament,
   saveLnWMatch,
   getLnWTournamentRankings,
-  updateTournamentPlacements
+  updateTournamentPlacements,
+  // Love & War Group functions
+  getLnWGroups,
+  getLnWGroup,
+  saveLnWGroup,
+  deleteLnWGroup,
+  assignTeamToGroup,
+  removeTeamFromGroup
 };
 

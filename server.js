@@ -1334,6 +1334,99 @@ app.post('/api/iff/love-and-war/tournament/:id/placements', async (req, res) => 
     }
 });
 
+// --- LOVE & WAR GROUP API ROUTES ---
+
+app.get('/api/iff/love-and-war/tournament/:id/groups', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const groups = await dbHelpers.getLnWGroups(parseInt(id));
+        res.status(200).json({ groups });
+    } catch (error) {
+        console.error('Error getting groups:', error);
+        res.status(500).json({ error: error.message || 'Failed to get groups' });
+    }
+});
+
+app.get('/api/iff/love-and-war/group/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const group = await dbHelpers.getLnWGroup(parseInt(id));
+        if (!group) {
+            return res.status(404).json({ error: 'Group not found' });
+        }
+        res.status(200).json({ group });
+    } catch (error) {
+        console.error('Error getting group:', error);
+        res.status(500).json({ error: error.message || 'Failed to get group' });
+    }
+});
+
+app.post('/api/iff/love-and-war/tournament/:id/groups', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const group = await dbHelpers.saveLnWGroup({ ...req.body, tournament_id: parseInt(id) });
+        io.emit('lnw-bracket-update', { tournament_id: id });
+        res.status(200).json({ group });
+    } catch (error) {
+        console.error('Error creating group:', error);
+        res.status(500).json({ error: error.message || 'Failed to create group' });
+    }
+});
+
+app.put('/api/iff/love-and-war/group/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const group = await dbHelpers.saveLnWGroup({ ...req.body, id: parseInt(id) });
+        io.emit('lnw-bracket-update', { tournament_id: group.tournament_id });
+        res.status(200).json({ group });
+    } catch (error) {
+        console.error('Error updating group:', error);
+        res.status(500).json({ error: error.message || 'Failed to update group' });
+    }
+});
+
+app.delete('/api/iff/love-and-war/group/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Get the group to know the tournament_id before deleting
+        const group = await dbHelpers.getLnWGroup(parseInt(id));
+        await dbHelpers.deleteLnWGroup(parseInt(id));
+        if (group) {
+            io.emit('lnw-bracket-update', { tournament_id: group.tournament_id });
+        }
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error deleting group:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete group' });
+    }
+});
+
+app.post('/api/iff/love-and-war/group/:groupId/teams/:teamId', async (req, res) => {
+    try {
+        const { groupId, teamId } = req.params;
+        const { tournament_id } = req.body;
+        await dbHelpers.assignTeamToGroup(parseInt(tournament_id), parseInt(teamId), parseInt(groupId));
+        io.emit('lnw-bracket-update', { tournament_id });
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error assigning team to group:', error);
+        res.status(500).json({ error: error.message || 'Failed to assign team to group' });
+    }
+});
+
+app.delete('/api/iff/love-and-war/group/:groupId/teams/:teamId', async (req, res) => {
+    try {
+        const { groupId, teamId } = req.params;
+        const { tournament_id } = req.body;
+        await dbHelpers.removeTeamFromGroup(parseInt(tournament_id), parseInt(teamId));
+        io.emit('lnw-bracket-update', { tournament_id });
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error removing team from group:', error);
+        res.status(500).json({ error: error.message || 'Failed to remove team from group' });
+    }
+});
+
 // --- SOCKET.IO ---
 
 io.use((socket, next) => {

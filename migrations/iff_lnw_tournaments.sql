@@ -1,5 +1,7 @@
--- Love & War Tournaments and Matches
+-- Love & War Tournaments, Groups, and Matches
 DROP TABLE IF EXISTS `iff_lnw_matches`;
+DROP TABLE IF EXISTS `iff_lnw_tournament_teams`;
+DROP TABLE IF EXISTS `iff_lnw_groups`;
 DROP TABLE IF EXISTS `iff_lnw_tournaments`;
 
 -- Tournaments table
@@ -13,10 +15,24 @@ CREATE TABLE `iff_lnw_tournaments` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Groups table (pools/divisions within a tournament)
+CREATE TABLE `iff_lnw_groups` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `tournament_id` INT NOT NULL,
+    `name` VARCHAR(100) NOT NULL, -- 'Group A', 'Group B', 'Finals Bracket', etc.
+    `group_order` INT NOT NULL DEFAULT 1, -- For display ordering
+    `status` VARCHAR(50) NOT NULL DEFAULT 'setup', -- 'setup', 'in_progress', 'completed'
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_tournament (tournament_id),
+    UNIQUE KEY unique_tournament_group (tournament_id, name)
+);
+
 -- Matches table
 CREATE TABLE `iff_lnw_matches` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `tournament_id` INT NOT NULL,
+    `group_id` INT NULL, -- NULL for ungrouped matches, links to iff_lnw_groups
     `round` VARCHAR(100) NOT NULL, -- 'Round 1', 'Quarter Finals', 'Semi Finals', 'Finals', etc.
     `round_order` INT NOT NULL, -- For sorting within a round
     `match_number` INT NOT NULL, -- Match number in bracket
@@ -31,6 +47,7 @@ CREATE TABLE `iff_lnw_matches` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_tournament (tournament_id),
+    INDEX idx_group (group_id),
     INDEX idx_round (tournament_id, round_order)
 );
 
@@ -39,7 +56,8 @@ CREATE TABLE `iff_lnw_tournament_teams` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `tournament_id` INT NOT NULL,
     `team_id` INT NOT NULL,
-    `seed` INT NULL, -- Seeding position
+    `group_id` INT NULL, -- Which group this team belongs to (NULL = unassigned)
+    `seed` INT NULL, -- Seeding position within group
     `placement` INT NULL, -- Final placement (1st, 2nd, 3rd, etc.)
     `wins` INT DEFAULT 0,
     `losses` INT DEFAULT 0,
@@ -47,9 +65,12 @@ CREATE TABLE `iff_lnw_tournament_teams` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_tournament (tournament_id),
     INDEX idx_team (team_id),
+    INDEX idx_group (group_id),
     UNIQUE KEY unique_tournament_team (tournament_id, team_id)
 );
 
 CREATE INDEX idx_lnw_match_tournament ON iff_lnw_matches(tournament_id);
+CREATE INDEX idx_lnw_match_group ON iff_lnw_matches(group_id);
 CREATE INDEX idx_lnw_match_teams ON iff_lnw_matches(team_1_id, team_2_id);
 CREATE INDEX idx_lnw_tournament_teams ON iff_lnw_tournament_teams(tournament_id, team_id);
+CREATE INDEX idx_lnw_tournament_teams_group ON iff_lnw_tournament_teams(group_id);

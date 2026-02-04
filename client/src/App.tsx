@@ -24,6 +24,9 @@ import LoveAndWarDashboardPage from './pages/IFF/LoveAndWarDashboardPage';
 import LoveAndWarControlPage from './pages/IFF/LoveAndWarControlPage';
 import LoveAndWarTeamDisplayPage from './pages/IFF/LoveAndWarTeamDisplayPage';
 import LoveAndWarTeamStatsOverlay from './pages/IFF/LoveAndWarTeamStatsOverlay';
+import LoveAndWarTournamentsPage from './pages/IFF/LoveAndWarTournamentsPage';
+import LoveAndWarBracketPage from './pages/IFF/LoveAndWarBracketPage';
+import LoveAndWarRankingsPage from './pages/IFF/LoveAndWarRankingsPage';
 // Access Guard
 import IFFAccessGuard from './components/IFFAccessGuard';
 
@@ -57,6 +60,9 @@ function App() {
         <Route path="/iff/love-and-war/control" element={<IFFAccessGuard><LoveAndWarControlPage /></IFFAccessGuard>} />
         <Route path="/iff/love-and-war/display" element={<IFFAccessGuard><LoveAndWarTeamDisplayPage /></IFFAccessGuard>} />
         <Route path="/iff/love-and-war/overlay" element={<LoveAndWarTeamStatsOverlay />} />
+        <Route path="/iff/love-and-war/tournaments" element={<IFFAccessGuard><LoveAndWarTournamentsPage /></IFFAccessGuard>} />
+        <Route path="/iff/love-and-war/tournament/:id/bracket" element={<IFFAccessGuard><LoveAndWarBracketPage /></IFFAccessGuard>} />
+        <Route path="/iff/love-and-war/tournament/:id/rankings" element={<IFFAccessGuard><LoveAndWarRankingsPage /></IFFAccessGuard>} />
       </Routes>
     </BrowserRouter>
   );

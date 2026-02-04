@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { Monitor, Settings, Tv, ChevronLeft, Heart, Swords } from 'lucide-react';
+import { Monitor, Settings, Tv, ChevronLeft, Heart, Swords, Trophy } from 'lucide-react';
 
 interface NavItem {
     name: string;
@@ -38,6 +38,15 @@ const LoveAndWarDashboardPage = () => {
             description: "Select which team to display on stream",
             path: "/iff/love-and-war/display",
             icon: <Monitor size={20} />,
+        },
+    ];
+
+    const tournamentItems: NavItem[] = [
+        {
+            name: "Tournament Manager",
+            description: "Create and manage Love & War tournaments",
+            path: "/iff/love-and-war/tournaments",
+            icon: <Trophy size={20} />,
         },
     ];
 
@@ -92,6 +101,31 @@ const LoveAndWarDashboardPage = () => {
                                 Manage teams and display their combined statistics live.
                             </p>
                         </div>
+                    </div>
+                </div>
+
+                {/* Tournament Section */}
+                <div className="mb-6">
+                    <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+                        <div className="w-1 h-4 bg-yellow-500 rounded-full" />
+                        Tournament Management
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {tournamentItems.map((item) => (
+                            <Link key={item.path} to={`${item.path}?key=${key}`}>
+                                <div className="flex items-center gap-4 p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 hover:border-yellow-400 hover:bg-yellow-500/10 transition-all group">
+                                    <div className="p-2.5 rounded-lg bg-yellow-500/20 text-yellow-400">
+                                        {item.icon}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-semibold text-white group-hover:text-yellow-400 transition-colors">
+                                            {item.name}
+                                        </h4>
+                                        <p className="text-sm text-gray-500">{item.description}</p>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
                     </div>
                 </div>
 
