@@ -123,12 +123,6 @@ let ribOverlayState = {
     animationTrigger: 0
 };
 
-// Love and War display state
-let loveAndWarDisplayState = {
-    teamId: null,
-    visible: false
-};
-
 // --- API ROUTES ---
 app.post('/api/auth', (req, res) => {
     if (req.body.key === CONNECTION_KEY) {
@@ -1134,93 +1128,209 @@ app.delete('/api/iff/player/:id', async (req, res) => {
     }
 });
 
-// --- LOVE AND WAR TEAM API ROUTES ---
+// --- LOVE & WAR TEAM API ROUTES ---
 
-// Get all Love and War teams
 app.get('/api/iff/love-and-war/teams', async (req, res) => {
-    console.log('[API /love-and-war/teams] Fetching all teams');
     try {
         const teams = await dbHelpers.getAllLoveAndWarTeams();
-        console.log('[API /love-and-war/teams] Found', teams.length, 'teams');
         res.status(200).json({ teams });
     } catch (error) {
-        console.error('[API /love-and-war/teams] Error:', error);
-        res.status(500).json({ error: error.message || 'Failed to get teams' });
+        console.error('Error getting Love & War teams:', error);
+        res.status(500).json({ error: error.message || 'Failed to get Love & War teams' });
     }
 });
 
-// Get single Love and War team by ID
 app.get('/api/iff/love-and-war/team/:id', async (req, res) => {
-    const { id } = req.params;
-    console.log('[API /love-and-war/team/:id] Fetching team:', id);
     try {
+        const { id } = req.params;
         const team = await dbHelpers.getLoveAndWarTeam(id);
         if (!team) {
-            console.log('[API /love-and-war/team/:id] Team not found:', id);
             return res.status(404).json({ error: 'Team not found' });
         }
-        console.log('[API /love-and-war/team/:id] Found team:', team.team_name);
         res.status(200).json({ team });
     } catch (error) {
-        console.error('[API /love-and-war/team/:id] Error:', error);
-        res.status(500).json({ error: error.message || 'Failed to get team' });
+        console.error('Error getting Love & War team:', error);
+        res.status(500).json({ error: error.message || 'Failed to get Love & War team' });
     }
 });
 
-// Create new Love and War team
 app.post('/api/iff/love-and-war/team', async (req, res) => {
-    console.log('[API POST /love-and-war/team] Creating new team:', req.body);
     try {
-        const teamData = req.body;
-        if (!teamData.team_name) {
-            return res.status(400).json({ error: 'Team name is required' });
-        }
-        if (!teamData.player_1_id || !teamData.player_2_id) {
-            return res.status(400).json({ error: 'Both player IDs are required' });
-        }
-        const team = await dbHelpers.saveLoveAndWarTeam(teamData);
-        console.log('[API POST /love-and-war/team] Created team:', team.id);
-        io.emit('love-and-war-team-update', team);
-        res.status(201).json({ team });
-    } catch (error) {
-        console.error('[API POST /love-and-war/team] Error:', error);
-        res.status(500).json({ error: error.message || 'Failed to create team' });
-    }
-});
-
-// Update existing Love and War team
-app.put('/api/iff/love-and-war/team/:id', async (req, res) => {
-    const { id } = req.params;
-    console.log('[API PUT /love-and-war/team/:id] Updating team:', id, req.body);
-    try {
-        const teamData = { ...req.body, id: parseInt(id) };
-        if (!teamData.team_name) {
-            return res.status(400).json({ error: 'Team name is required' });
-        }
-        if (!teamData.player_1_id || !teamData.player_2_id) {
-            return res.status(400).json({ error: 'Both player IDs are required' });
-        }
-        const team = await dbHelpers.saveLoveAndWarTeam(teamData);
-        console.log('[API PUT /love-and-war/team/:id] Updated team:', team.id);
+        const team = await dbHelpers.saveLoveAndWarTeam(req.body);
         io.emit('love-and-war-team-update', team);
         res.status(200).json({ team });
     } catch (error) {
-        console.error('[API PUT /love-and-war/team/:id] Error:', error);
-        res.status(500).json({ error: error.message || 'Failed to update team' });
+        console.error('Error creating Love & War team:', error);
+        res.status(500).json({ error: error.message || 'Failed to create Love & War team' });
     }
 });
 
-// Delete Love and War team
-app.delete('/api/iff/love-and-war/team/:id', async (req, res) => {
-    const { id } = req.params;
-    console.log('[API DELETE /love-and-war/team/:id] Deleting team:', id);
+app.put('/api/iff/love-and-war/team/:id', async (req, res) => {
     try {
+        const { id } = req.params;
+        const team = await dbHelpers.saveLoveAndWarTeam({ ...req.body, id: parseInt(id) });
+        io.emit('love-and-war-team-update', team);
+        res.status(200).json({ team });
+    } catch (error) {
+        console.error('Error updating Love & War team:', error);
+        res.status(500).json({ error: error.message || 'Failed to update Love & War team' });
+    }
+});
+
+app.delete('/api/iff/love-and-war/team/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
         await dbHelpers.deleteLoveAndWarTeam(id);
-        console.log('[API DELETE /love-and-war/team/:id] Deleted team:', id);
         res.status(200).json({ success: true });
     } catch (error) {
-        console.error('[API DELETE /love-and-war/team/:id] Error:', error);
-        res.status(500).json({ error: error.message || 'Failed to delete team' });
+        console.error('Error deleting Love & War team:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete Love & War team' });
+    }
+});
+
+// Love & War display state (for controlling the overlay)
+let loveAndWarDisplayState = {
+    teamId: null,
+    visible: false
+};
+
+app.get('/api/iff/love-and-war/display-state', (req, res) => {
+    res.status(200).json(loveAndWarDisplayState);
+});
+
+app.post('/api/iff/love-and-war/display-state', (req, res) => {
+    loveAndWarDisplayState = { ...loveAndWarDisplayState, ...req.body };
+    io.emit('love-and-war-display-update', loveAndWarDisplayState);
+    res.status(200).json(loveAndWarDisplayState);
+});
+
+// --- LOVE & WAR TOURNAMENT/BRACKET API ROUTES ---
+
+app.get('/api/iff/love-and-war/tournaments', async (req, res) => {
+    try {
+        const tournaments = await dbHelpers.getAllLnWTournaments();
+        res.status(200).json({ tournaments });
+    } catch (error) {
+        console.error('Error getting tournaments:', error);
+        res.status(500).json({ error: error.message || 'Failed to get tournaments' });
+    }
+});
+
+app.get('/api/iff/love-and-war/tournament/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tournament = await dbHelpers.getLnWTournament(id);
+        if (!tournament) {
+            return res.status(404).json({ error: 'Tournament not found' });
+        }
+        res.status(200).json({ tournament });
+    } catch (error) {
+        console.error('Error getting tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to get tournament' });
+    }
+});
+
+app.post('/api/iff/love-and-war/tournament', async (req, res) => {
+    try {
+        const tournament = await dbHelpers.saveLnWTournament(req.body);
+        res.status(200).json({ tournament });
+    } catch (error) {
+        console.error('Error creating tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to create tournament' });
+    }
+});
+
+app.put('/api/iff/love-and-war/tournament/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tournament = await dbHelpers.saveLnWTournament({ ...req.body, id: parseInt(id) });
+        res.status(200).json({ tournament });
+    } catch (error) {
+        console.error('Error updating tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to update tournament' });
+    }
+});
+
+app.delete('/api/iff/love-and-war/tournament/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await dbHelpers.deleteLnWTournament(id);
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error deleting tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete tournament' });
+    }
+});
+
+app.post('/api/iff/love-and-war/tournament/:id/teams', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { team_id, seed } = req.body;
+        await dbHelpers.addTeamToTournament(parseInt(id), team_id, seed);
+        const tournament = await dbHelpers.getLnWTournament(id);
+        res.status(200).json({ tournament });
+    } catch (error) {
+        console.error('Error adding team to tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to add team' });
+    }
+});
+
+app.delete('/api/iff/love-and-war/tournament/:tournamentId/teams/:teamId', async (req, res) => {
+    try {
+        const { tournamentId, teamId } = req.params;
+        await dbHelpers.removeTeamFromTournament(parseInt(tournamentId), parseInt(teamId));
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error removing team from tournament:', error);
+        res.status(500).json({ error: error.message || 'Failed to remove team' });
+    }
+});
+
+app.post('/api/iff/love-and-war/tournament/:id/matches', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const match = await dbHelpers.saveLnWMatch({ ...req.body, tournament_id: parseInt(id) });
+        io.emit('lnw-bracket-update', { tournament_id: id });
+        res.status(200).json({ match });
+    } catch (error) {
+        console.error('Error creating match:', error);
+        res.status(500).json({ error: error.message || 'Failed to create match' });
+    }
+});
+
+app.put('/api/iff/love-and-war/match/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const match = await dbHelpers.saveLnWMatch({ ...req.body, id: parseInt(id) });
+        io.emit('lnw-bracket-update', { tournament_id: req.body.tournament_id });
+        res.status(200).json({ match });
+    } catch (error) {
+        console.error('Error updating match:', error);
+        res.status(500).json({ error: error.message || 'Failed to update match' });
+    }
+});
+
+app.get('/api/iff/love-and-war/tournament/:id/rankings', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const rankings = await dbHelpers.getLnWTournamentRankings(id);
+        res.status(200).json({ rankings });
+    } catch (error) {
+        console.error('Error getting rankings:', error);
+        res.status(500).json({ error: error.message || 'Failed to get rankings' });
+    }
+});
+
+app.post('/api/iff/love-and-war/tournament/:id/placements', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { placements } = req.body;
+        await dbHelpers.updateTournamentPlacements(parseInt(id), placements);
+        const rankings = await dbHelpers.getLnWTournamentRankings(id);
+        res.status(200).json({ rankings });
+    } catch (error) {
+        console.error('Error updating placements:', error);
+        res.status(500).json({ error: error.message || 'Failed to update placements' });
     }
 });
 
@@ -1250,6 +1360,7 @@ io.on('connection', async (socket) => {
     socket.emit('rib-player-stats-update', currentRibPlayerStats);
     socket.emit('rib-stream-data-update', currentRibStreamData);
     socket.emit('rib-overlay-state-update', ribOverlayState);
+    socket.emit('love-and-war-display-update', loveAndWarDisplayState);
   } catch (error) {
     console.error('Error loading initial data for socket:', error);
     // Send cached data as fallback
@@ -1259,6 +1370,7 @@ io.on('connection', async (socket) => {
     socket.emit('rib-player-stats-update', ribPlayerStats);
     socket.emit('rib-stream-data-update', ribStreamData);
     socket.emit('rib-overlay-state-update', ribOverlayState);
+    socket.emit('love-and-war-display-update', loveAndWarDisplayState);
   }
 
   // Handle 1v1 Updates
@@ -1338,19 +1450,11 @@ io.on('connection', async (socket) => {
     io.emit('rib-overlay-state-update', ribOverlayState);
   });
 
-  // Handle Love and War team display selection
   socket.on('love-and-war-display-select', (data) => {
-    console.log('[Love&War] Display selection:', data);
-    loveAndWarDisplayState = { 
-      teamId: data.teamId, 
-      visible: data.visible 
-    };
-    // Broadcast to all clients (including overlays)
+    console.log('Received Love & War Display Select');
+    loveAndWarDisplayState = { ...loveAndWarDisplayState, ...data };
     io.emit('love-and-war-display-update', loveAndWarDisplayState);
   });
-
-  // Send current Love and War display state to newly connected clients
-  socket.emit('love-and-war-display-update', loveAndWarDisplayState);
 });
 
 // Catch-all to serve React app
