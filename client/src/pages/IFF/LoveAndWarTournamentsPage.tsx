@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Trophy, Calendar, Users, X, Target } from 'lucide-react';
+import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 
 interface Tournament {
     id: number;
@@ -89,7 +90,9 @@ const LoveAndWarTournamentsPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white p-6">
+        <div className="min-h-screen bg-black text-white p-6 pl-20">
+            <IFFBurgerMenu />
+            
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>

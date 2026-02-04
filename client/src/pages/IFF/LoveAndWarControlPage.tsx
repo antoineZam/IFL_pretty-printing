@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Edit3, Trash2, Users, Eye, X } from 'lucide-react';
+import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 
 interface IFFPlayer {
     id: number;
@@ -139,7 +140,9 @@ const LoveAndWarControlPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white p-6">
+        <div className="min-h-screen bg-black text-white p-6 pl-20">
+            <IFFBurgerMenu />
+            
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>

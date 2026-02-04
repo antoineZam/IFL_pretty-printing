@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Trophy, Medal, Crown, Save, Check } from 'lucide-react';
+import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 
 interface TeamRanking {
     id: number;
@@ -135,7 +136,9 @@ const LoveAndWarRankingsPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white p-6">
+        <div className="min-h-screen bg-black text-white p-6 pl-20">
+            <IFFBurgerMenu />
+            
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
