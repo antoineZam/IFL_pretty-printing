@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft, Eye, EyeOff, Users } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
-<<<<<<< HEAD
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import type { AvailableTeam } from '../../types/loveAndWar';
-=======
+
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
->>>>>>> main
+
 
 // Extended team type for this page
 interface LoveAndWarTeam extends AvailableTeam {

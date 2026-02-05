@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Trophy, Calendar, Users, X, Target } from 'lucide-react';
-<<<<<<< HEAD
+
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import type { TournamentListItem, TournamentFormat } from '../../types/loveAndWar';
-=======
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 
-interface Tournament {
+// Tournament format type
+type TournamentFormat = 'single_elimination' | 'double_elimination' | 'round_robin';
+
+// Tournament list item for display
+interface TournamentListItem {
     id: number;
     name: string;
     format: string;
@@ -16,7 +18,7 @@ interface Tournament {
     team_count: number;
     match_count: number;
 }
->>>>>>> main
+
 
 const LoveAndWarTournamentsPage = () => {
     const [searchParams] = useSearchParams();
@@ -227,7 +229,7 @@ const LoveAndWarTournamentsPage = () => {
                                 </label>
                                 <select
                                     value={formData.format}
-                                    onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, format: e.target.value as TournamentFormat })}
                                     className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-red-500 focus:outline-none"
                                 >
                                     <option value="single_elimination">Single Elimination</option>

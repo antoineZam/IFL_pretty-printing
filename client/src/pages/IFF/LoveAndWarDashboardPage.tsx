@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { Monitor, Settings, Tv, ChevronLeft, Heart, Swords, Trophy } from 'lucide-react';
+import { Monitor, Settings, Tv, ChevronLeft, Heart, Swords, Trophy, Gamepad2, Cast } from 'lucide-react';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 
 interface NavItem {
@@ -40,6 +40,12 @@ const LoveAndWarDashboardPage = () => {
             path: "/iff/love-and-war/display",
             icon: <Monitor size={20} />,
         },
+        {
+            name: "Match Control",
+            description: "Control the live stream overlay for matches",
+            path: "/iff/love-and-war/match-control",
+            icon: <Gamepad2 size={20} />,
+        },
     ];
 
     const tournamentItems: NavItem[] = [
@@ -57,6 +63,13 @@ const LoveAndWarDashboardPage = () => {
             description: "Main team statistics display for OBS",
             path: "/iff/love-and-war/overlay",
             icon: <Tv size={20} />,
+            external: true
+        },
+        {
+            name: "Match Overlay",
+            description: "Live match display with team names and scores",
+            path: "/iff/love-and-war/match-overlay",
+            icon: <Cast size={20} />,
             external: true
         },
     ];

@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Edit3, Trash2, Users, Eye, X } from 'lucide-react';
-<<<<<<< HEAD
+
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import type { AvailableTeam, PlayerInfo } from '../../types/loveAndWar';
-=======
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
->>>>>>> main
+
+// Type for players list
+interface PlayerInfo {
+    id: number;
+    name: string;
+    character_name: string;
+}
+
 
 // Extended team type for this page (includes editing fields)
 interface LoveAndWarTeam {

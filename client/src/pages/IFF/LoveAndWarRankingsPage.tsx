@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Trophy, Medal, Crown, Save, Check } from 'lucide-react';
-<<<<<<< HEAD
+
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import type { TeamRanking, TournamentListItem } from '../../types/loveAndWar';
-=======
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
->>>>>>> main
 
 // Simplified tournament type for this page
 interface Tournament {
@@ -14,6 +11,21 @@ interface Tournament {
     name: string;
     format: string;
     status: string;
+}
+
+// Team ranking type for display
+interface TeamRanking {
+    id: number;
+    team_id: number;
+    team_name: string;
+    player_1_name: string;
+    player_2_name: string;
+    player_1_character: string;
+    player_2_character: string;
+    seed: number | null;
+    wins: number;
+    losses: number;
+    placement: number | null;
 }
 
 const LoveAndWarRankingsPage = () => {

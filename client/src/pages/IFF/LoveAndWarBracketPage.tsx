@@ -2,19 +2,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Trash2, Play, Trophy, Check, X, Users, FolderPlus, Layers } from 'lucide-react';
 import { io } from 'socket.io-client';
-<<<<<<< HEAD
+
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import type { 
-    LoveAndWarTeam as Team, 
-    Match, 
-    Group, 
-    Tournament, 
-    AvailableTeam,
-    BracketPosition 
-} from '../../types/loveAndWar';
-=======
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 
+// Local interfaces that extend the base types with page-specific fields
 interface Team {
     id: number;
     team_id: number;
@@ -48,7 +40,7 @@ interface Match {
     winner_name: string | null;
     next_match_id: number | null;
     is_complete: boolean;
-    bracket_position: string | null;
+    bracket_position: 'upper' | 'lower' | 'grand_finals' | null;
 }
 
 interface Group {
@@ -77,7 +69,9 @@ interface AvailableTeam {
     player_1_name: string;
     player_2_name: string;
 }
->>>>>>> main
+
+type BracketPosition = 'upper' | 'lower' | 'grand_finals';
+
 
 const LoveAndWarBracketPage = () => {
     const { id: tournamentId } = useParams();

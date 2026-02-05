@@ -1204,6 +1204,37 @@ app.post('/api/iff/love-and-war/display-state', (req, res) => {
     res.status(200).json(loveAndWarDisplayState);
 });
 
+// Love & War match data (for stream overlay - similar to tag team)
+let lnwMatchData = {
+    team1: {
+        name: 'Team 1',
+        players: [
+            { name: 'Player 1', active: true },
+            { name: 'Player 2', active: false }
+        ],
+        score: 0
+    },
+    team2: {
+        name: 'Team 2',
+        players: [
+            { name: 'Player 1', active: true },
+            { name: 'Player 2', active: false }
+        ],
+        score: 0
+    },
+    round: 'Round 1'
+};
+
+app.get('/api/iff/love-and-war/match-data', (req, res) => {
+    res.status(200).json(lnwMatchData);
+});
+
+app.post('/api/iff/love-and-war/match-data', (req, res) => {
+    lnwMatchData = { ...lnwMatchData, ...req.body };
+    io.emit('lnw-match-data', lnwMatchData);
+    res.status(200).json(lnwMatchData);
+});
+
 // --- LOVE & WAR TOURNAMENT/BRACKET API ROUTES ---
 
 app.get('/api/iff/love-and-war/tournaments', async (req, res) => {
@@ -1454,6 +1485,7 @@ io.on('connection', async (socket) => {
     socket.emit('rib-stream-data-update', currentRibStreamData);
     socket.emit('rib-overlay-state-update', ribOverlayState);
     socket.emit('love-and-war-display-update', loveAndWarDisplayState);
+    socket.emit('lnw-match-data', lnwMatchData);
   } catch (error) {
     console.error('Error loading initial data for socket:', error);
     // Send cached data as fallback
@@ -1464,6 +1496,7 @@ io.on('connection', async (socket) => {
     socket.emit('rib-stream-data-update', ribStreamData);
     socket.emit('rib-overlay-state-update', ribOverlayState);
     socket.emit('love-and-war-display-update', loveAndWarDisplayState);
+    socket.emit('lnw-match-data', lnwMatchData);
   }
 
   // Handle 1v1 Updates
@@ -1547,6 +1580,12 @@ io.on('connection', async (socket) => {
     console.log('Received Love & War Display Select');
     loveAndWarDisplayState = { ...loveAndWarDisplayState, ...data };
     io.emit('love-and-war-display-update', loveAndWarDisplayState);
+  });
+
+  socket.on('lnw-match-update', (data) => {
+    console.log('Received Love & War Match Update');
+    lnwMatchData = { ...lnwMatchData, ...data };
+    io.emit('lnw-match-data', lnwMatchData);
   });
 });
 
