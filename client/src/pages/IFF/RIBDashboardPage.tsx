@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database, Heart } from 'lucide-react';
+import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 
 interface NavItem {
     name: string;
@@ -117,6 +118,8 @@ const RIBDashboardPage = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+            <IFFBurgerMenu />
+            
             {/* Subtle background pattern */}
             <div className="fixed inset-0 opacity-[0.02] pointer-events-none">
                 <div className="absolute inset-0" style={{

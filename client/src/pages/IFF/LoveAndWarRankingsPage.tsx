@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Trophy, Medal, Crown, Save, Check } from 'lucide-react';
+<<<<<<< HEAD
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import type { TeamRanking, TournamentListItem } from '../../types/loveAndWar';
+=======
+import IFFBurgerMenu from '../../components/IFFBurgerMenu';
+>>>>>>> main
 
 // Simplified tournament type for this page
 interface Tournament {
@@ -127,7 +131,9 @@ const LoveAndWarRankingsPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white p-6">
+        <div className="min-h-screen bg-black text-white p-6 pl-20">
+            <IFFBurgerMenu />
+            
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>

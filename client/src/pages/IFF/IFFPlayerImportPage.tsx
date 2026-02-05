@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 import { 
     ChevronLeft, 
     Users, 
@@ -221,6 +222,8 @@ export default function IFFPlayerImportPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+            <IFFBurgerMenu />
+            
             {/* Background pattern */}
             <div className="fixed inset-0 opacity-[0.02] pointer-events-none">
                 <div className="absolute inset-0" style={{

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Trash2, Play, Trophy, Check, X, Users, FolderPlus, Layers } from 'lucide-react';
 import { io } from 'socket.io-client';
+<<<<<<< HEAD
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import type { 
     LoveAndWarTeam as Team, 
@@ -11,6 +12,72 @@ import type {
     AvailableTeam,
     BracketPosition 
 } from '../../types/loveAndWar';
+=======
+import IFFBurgerMenu from '../../components/IFFBurgerMenu';
+
+interface Team {
+    id: number;
+    team_id: number;
+    team_name: string;
+    seed: number | null;
+    group_id: number | null;
+    group_name: string | null;
+    player_1_name: string;
+    player_2_name: string;
+    player_1_character: string;
+    player_2_character: string;
+    wins: number;
+    losses: number;
+}
+
+interface Match {
+    id: number;
+    tournament_id: number;
+    group_id: number | null;
+    group_name: string | null;
+    round: string;
+    round_order: number;
+    match_number: number;
+    team_1_id: number | null;
+    team_2_id: number | null;
+    team_1_name: string | null;
+    team_2_name: string | null;
+    team_1_score: number;
+    team_2_score: number;
+    winner_team_id: number | null;
+    winner_name: string | null;
+    next_match_id: number | null;
+    is_complete: boolean;
+    bracket_position: string | null;
+}
+
+interface Group {
+    id: number;
+    tournament_id: number;
+    name: string;
+    group_order: number;
+    status: string;
+    team_count: number;
+    match_count: number;
+}
+
+interface Tournament {
+    id: number;
+    name: string;
+    format: string;
+    status: string;
+    groups: Group[];
+    teams: Team[];
+    matches: Match[];
+}
+
+interface AvailableTeam {
+    id: number;
+    team_name: string;
+    player_1_name: string;
+    player_2_name: string;
+}
+>>>>>>> main
 
 const LoveAndWarBracketPage = () => {
     const { id: tournamentId } = useParams();
@@ -774,7 +841,9 @@ const LoveAndWarBracketPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white p-6">
+        <div className="min-h-screen bg-black text-white p-6 pl-20">
+            <IFFBurgerMenu />
+            
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
