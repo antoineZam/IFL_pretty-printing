@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Edit3, Trash2, Users, Eye, X } from 'lucide-react';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import type { AvailableTeam, PlayerInfo } from '../../types/loveAndWar';
 
-interface IFFPlayer {
-    id: number;
-    name: string;
-    character_name: string;
-}
-
+// Extended team type for this page (includes editing fields)
 interface LoveAndWarTeam {
     id: number;
     team_name: string;
@@ -24,7 +21,8 @@ const LoveAndWarControlPage = () => {
     const key = searchParams.get('key') || localStorage.getItem('connectionKey');
 
     const [teams, setTeams] = useState<LoveAndWarTeam[]>([]);
-    const [players, setPlayers] = useState<IFFPlayer[]>([]);
+    const [players, setPlayers] = useState<PlayerInfo[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTeam, setEditingTeam] = useState<LoveAndWarTeam | null>(null);
     const [formData, setFormData] = useState({
@@ -40,11 +38,14 @@ const LoveAndWarControlPage = () => {
 
     const loadTeams = async () => {
         try {
+            setIsLoading(true);
             const response = await fetch('/api/iff/love-and-war/teams');
             const data = await response.json();
             setTeams(data.teams || []);
         } catch (error) {
             console.error('Error loading teams:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -160,6 +161,24 @@ const LoveAndWarControlPage = () => {
             </div>
 
             {/* Teams Grid */}
+            {isLoading ? (
+                <div className="flex items-center justify-center py-16">
+                    <LoadingSpinner size="lg" message="Loading teams..." />
+                </div>
+            ) : teams.length === 0 ? (
+                <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-8 text-center">
+                    <Users size={48} className="mx-auto mb-4 text-gray-600" />
+                    <h3 className="text-lg font-bold text-white mb-2">No Teams Created</h3>
+                    <p className="text-gray-400 mb-4">Create your first team to get started with Love & War.</p>
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors inline-flex items-center gap-2"
+                    >
+                        <Plus size={18} />
+                        Create Team
+                    </button>
+                </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {teams.map((team) => (
                     <div key={team.id} className="bg-gray-900 rounded-lg p-5 border border-gray-800 hover:border-red-500/50 transition-all">
@@ -221,14 +240,8 @@ const LoveAndWarControlPage = () => {
                         </div>
                     </div>
                 ))}
-
-                {teams.length === 0 && (
-                    <div className="col-span-full text-center py-12 text-gray-500">
-                        <Users size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>No teams created yet. Click "Create Team" to get started.</p>
-                    </div>
-                )}
             </div>
+            )}
 
             {/* Modal */}
             {isModalOpen && (

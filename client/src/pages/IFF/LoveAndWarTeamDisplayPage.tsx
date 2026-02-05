@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft, Eye, EyeOff, Users } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import type { AvailableTeam } from '../../types/loveAndWar';
 
-interface LoveAndWarTeam {
-    id: number;
-    team_name: string;
-    player_1_name?: string;
-    player_2_name?: string;
+// Extended team type for this page
+interface LoveAndWarTeam extends AvailableTeam {
     player_1_character?: string;
     player_2_character?: string;
 }
@@ -17,6 +16,7 @@ const LoveAndWarTeamDisplayPage = () => {
     const key = searchParams.get('key') || localStorage.getItem('connectionKey');
 
     const [teams, setTeams] = useState<LoveAndWarTeam[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
     const [isVisible, setIsVisible] = useState(false);
     const [socket, setSocket] = useState<Socket | null>(null);
@@ -45,11 +45,14 @@ const LoveAndWarTeamDisplayPage = () => {
 
     const loadTeams = async () => {
         try {
+            setIsLoading(true);
             const response = await fetch('/api/iff/love-and-war/teams');
             const data = await response.json();
             setTeams(data.teams || []);
         } catch (error) {
             console.error('Error loading teams:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -129,6 +132,17 @@ const LoveAndWarTeamDisplayPage = () => {
             )}
 
             {/* Teams List */}
+            {isLoading ? (
+                <div className="flex items-center justify-center py-16">
+                    <LoadingSpinner size="lg" message="Loading teams..." />
+                </div>
+            ) : teams.length === 0 ? (
+                <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-8 text-center">
+                    <Users size={48} className="mx-auto mb-4 text-gray-600" />
+                    <h3 className="text-lg font-bold text-white mb-2">No Teams Available</h3>
+                    <p className="text-gray-400">Create teams in the Team Management page first.</p>
+                </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {teams.map((team) => (
                     <button
@@ -178,14 +192,8 @@ const LoveAndWarTeamDisplayPage = () => {
                         </div>
                     </button>
                 ))}
-
-                {teams.length === 0 && (
-                    <div className="col-span-full text-center py-12 text-gray-500">
-                        <Users size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>No teams available. Create teams in the Team Management page.</p>
-                    </div>
-                )}
             </div>
+            )}
         </div>
     );
 };

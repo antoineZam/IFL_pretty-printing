@@ -105,7 +105,7 @@ const LoveAndWarTeamStatsOverlay = () => {
     }
 
     // Normalize team name for file paths (lowercase, replace spaces with underscores)
-    const teamNameSlug = team.team_name.toLowerCase().replace(/\s+/g, ' ');
+    const teamNameSlug = team.team_name.toLowerCase().replace(/\s+/g, '_');
     const teamNameImagePath = `/source/overlay/love_and_war/team_names/${teamNameSlug}.png`;
     const teamLineworkPath = `/source/overlay/love_and_war/team_linework/${teamNameSlug}.png`;
 

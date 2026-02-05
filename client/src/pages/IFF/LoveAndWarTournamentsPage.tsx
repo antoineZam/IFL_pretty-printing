@@ -1,24 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Trophy, Calendar, Users, X, Target } from 'lucide-react';
-
-interface Tournament {
-    id: number;
-    name: string;
-    format: string;
-    status: string;
-    start_date: string | null;
-    team_count: number;
-    match_count: number;
-}
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import type { TournamentListItem, TournamentFormat } from '../../types/loveAndWar';
 
 const LoveAndWarTournamentsPage = () => {
     const [searchParams] = useSearchParams();
     const key = searchParams.get('key') || localStorage.getItem('connectionKey');
 
-    const [tournaments, setTournaments] = useState<Tournament[]>([]);
+    const [tournaments, setTournaments] = useState<TournamentListItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        format: TournamentFormat;
+        start_date: string;
+    }>({
         name: '',
         format: 'single_elimination',
         start_date: ''
@@ -30,11 +27,14 @@ const LoveAndWarTournamentsPage = () => {
 
     const loadTournaments = async () => {
         try {
+            setIsLoading(true);
             const response = await fetch('/api/iff/love-and-war/tournaments');
             const data = await response.json();
             setTournaments(data.tournaments || []);
         } catch (error) {
             console.error('Error loading tournaments:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -110,6 +110,24 @@ const LoveAndWarTournamentsPage = () => {
             </div>
 
             {/* Tournaments Grid */}
+            {isLoading ? (
+                <div className="flex items-center justify-center py-16">
+                    <LoadingSpinner size="lg" message="Loading tournaments..." />
+                </div>
+            ) : tournaments.length === 0 ? (
+                <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-8 text-center">
+                    <Trophy size={48} className="mx-auto mb-4 text-gray-600" />
+                    <h3 className="text-lg font-bold text-white mb-2">No Tournaments Yet</h3>
+                    <p className="text-gray-400 mb-4">Create your first Love & War tournament to get started.</p>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors inline-flex items-center gap-2"
+                    >
+                        <Plus size={18} />
+                        Create Tournament
+                    </button>
+                </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {tournaments.map((tournament) => (
                     <Link
@@ -155,14 +173,8 @@ const LoveAndWarTournamentsPage = () => {
                         </div>
                     </Link>
                 ))}
-
-                {tournaments.length === 0 && (
-                    <div className="col-span-full text-center py-12 text-gray-500">
-                        <Trophy size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>No tournaments created yet. Click "Create Tournament" to get started.</p>
-                    </div>
-                )}
             </div>
+            )}
 
             {/* Create Modal */}
             {isModalOpen && (

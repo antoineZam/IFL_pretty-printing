@@ -1,22 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Trophy, Medal, Crown, Save, Check } from 'lucide-react';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import type { TeamRanking, TournamentListItem } from '../../types/loveAndWar';
 
-interface TeamRanking {
-    id: number;
-    tournament_id: number;
-    team_id: number;
-    team_name: string;
-    player_1_name: string;
-    player_2_name: string;
-    player_1_character: string;
-    player_2_character: string;
-    seed: number | null;
-    placement: number | null;
-    wins: number;
-    losses: number;
-}
-
+// Simplified tournament type for this page
 interface Tournament {
     id: number;
     name: string;
@@ -31,6 +19,7 @@ const LoveAndWarRankingsPage = () => {
 
     const [tournament, setTournament] = useState<Tournament | null>(null);
     const [rankings, setRankings] = useState<TeamRanking[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [editingPlacements, setEditingPlacements] = useState<{ [teamId: number]: number | null }>({});
     const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -52,6 +41,7 @@ const LoveAndWarRankingsPage = () => {
 
     const loadRankings = async () => {
         try {
+            setIsLoading(true);
             const response = await fetch(`/api/iff/love-and-war/tournament/${tournamentId}/rankings`);
             const data = await response.json();
             setRankings(data.rankings || []);
@@ -64,6 +54,8 @@ const LoveAndWarRankingsPage = () => {
             setEditingPlacements(placements);
         } catch (error) {
             console.error('Error loading rankings:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -126,10 +118,10 @@ const LoveAndWarRankingsPage = () => {
         return <span className="text-gray-400 font-bold">{placement}</span>;
     };
 
-    if (!tournament) {
+    if (!tournament || isLoading) {
         return (
             <div className="min-h-screen bg-black text-white flex items-center justify-center">
-                Loading...
+                <LoadingSpinner size="lg" message="Loading rankings..." />
             </div>
         );
     }
