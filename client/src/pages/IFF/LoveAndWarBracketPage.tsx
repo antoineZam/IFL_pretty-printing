@@ -221,22 +221,13 @@ const LoveAndWarBracketPage = () => {
         }
     };
 
-    const generateBracketForGroup = async (groupId: number) => {
-        const groupTeams = tournament?.teams.filter(t => t.group_id === groupId) || [];
-        
-        if (groupTeams.length < 2) {
-            alert('Need at least 2 teams in this group to generate a bracket');
-            return;
-        }
-
-        const teams = [...groupTeams].sort((a, b) => (a.seed || 999) - (b.seed || 999));
+    // Generate single elimination bracket
+    const generateSingleEliminationBracket = (groupId: number, teams: Team[]): Partial<Match>[] => {
         const numTeams = teams.length;
-        
-        // Calculate rounds needed
         const numRounds = Math.ceil(Math.log2(numTeams));
         const perfectBracketSize = Math.pow(2, numRounds);
         
-        // Round names
+        // Round names for winners bracket
         const roundNames: { [key: number]: string } = {};
         if (numRounds >= 1) roundNames[numRounds] = 'Finals';
         if (numRounds >= 2) roundNames[numRounds - 1] = 'Semi Finals';
@@ -245,7 +236,6 @@ const LoveAndWarBracketPage = () => {
             roundNames[i] = `Round ${i}`;
         }
 
-        // Generate matches for each round
         const matches: Partial<Match>[] = [];
         let matchCounter = 1;
         
@@ -314,6 +304,211 @@ const LoveAndWarBracketPage = () => {
             }
         }
 
+        return matches;
+    };
+
+    // Generate double elimination bracket
+    const generateDoubleEliminationBracket = (groupId: number, teams: Team[]): Partial<Match>[] => {
+        const numTeams = teams.length;
+        const numWinnersRounds = Math.ceil(Math.log2(numTeams));
+        const perfectBracketSize = Math.pow(2, numWinnersRounds);
+        
+        const matches: Partial<Match>[] = [];
+        let matchCounter = 1;
+        
+        // Winners bracket round names
+        const winnersRoundNames: { [key: number]: string } = {};
+        if (numWinnersRounds >= 1) winnersRoundNames[numWinnersRounds] = 'Winners Finals';
+        if (numWinnersRounds >= 2) winnersRoundNames[numWinnersRounds - 1] = 'Winners Semis';
+        if (numWinnersRounds >= 3) winnersRoundNames[numWinnersRounds - 2] = 'Winners Quarters';
+        for (let i = 1; i <= numWinnersRounds - 3; i++) {
+            winnersRoundNames[i] = `Winners R${i}`;
+        }
+
+        // =====================
+        // WINNERS BRACKET
+        // =====================
+        
+        // First round matches (with seeding)
+        const firstRoundMatchCount = perfectBracketSize / 2;
+        
+        for (let i = 0; i < firstRoundMatchCount; i++) {
+            const team1Index = i;
+            const team2Index = perfectBracketSize - 1 - i;
+            
+            const team1 = teams[team1Index] || null;
+            const team2 = team2Index < numTeams ? teams[team2Index] : null;
+            
+            if (!team2 && team1) {
+                // Bye - team auto advances
+                matches.push({
+                    tournament_id: tournament!.id,
+                    group_id: groupId,
+                    round: winnersRoundNames[1] || 'Winners R1',
+                    round_order: 1,
+                    match_number: matchCounter++,
+                    team_1_id: team1.team_id,
+                    team_2_id: null,
+                    team_1_score: 0,
+                    team_2_score: 0,
+                    winner_team_id: team1.team_id,
+                    is_complete: true,
+                    bracket_position: 'upper'
+                });
+            } else if (team1 && team2) {
+                matches.push({
+                    tournament_id: tournament!.id,
+                    group_id: groupId,
+                    round: winnersRoundNames[1] || 'Winners R1',
+                    round_order: 1,
+                    match_number: matchCounter++,
+                    team_1_id: team1.team_id,
+                    team_2_id: team2.team_id,
+                    team_1_score: 0,
+                    team_2_score: 0,
+                    winner_team_id: null,
+                    is_complete: false,
+                    bracket_position: 'upper'
+                });
+            }
+        }
+
+        // Subsequent winners rounds
+        for (let round = 2; round <= numWinnersRounds; round++) {
+            const matchesInRound = Math.pow(2, numWinnersRounds - round);
+            for (let i = 0; i < matchesInRound; i++) {
+                matches.push({
+                    tournament_id: tournament!.id,
+                    group_id: groupId,
+                    round: winnersRoundNames[round] || `Winners R${round}`,
+                    round_order: round,
+                    match_number: matchCounter++,
+                    team_1_id: null,
+                    team_2_id: null,
+                    team_1_score: 0,
+                    team_2_score: 0,
+                    winner_team_id: null,
+                    is_complete: false,
+                    bracket_position: 'upper'
+                });
+            }
+        }
+
+        // =====================
+        // LOSERS BRACKET
+        // =====================
+        // Losers bracket has roughly (2 * winnersRounds - 1) rounds
+        // Each winners round feeds losers into the losers bracket
+        // Losers bracket alternates between:
+        //   - Receiving losers from winners bracket
+        //   - Normal elimination within losers bracket
+        
+        const numLosersRounds = (numWinnersRounds * 2) - 1;
+        let losersRoundOrder = numWinnersRounds + 1; // Start after winners bracket round orders
+        
+        // Calculate how many matches in each losers round
+        // Round 1: losers from WR1 (firstRoundMatchCount / 2 after pairing)
+        // Structure alternates between "drop-down" rounds and "elimination" rounds
+        
+        let losersRemaining = Math.floor(firstRoundMatchCount / 2); // Initial matches from WR1 losers paired
+        
+        for (let losersRound = 1; losersRound <= numLosersRounds; losersRound++) {
+            let matchesInRound: number;
+            let roundName: string;
+            
+            if (losersRound === numLosersRounds) {
+                // Losers Finals
+                matchesInRound = 1;
+                roundName = 'Losers Finals';
+            } else if (losersRound === numLosersRounds - 1) {
+                // Losers Semis
+                matchesInRound = 1;
+                roundName = 'Losers Semis';
+            } else if (losersRound % 2 === 1) {
+                // Odd round: losers from winners bracket drop in
+                matchesInRound = losersRemaining;
+                roundName = `Losers R${losersRound}`;
+            } else {
+                // Even round: elimination within losers bracket
+                matchesInRound = Math.ceil(losersRemaining / 2);
+                losersRemaining = matchesInRound;
+                roundName = `Losers R${losersRound}`;
+            }
+            
+            for (let i = 0; i < matchesInRound; i++) {
+                matches.push({
+                    tournament_id: tournament!.id,
+                    group_id: groupId,
+                    round: roundName,
+                    round_order: losersRoundOrder,
+                    match_number: matchCounter++,
+                    team_1_id: null,
+                    team_2_id: null,
+                    team_1_score: 0,
+                    team_2_score: 0,
+                    winner_team_id: null,
+                    is_complete: false,
+                    bracket_position: 'lower'
+                });
+            }
+            
+            losersRoundOrder++;
+        }
+
+        // =====================
+        // GRAND FINALS
+        // =====================
+        // Grand Finals: Winners bracket champion vs Losers bracket champion
+        matches.push({
+            tournament_id: tournament!.id,
+            group_id: groupId,
+            round: 'Grand Finals',
+            round_order: losersRoundOrder,
+            match_number: matchCounter++,
+            team_1_id: null,
+            team_2_id: null,
+            team_1_score: 0,
+            team_2_score: 0,
+            winner_team_id: null,
+            is_complete: false,
+            bracket_position: 'grand_finals'
+        });
+
+        // Grand Finals Reset (in case losers bracket winner wins first GF)
+        matches.push({
+            tournament_id: tournament!.id,
+            group_id: groupId,
+            round: 'Grand Finals Reset',
+            round_order: losersRoundOrder + 1,
+            match_number: matchCounter++,
+            team_1_id: null,
+            team_2_id: null,
+            team_1_score: 0,
+            team_2_score: 0,
+            winner_team_id: null,
+            is_complete: false,
+            bracket_position: 'grand_finals'
+        });
+
+        return matches;
+    };
+
+    const generateBracketForGroup = async (groupId: number) => {
+        const groupTeams = tournament?.teams.filter(t => t.group_id === groupId) || [];
+        
+        if (groupTeams.length < 2) {
+            alert('Need at least 2 teams in this group to generate a bracket');
+            return;
+        }
+
+        const teams = [...groupTeams].sort((a, b) => (a.seed || 999) - (b.seed || 999));
+        
+        // Generate bracket based on tournament format
+        const isDoubleElim = tournament?.format === 'double_elimination';
+        const matches = isDoubleElim 
+            ? generateDoubleEliminationBracket(groupId, teams)
+            : generateSingleEliminationBracket(groupId, teams);
+
         // Create matches in database
         try {
             for (const match of matches) {
@@ -355,6 +550,100 @@ const LoveAndWarBracketPage = () => {
         setIsScoreModalOpen(true);
     };
 
+    // Find the next match for a winner to advance to (winners bracket)
+    const findNextWinnersMatch = (currentMatch: Match, allMatches: Match[]): Match | null => {
+        const currentRoundMatches = allMatches.filter(
+            m => m.bracket_position === 'upper' && m.round_order === currentMatch.round_order
+        ).sort((a, b) => a.match_number - b.match_number);
+        
+        const nextRoundMatches = allMatches.filter(
+            m => m.bracket_position === 'upper' && m.round_order === currentMatch.round_order + 1
+        ).sort((a, b) => a.match_number - b.match_number);
+        
+        if (nextRoundMatches.length === 0) return null;
+        
+        // Find current match index in its round
+        const matchIndex = currentRoundMatches.findIndex(m => m.id === currentMatch.id);
+        // Winner goes to match at index floor(matchIndex / 2) in next round
+        const nextMatchIndex = Math.floor(matchIndex / 2);
+        
+        return nextRoundMatches[nextMatchIndex] || null;
+    };
+
+    // Find the next match for a loser to drop to (losers bracket)
+    const findNextLosersMatch = (currentMatch: Match, allMatches: Match[]): Match | null => {
+        if (!isDoubleElim) return null;
+        
+        // Losers from winners bracket go to losers bracket
+        if (currentMatch.bracket_position === 'upper') {
+            const currentRoundOrder = currentMatch.round_order;
+            const currentRoundMatches = allMatches.filter(
+                m => m.bracket_position === 'upper' && m.round_order === currentRoundOrder
+            ).sort((a, b) => a.match_number - b.match_number);
+            
+            // Calculate which losers round to drop to
+            // WR1 losers -> LR1, WR2 losers -> LR2 or LR3, etc.
+            const losersRoundOrder = currentRoundOrder === 1 
+                ? allMatches.filter(m => m.bracket_position === 'lower').sort((a, b) => a.round_order - b.round_order)[0]?.round_order
+                : null;
+            
+            if (!losersRoundOrder) {
+                // Just find first available losers match
+                const losersMatches = allMatches.filter(
+                    m => m.bracket_position === 'lower' && !m.team_1_id
+                ).sort((a, b) => a.round_order - b.round_order || a.match_number - b.match_number);
+                return losersMatches[0] || null;
+            }
+            
+            const targetLosersMatches = allMatches.filter(
+                m => m.bracket_position === 'lower' && m.round_order === losersRoundOrder
+            ).sort((a, b) => a.match_number - b.match_number);
+            
+            const matchIndex = currentRoundMatches.findIndex(m => m.id === currentMatch.id);
+            return targetLosersMatches[Math.floor(matchIndex / 2)] || targetLosersMatches[0] || null;
+        }
+        
+        // Losers within losers bracket advance within losers bracket
+        if (currentMatch.bracket_position === 'lower') {
+            const nextRoundMatches = allMatches.filter(
+                m => m.bracket_position === 'lower' && m.round_order === currentMatch.round_order + 1
+            ).sort((a, b) => a.match_number - b.match_number);
+            
+            if (nextRoundMatches.length === 0) return null;
+            
+            const currentRoundMatches = allMatches.filter(
+                m => m.bracket_position === 'lower' && m.round_order === currentMatch.round_order
+            ).sort((a, b) => a.match_number - b.match_number);
+            
+            const matchIndex = currentRoundMatches.findIndex(m => m.id === currentMatch.id);
+            const nextMatchIndex = Math.floor(matchIndex / 2);
+            
+            return nextRoundMatches[nextMatchIndex] || null;
+        }
+        
+        return null;
+    };
+
+    // Find grand finals match for winners/losers bracket champions
+    const findGrandFinalsMatch = (allMatches: Match[]): Match | null => {
+        return allMatches.find(m => m.bracket_position === 'grand_finals' && m.round === 'Grand Finals') || null;
+    };
+
+    // Advance winner to next match
+    const advanceWinner = async (nextMatch: Match, winnerId: number) => {
+        // Determine which slot to put the winner in
+        const slot = !nextMatch.team_1_id ? 'team_1' : 'team_2';
+        
+        await fetch(`/api/iff/love-and-war/match/${nextMatch.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...nextMatch,
+                [`${slot}_id`]: winnerId
+            })
+        });
+    };
+
     const handleSubmitScore = async () => {
         if (!selectedMatch) return;
 
@@ -364,7 +653,13 @@ const LoveAndWarBracketPage = () => {
                 ? selectedMatch.team_2_id 
                 : null;
 
+        const loser = winner === selectedMatch.team_1_id 
+            ? selectedMatch.team_2_id 
+            : selectedMatch.team_1_id;
+
+
         try {
+            // Update the current match
             await fetch(`/api/iff/love-and-war/match/${selectedMatch.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -376,6 +671,98 @@ const LoveAndWarBracketPage = () => {
                     is_complete: winner !== null
                 })
             });
+
+            // Handle bracket progression if match is complete
+            if (winner !== null && tournament) {
+                const allMatches = groupMatches;
+                
+                // Winners bracket progression
+                if (selectedMatch.bracket_position === 'upper') {
+                    // Check if this is Winners Finals
+                    const isWinnersFinals = selectedMatch.round.toLowerCase().includes('winners finals') || 
+                        selectedMatch.round.toLowerCase() === 'finals';
+                    
+                    if (isWinnersFinals && isDoubleElim) {
+                        // Winner goes to Grand Finals
+                        const grandFinals = findGrandFinalsMatch(allMatches);
+                        if (grandFinals && winner) {
+                            await advanceWinner(grandFinals, winner);
+                        }
+                        // Loser goes to Losers Finals
+                        if (loser) {
+                            const losersFinals = allMatches.find(m => 
+                                m.bracket_position === 'lower' && 
+                                m.round.toLowerCase().includes('losers finals')
+                            );
+                            if (losersFinals) {
+                                await advanceWinner(losersFinals, loser);
+                            }
+                        }
+                    } else {
+                        // Normal winners bracket - winner advances
+                        const nextWinnersMatch = findNextWinnersMatch(selectedMatch, allMatches);
+                        if (nextWinnersMatch && winner) {
+                            await advanceWinner(nextWinnersMatch, winner);
+                        }
+                        
+                        // In double elim, loser drops to losers bracket
+                        if (isDoubleElim && loser) {
+                            const nextLosersMatch = findNextLosersMatch(selectedMatch, allMatches);
+                            if (nextLosersMatch) {
+                                await advanceWinner(nextLosersMatch, loser);
+                            }
+                        }
+                    }
+                }
+                
+                // Losers bracket progression
+                if (selectedMatch.bracket_position === 'lower') {
+                    const isLosersFinals = selectedMatch.round.toLowerCase().includes('losers finals');
+                    
+                    if (isLosersFinals) {
+                        // Losers Finals winner goes to Grand Finals
+                        const grandFinals = findGrandFinalsMatch(allMatches);
+                        if (grandFinals && winner) {
+                            await advanceWinner(grandFinals, winner);
+                        }
+                    } else {
+                        // Normal losers bracket - winner advances within losers
+                        const nextLosersMatch = findNextLosersMatch(selectedMatch, allMatches);
+                        if (nextLosersMatch && winner) {
+                            await advanceWinner(nextLosersMatch, winner);
+                        }
+                    }
+                    // Loser is eliminated - no progression needed
+                }
+                
+                // Grand Finals progression
+                if (selectedMatch.bracket_position === 'grand_finals') {
+                    const isGrandFinalsReset = selectedMatch.round.toLowerCase().includes('reset');
+                    
+                    if (!isGrandFinalsReset) {
+                        // First Grand Finals - check if losers bracket winner won
+                        // If so, trigger reset match
+                        const grandFinalsReset = allMatches.find(m => 
+                            m.bracket_position === 'grand_finals' && 
+                            m.round.toLowerCase().includes('reset')
+                        );
+                        
+                        if (grandFinalsReset && winner) {
+                            // Both players go to reset match
+                            await fetch(`/api/iff/love-and-war/match/${grandFinalsReset.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    ...grandFinalsReset,
+                                    team_1_id: selectedMatch.team_1_id,
+                                    team_2_id: selectedMatch.team_2_id
+                                })
+                            });
+                        }
+                    }
+                    // Reset match winner is the tournament champion - no further progression
+                }
+            }
 
             setIsScoreModalOpen(false);
             await loadTournament();
@@ -389,19 +776,36 @@ const LoveAndWarBracketPage = () => {
         ? tournament?.matches.filter(m => m.group_id === selectedGroupId) || []
         : [];
 
-    // Group matches by round for bracket display
-    const matchesByRound: { [key: number]: Match[] } = {};
-    groupMatches.forEach(match => {
-        if (!matchesByRound[match.round_order]) {
-            matchesByRound[match.round_order] = [];
-        }
-        matchesByRound[match.round_order].push(match);
-    });
+    // Separate matches by bracket position
+    const upperBracketMatches = groupMatches.filter(m => m.bracket_position === 'upper');
+    const lowerBracketMatches = groupMatches.filter(m => m.bracket_position === 'lower');
+    const grandFinalsMatches = groupMatches.filter(m => m.bracket_position === 'grand_finals');
+    
+    const isDoubleElim = tournament?.format === 'double_elimination';
 
-    const roundOrders = Object.keys(matchesByRound).map(Number).sort((a, b) => a - b);
+    // Group matches by round for bracket display
+    const groupMatchesByRound = (matches: Match[]) => {
+        const byRound: { [key: number]: Match[] } = {};
+        matches.forEach(match => {
+            if (!byRound[match.round_order]) {
+                byRound[match.round_order] = [];
+            }
+            byRound[match.round_order].push(match);
+        });
+        return byRound;
+    };
+
+    const upperMatchesByRound = groupMatchesByRound(upperBracketMatches);
+    const lowerMatchesByRound = groupMatchesByRound(lowerBracketMatches);
+    
+    const upperRoundOrders = Object.keys(upperMatchesByRound).map(Number).sort((a, b) => a - b);
+    const lowerRoundOrders = Object.keys(lowerMatchesByRound).map(Number).sort((a, b) => a - b);
 
     // Calculate bracket dimensions
-    const maxMatchesInRound = groupMatches.filter(m => m.round_order === 1).length || 0;
+    const maxUpperMatchesInRound = upperBracketMatches.filter(m => m.round_order === Math.min(...upperRoundOrders)).length || 0;
+    const maxLowerMatchesInRound = lowerBracketMatches.length > 0 
+        ? Math.max(...Object.values(lowerMatchesByRound).map(m => m.length))
+        : 0;
     const matchHeight = 100;
     const matchWidth = 220;
     const roundGap = 60;
@@ -592,68 +996,185 @@ const LoveAndWarBracketPage = () => {
 
                     {/* Bracket Display for this group */}
                     {groupMatches.length > 0 && (
-                        <div className="overflow-x-auto pb-4">
-                            <div 
-                                className="relative"
-                                style={{ 
-                                    minWidth: `${roundOrders.length * (matchWidth + roundGap + connectorWidth)}px`,
-                                    minHeight: `${Math.max(maxMatchesInRound * matchHeight, 200) + 60}px`
-                                }}
-                            >
-                                {roundOrders.map((roundOrder, roundIndex) => {
-                                    const roundMatches = matchesByRound[roundOrder].sort((a, b) => a.match_number - b.match_number);
-                                    const roundName = roundMatches[0]?.round || `Round ${roundOrder}`;
-                                    
-                                    const matchesInRound = roundMatches.length;
-                                    const totalHeight = maxMatchesInRound * matchHeight;
-                                    const spaceBetween = totalHeight / matchesInRound;
-                                    
-                                    return (
+                        <div className="space-y-8">
+                            {/* Winners Bracket */}
+                            {upperBracketMatches.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                        <h3 className="text-lg font-bold text-white">
+                                            {isDoubleElim ? 'Winners Bracket' : 'Bracket'}
+                                        </h3>
+                                    </div>
+                                    <div className="overflow-x-auto pb-4 bg-gray-800/30 rounded-lg p-4">
                                         <div 
-                                            key={roundOrder}
-                                            className="absolute top-0"
+                                            className="relative"
                                             style={{ 
-                                                left: `${roundIndex * (matchWidth + roundGap + connectorWidth)}px`,
-                                                width: `${matchWidth}px`
+                                                minWidth: `${upperRoundOrders.length * (matchWidth + roundGap + connectorWidth)}px`,
+                                                minHeight: `${Math.max(maxUpperMatchesInRound * matchHeight, 200) + 60}px`
                                             }}
                                         >
-                                            <div className="text-center mb-4">
-                                                <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                                    {roundName}
-                                                </span>
-                                            </div>
-
-                                            {roundMatches.map((match, matchIndex) => {
-                                                const topOffset = (matchIndex * spaceBetween) + (spaceBetween - matchHeight) / 2;
+                                            {upperRoundOrders.map((roundOrder, roundIndex) => {
+                                                const roundMatches = upperMatchesByRound[roundOrder].sort((a, b) => a.match_number - b.match_number);
+                                                const roundName = roundMatches[0]?.round || `Round ${roundOrder}`;
+                                                
+                                                const matchesInRound = roundMatches.length;
+                                                const totalHeight = maxUpperMatchesInRound * matchHeight;
+                                                const spaceBetween = totalHeight / matchesInRound;
                                                 
                                                 return (
-                                                    <div
-                                                        key={match.id}
-                                                        className="absolute w-full"
-                                                        style={{ top: `${topOffset + 40}px` }}
+                                                    <div 
+                                                        key={roundOrder}
+                                                        className="absolute top-0"
+                                                        style={{ 
+                                                            left: `${roundIndex * (matchWidth + roundGap + connectorWidth)}px`,
+                                                            width: `${matchWidth}px`
+                                                        }}
                                                     >
-                                                        <MatchCard 
-                                                            match={match}
-                                                            onEditScore={() => handleOpenScoreModal(match)}
-                                                        />
-                                                        
-                                                        {roundIndex < roundOrders.length - 1 && (
-                                                            <div 
-                                                                className="absolute top-1/2 bg-gray-700"
-                                                                style={{
-                                                                    left: `${matchWidth}px`,
-                                                                    width: `${connectorWidth}px`,
-                                                                    height: '2px'
-                                                                }}
-                                                            />
-                                                        )}
+                                                        <div className="text-center mb-4">
+                                                            <span className="text-sm font-bold text-green-400 uppercase tracking-wider">
+                                                                {roundName}
+                                                            </span>
+                                                        </div>
+
+                                                        {roundMatches.map((match, matchIndex) => {
+                                                            const topOffset = (matchIndex * spaceBetween) + (spaceBetween - matchHeight) / 2;
+                                                            
+                                                            return (
+                                                                <div
+                                                                    key={match.id}
+                                                                    className="absolute w-full"
+                                                                    style={{ top: `${topOffset + 40}px` }}
+                                                                >
+                                                                    <MatchCard 
+                                                                        match={match}
+                                                                        onEditScore={() => handleOpenScoreModal(match)}
+                                                                        bracketType="upper"
+                                                                    />
+                                                                    
+                                                                    {roundIndex < upperRoundOrders.length - 1 && (
+                                                                        <div 
+                                                                            className="absolute top-1/2 bg-green-600/50"
+                                                                            style={{
+                                                                                left: `${matchWidth}px`,
+                                                                                width: `${connectorWidth}px`,
+                                                                                height: '2px'
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 );
                                             })}
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Losers Bracket (Double Elimination only) */}
+                            {isDoubleElim && lowerBracketMatches.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                        <h3 className="text-lg font-bold text-white">Losers Bracket</h3>
+                                    </div>
+                                    <div className="overflow-x-auto pb-4 bg-red-900/10 rounded-lg p-4 border border-red-900/30">
+                                        <div 
+                                            className="relative"
+                                            style={{ 
+                                                minWidth: `${lowerRoundOrders.length * (matchWidth + roundGap + connectorWidth)}px`,
+                                                minHeight: `${Math.max(maxLowerMatchesInRound * matchHeight, 150) + 60}px`
+                                            }}
+                                        >
+                                            {lowerRoundOrders.map((roundOrder, roundIndex) => {
+                                                const roundMatches = lowerMatchesByRound[roundOrder].sort((a, b) => a.match_number - b.match_number);
+                                                const roundName = roundMatches[0]?.round || `Losers R${roundIndex + 1}`;
+                                                
+                                                const matchesInRound = roundMatches.length;
+                                                const totalHeight = maxLowerMatchesInRound * matchHeight;
+                                                const spaceBetween = matchesInRound > 0 ? totalHeight / matchesInRound : totalHeight;
+                                                
+                                                return (
+                                                    <div 
+                                                        key={roundOrder}
+                                                        className="absolute top-0"
+                                                        style={{ 
+                                                            left: `${roundIndex * (matchWidth + roundGap + connectorWidth)}px`,
+                                                            width: `${matchWidth}px`
+                                                        }}
+                                                    >
+                                                        <div className="text-center mb-4">
+                                                            <span className="text-sm font-bold text-red-400 uppercase tracking-wider">
+                                                                {roundName}
+                                                            </span>
+                                                        </div>
+
+                                                        {roundMatches.map((match, matchIndex) => {
+                                                            const topOffset = (matchIndex * spaceBetween) + (spaceBetween - matchHeight) / 2;
+                                                            
+                                                            return (
+                                                                <div
+                                                                    key={match.id}
+                                                                    className="absolute w-full"
+                                                                    style={{ top: `${topOffset + 40}px` }}
+                                                                >
+                                                                    <MatchCard 
+                                                                        match={match}
+                                                                        onEditScore={() => handleOpenScoreModal(match)}
+                                                                        bracketType="lower"
+                                                                    />
+                                                                    
+                                                                    {roundIndex < lowerRoundOrders.length - 1 && (
+                                                                        <div 
+                                                                            className="absolute top-1/2 bg-red-600/50"
+                                                                            style={{
+                                                                                left: `${matchWidth}px`,
+                                                                                width: `${connectorWidth}px`,
+                                                                                height: '2px'
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Grand Finals (Double Elimination only) */}
+                            {isDoubleElim && grandFinalsMatches.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                        <Trophy size={18} className="text-yellow-500" />
+                                        <h3 className="text-lg font-bold text-white">Grand Finals</h3>
+                                    </div>
+                                    <div className="bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-lg p-4 border border-yellow-600/30">
+                                        <div className="flex flex-wrap gap-4 justify-center">
+                                            {grandFinalsMatches.sort((a, b) => a.round_order - b.round_order).map((match) => (
+                                                <div key={match.id} className="w-[280px]">
+                                                    <div className="text-center mb-2">
+                                                        <span className="text-sm font-bold text-yellow-400 uppercase tracking-wider">
+                                                            {match.round}
+                                                        </span>
+                                                    </div>
+                                                    <MatchCard 
+                                                        match={match}
+                                                        onEditScore={() => handleOpenScoreModal(match)}
+                                                        bracketType="grand_finals"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -858,42 +1379,68 @@ const LoveAndWarBracketPage = () => {
 interface MatchCardProps {
     match: Match;
     onEditScore: () => void;
+    bracketType?: 'upper' | 'lower' | 'grand_finals';
 }
 
-const MatchCard = ({ match, onEditScore }: MatchCardProps) => {
+const MatchCard = ({ match, onEditScore, bracketType = 'upper' }: MatchCardProps) => {
     const isComplete = match.is_complete;
     const team1IsWinner = match.winner_team_id === match.team_1_id;
     const team2IsWinner = match.winner_team_id === match.team_2_id;
 
+    // Color schemes based on bracket type
+    const colorSchemes = {
+        upper: {
+            border: isComplete ? 'border-green-500/30' : 'border-gray-700',
+            hoverBorder: 'hover:border-green-500/50',
+            winnerBg: 'bg-green-900/30',
+            winnerText: 'text-green-400',
+            accentColor: 'text-green-400'
+        },
+        lower: {
+            border: isComplete ? 'border-red-500/30' : 'border-gray-700',
+            hoverBorder: 'hover:border-red-500/50',
+            winnerBg: 'bg-red-900/30',
+            winnerText: 'text-red-400',
+            accentColor: 'text-red-400'
+        },
+        grand_finals: {
+            border: isComplete ? 'border-yellow-500/30' : 'border-yellow-600/30',
+            hoverBorder: 'hover:border-yellow-500/50',
+            winnerBg: 'bg-yellow-900/30',
+            winnerText: 'text-yellow-400',
+            accentColor: 'text-yellow-400'
+        }
+    };
+
+    const colors = colorSchemes[bracketType];
+
     return (
         <div 
-            className={`bg-gray-900 rounded-lg border overflow-hidden cursor-pointer hover:border-red-500/50 transition-all ${
-                isComplete ? 'border-green-500/30' : 'border-gray-700'
-            }`}
+            className={`bg-gray-900 rounded-lg border overflow-hidden cursor-pointer transition-all ${colors.border} ${colors.hoverBorder}`}
             onClick={onEditScore}
         >
-            <div className={`flex items-center gap-2 px-3 py-2 border-b border-gray-800 ${team1IsWinner ? 'bg-green-900/30' : ''}`}>
+            <div className={`flex items-center gap-2 px-3 py-2 border-b border-gray-800 ${team1IsWinner ? colors.winnerBg : ''}`}>
                 <div className="flex-1 truncate">
-                    <span className={`text-sm ${match.team_1_id ? team1IsWinner ? 'font-bold text-green-400' : 'text-white' : 'text-gray-500 italic'}`}>
+                    <span className={`text-sm ${match.team_1_id ? team1IsWinner ? `font-bold ${colors.winnerText}` : 'text-white' : 'text-gray-500 italic'}`}>
                         {match.team_1_name || 'TBD'}
                     </span>
                 </div>
-                <span className={`text-lg font-bold min-w-[24px] text-center ${team1IsWinner ? 'text-green-400' : 'text-gray-400'}`}>
+                <span className={`text-lg font-bold min-w-[24px] text-center ${team1IsWinner ? colors.winnerText : 'text-gray-400'}`}>
                     {match.team_1_id ? match.team_1_score : '-'}
                 </span>
-                {team1IsWinner && <Check size={14} className="text-green-400" />}
+                {team1IsWinner && <Check size={14} className={colors.accentColor} />}
             </div>
 
-            <div className={`flex items-center gap-2 px-3 py-2 ${team2IsWinner ? 'bg-green-900/30' : ''}`}>
+            <div className={`flex items-center gap-2 px-3 py-2 ${team2IsWinner ? colors.winnerBg : ''}`}>
                 <div className="flex-1 truncate">
-                    <span className={`text-sm ${match.team_2_id ? team2IsWinner ? 'font-bold text-green-400' : 'text-white' : 'text-gray-500 italic'}`}>
+                    <span className={`text-sm ${match.team_2_id ? team2IsWinner ? `font-bold ${colors.winnerText}` : 'text-white' : 'text-gray-500 italic'}`}>
                         {match.team_2_name || 'TBD'}
                     </span>
                 </div>
-                <span className={`text-lg font-bold min-w-[24px] text-center ${team2IsWinner ? 'text-green-400' : 'text-gray-400'}`}>
+                <span className={`text-lg font-bold min-w-[24px] text-center ${team2IsWinner ? colors.winnerText : 'text-gray-400'}`}>
                     {match.team_2_id ? match.team_2_score : '-'}
                 </span>
-                {team2IsWinner && <Check size={14} className="text-green-400" />}
+                {team2IsWinner && <Check size={14} className={colors.accentColor} />}
             </div>
         </div>
     );
