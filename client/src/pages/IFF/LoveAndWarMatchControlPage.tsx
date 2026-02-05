@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { ChevronLeft, Users, Minus, Plus, RotateCcw, Eye, Save } from 'lucide-react';
+import { ChevronLeft, Users, Minus, Plus, RotateCcw, Eye, Send, Tv, Image, PlayCircle } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import type { AvailableTeam } from '../../types/loveAndWar';
@@ -21,6 +21,9 @@ interface LnWMatchData {
     team2: Team;
     round: string;
 }
+
+// Display mode for unified overlay
+type DisplayMode = 'match' | 'team-stats' | 'match-card' | 'idle';
 
 const defaultMatchData: LnWMatchData = {
     team1: {
@@ -51,6 +54,8 @@ const LoveAndWarMatchControlPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [socket, setSocket] = useState<Socket | null>(null);
     const [saved, setSaved] = useState(false);
+    const [displayMode, setDisplayMode] = useState<DisplayMode>('idle');
+    const [selectedTeamForStats, setSelectedTeamForStats] = useState<number | null>(null);
 
     useEffect(() => {
         loadTeams();
@@ -118,6 +123,39 @@ const LoveAndWarMatchControlPage = () => {
         }
     };
 
+    // Update display mode on the unified overlay
+    const updateDisplayMode = (mode: DisplayMode, teamId?: number | null) => {
+        setDisplayMode(mode);
+        if (teamId !== undefined) {
+            setSelectedTeamForStats(teamId);
+        }
+        
+        if (socket) {
+            socket.emit('lnw-display-mode', {
+                mode,
+                teamId: mode === 'team-stats' ? (teamId ?? selectedTeamForStats) : null,
+                visible: mode !== 'idle'
+            });
+            
+            // Also emit match data when switching to match or match-card mode
+            if (mode === 'match' || mode === 'match-card') {
+                socket.emit('lnw-match-update', matchData);
+            }
+        }
+    };
+
+    // Centralized update: save data and push to overlay
+    const centralizedUpdate = async () => {
+        await saveMatchData();
+        
+        // If display mode is match or match-card, re-emit the data
+        if (displayMode === 'match' || displayMode === 'match-card') {
+            if (socket) {
+                socket.emit('lnw-match-update', matchData);
+            }
+        }
+    };
+
     const updateTeam = (teamKey: 'team1' | 'team2', updates: Partial<Team>) => {
         setMatchData(prev => ({
             ...prev,
@@ -153,9 +191,17 @@ const LoveAndWarMatchControlPage = () => {
     };
 
     const togglePlayerActive = (teamKey: 'team1' | 'team2', playerIndex: number) => {
-        // Toggle player active status
-        const currentActive = matchData[teamKey].players[playerIndex].active;
-        updatePlayer(teamKey, playerIndex, { active: !currentActive });
+        // Only one player can be active per team - toggle between players
+        setMatchData(prev => ({
+            ...prev,
+            [teamKey]: {
+                ...prev[teamKey],
+                players: prev[teamKey].players.map((p, i) => ({
+                    ...p,
+                    active: i === playerIndex // Only the clicked player becomes active
+                }))
+            }
+        }));
     };
 
     const swapTeams = () => {
@@ -185,7 +231,7 @@ const LoveAndWarMatchControlPage = () => {
     return (
         <div className="min-h-screen bg-black text-white p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-6">
                 <div>
                     <Link to={`/iff/love-and-war?key=${key}`} className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
                         <ChevronLeft size={18} />
@@ -196,21 +242,91 @@ const LoveAndWarMatchControlPage = () => {
                 </div>
                 <div className="flex gap-3">
                     <Link
-                        to={`/iff/love-and-war/match-overlay?key=${key}`}
+                        to={`/iff/love-and-war/unified-overlay?key=${key}`}
                         target="_blank"
                         className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
                     >
                         <Eye size={18} />
-                        Open Overlay
+                        Open Unified Overlay
                     </Link>
+                </div>
+            </div>
+
+            {/* Centralized Update & Display Mode Controls */}
+            <div className="bg-gradient-to-r from-red-900/30 to-pink-900/30 rounded-xl border border-red-500/30 p-4 mb-6">
+                <div className="flex items-center justify-between">
+                    {/* Display Mode Buttons */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400 mr-2">Display Mode:</span>
+                        <button
+                            onClick={() => updateDisplayMode('idle')}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                                displayMode === 'idle' 
+                                    ? 'bg-gray-600 text-white' 
+                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                            }`}
+                        >
+                            <Image size={16} />
+                            Idle
+                        </button>
+                        <button
+                            onClick={() => updateDisplayMode('match')}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                                displayMode === 'match' 
+                                    ? 'bg-red-600 text-white' 
+                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                            }`}
+                        >
+                            <PlayCircle size={16} />
+                            Match
+                        </button>
+                        <button
+                            onClick={() => updateDisplayMode('match-card')}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                                displayMode === 'match-card' 
+                                    ? 'bg-purple-600 text-white' 
+                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                            }`}
+                        >
+                            <Tv size={16} />
+                            Match Card
+                        </button>
+                        
+                        {/* Team Stats Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={displayMode === 'team-stats' ? (selectedTeamForStats ?? '') : ''}
+                                onChange={(e) => {
+                                    const teamId = e.target.value ? parseInt(e.target.value) : null;
+                                    if (teamId) {
+                                        updateDisplayMode('team-stats', teamId);
+                                    }
+                                }}
+                                className={`px-3 py-2 rounded-lg text-sm appearance-none pr-8 ${
+                                    displayMode === 'team-stats' 
+                                        ? 'bg-yellow-600 text-white' 
+                                        : 'bg-gray-800 text-gray-400'
+                                }`}
+                            >
+                                <option value="">Team Stats...</option>
+                                {teams.map(team => (
+                                    <option key={team.id} value={team.id}>{team.team_name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Centralized Update Button */}
                     <button
-                        onClick={saveMatchData}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                            saved ? 'bg-green-600' : 'bg-red-600 hover:bg-red-700'
+                        onClick={centralizedUpdate}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all text-lg font-bold ${
+                            saved 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white shadow-lg shadow-red-500/30'
                         }`}
                     >
-                        <Save size={18} />
-                        {saved ? 'Saved!' : 'Save & Update'}
+                        <Send size={20} />
+                        {saved ? 'Updated!' : 'Update Overlay'}
                     </button>
                 </div>
             </div>

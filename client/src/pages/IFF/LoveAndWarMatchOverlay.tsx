@@ -129,7 +129,14 @@ const LoveAndWarMatchOverlay = () => {
             style={{ fontFamily: "'ED Manteca', sans-serif" }}
         >
             <div className="relative w-full h-full">
-                {/* Background overlay bar */}
+                {/* Background overlay image */}
+                <img 
+                    src="/source/overlay/love_and_war/overlay.png"
+                    alt="Love and War Overlay"
+                    className="absolute inset-0 w-full h-full object-cover"
+                />
+
+                {/* Background overlay bar for match info */}
                 <div 
                     className="absolute top-0 left-0 w-full h-[90px]"
                     style={{

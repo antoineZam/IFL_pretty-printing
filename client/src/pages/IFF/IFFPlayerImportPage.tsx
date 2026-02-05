@@ -210,7 +210,13 @@ export default function IFFPlayerImportPage() {
 
     const updateField = (field: string, value: string | number) => {
         if (!editingPlayer) return;
-        setEditingPlayer({ ...editingPlayer, [field]: value });
+        setEditingPlayer(prev => prev ? { ...prev, [field]: value } : prev);
+    };
+
+    // Update multiple fields at once to avoid race conditions
+    const updateFields = (updates: Partial<typeof editingPlayer>) => {
+        if (!editingPlayer) return;
+        setEditingPlayer(prev => prev ? { ...prev, ...updates } : prev);
     };
 
     // Calculate W/L rate helper
@@ -273,8 +279,8 @@ export default function IFFPlayerImportPage() {
 
                 {/* Edit Modal */}
                 {editingPlayer && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
-                        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 max-w-3xl w-full my-8">
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 max-w-3xl w-full my-8 max-h-[90vh] overflow-y-auto relative">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                                     {isAddingNew ? <UserPlus size={20} /> : <Edit3 size={20} />}
@@ -335,6 +341,7 @@ export default function IFFPlayerImportPage() {
                                         <label className="block text-sm text-gray-400 mb-1">Prowess</label>
                                         <input
                                             type="number"
+                                            inputMode="numeric"
                                             value={editingPlayer.prowess || 0}
                                             onChange={(e) => updateField('prowess', parseInt(e.target.value) || 0)}
                                             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
@@ -400,27 +407,39 @@ export default function IFFPlayerImportPage() {
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-sm text-gray-400 w-12">Wins</label>
                                                     <input
-                                                        type="number"
-                                                        value={editingPlayer.ranked_wins || 0}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9]*"
+                                                        value={editingPlayer.ranked_wins ?? ''}
                                                         onChange={(e) => {
-                                                            const wins = parseInt(e.target.value) || 0;
-                                                            updateField('ranked_wins', wins);
-                                                            updateField('ranked_wl_rate', calcWLRate(wins, editingPlayer.ranked_losses || 0));
+                                                            const val = e.target.value;
+                                                            const wins = val === '' ? 0 : parseInt(val) || 0;
+                                                            const losses = editingPlayer.ranked_losses || 0;
+                                                            updateFields({
+                                                                ranked_wins: wins,
+                                                                ranked_wl_rate: calcWLRate(wins, losses)
+                                                            });
                                                         }}
-                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-green-500"
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-green-500 cursor-text"
                                                     />
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-sm text-gray-400 w-12">Losses</label>
                                                     <input
-                                                        type="number"
-                                                        value={editingPlayer.ranked_losses || 0}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9]*"
+                                                        value={editingPlayer.ranked_losses ?? ''}
                                                         onChange={(e) => {
-                                                            const losses = parseInt(e.target.value) || 0;
-                                                            updateField('ranked_losses', losses);
-                                                            updateField('ranked_wl_rate', calcWLRate(editingPlayer.ranked_wins || 0, losses));
+                                                            const val = e.target.value;
+                                                            const losses = val === '' ? 0 : parseInt(val) || 0;
+                                                            const wins = editingPlayer.ranked_wins || 0;
+                                                            updateFields({
+                                                                ranked_losses: losses,
+                                                                ranked_wl_rate: calcWLRate(wins, losses)
+                                                            });
                                                         }}
-                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-red-500"
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-red-500 cursor-text"
                                                     />
                                                 </div>
                                                 <div className="text-sm text-gray-400">
@@ -436,27 +455,39 @@ export default function IFFPlayerImportPage() {
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-sm text-gray-400 w-12">Wins</label>
                                                     <input
-                                                        type="number"
-                                                        value={editingPlayer.player_wins || 0}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9]*"
+                                                        value={editingPlayer.player_wins ?? ''}
                                                         onChange={(e) => {
-                                                            const wins = parseInt(e.target.value) || 0;
-                                                            updateField('player_wins', wins);
-                                                            updateField('player_wl_rate', calcWLRate(wins, editingPlayer.player_losses || 0));
+                                                            const val = e.target.value;
+                                                            const wins = val === '' ? 0 : parseInt(val) || 0;
+                                                            const losses = editingPlayer.player_losses || 0;
+                                                            updateFields({
+                                                                player_wins: wins,
+                                                                player_wl_rate: calcWLRate(wins, losses)
+                                                            });
                                                         }}
-                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-green-500"
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-green-500 cursor-text"
                                                     />
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-sm text-gray-400 w-12">Losses</label>
                                                     <input
-                                                        type="number"
-                                                        value={editingPlayer.player_losses || 0}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9]*"
+                                                        value={editingPlayer.player_losses ?? ''}
                                                         onChange={(e) => {
-                                                            const losses = parseInt(e.target.value) || 0;
-                                                            updateField('player_losses', losses);
-                                                            updateField('player_wl_rate', calcWLRate(editingPlayer.player_wins || 0, losses));
+                                                            const val = e.target.value;
+                                                            const losses = val === '' ? 0 : parseInt(val) || 0;
+                                                            const wins = editingPlayer.player_wins || 0;
+                                                            updateFields({
+                                                                player_losses: losses,
+                                                                player_wl_rate: calcWLRate(wins, losses)
+                                                            });
                                                         }}
-                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-red-500"
+                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-red-500 cursor-text"
                                                     />
                                                 </div>
                                                 <div className="text-sm text-gray-400">
@@ -483,6 +514,7 @@ export default function IFFPlayerImportPage() {
                                                 <label className="block text-sm text-gray-400 mb-1">{stat.label}</label>
                                                 <input
                                                     type="number"
+                                                    inputMode="numeric"
                                                     min="0"
                                                     max="100"
                                                     value={(editingPlayer as any)[stat.key] || 50}
