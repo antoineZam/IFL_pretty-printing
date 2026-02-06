@@ -45,10 +45,11 @@ const PlayerCard = ({ player, className }: PlayerCardProps) => {
             <img 
                 src={playerNameImagePath}
                 alt={player.name}
-                className="max-w-full h-auto object-contain"
-                style={{ 
-                    filter: 'drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.9))',
-                    transform: 'scale(0.8)'
+                className="object-contain"
+                style={{
+                    height: '40px',
+                    width: 'auto',
+                    maxWidth: '100%'
                 }}
                 onError={(e) => {
                     // Fallback to text if image doesn't exist
@@ -73,6 +74,7 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
     const [searchParams] = useSearchParams();
     const [data, setData] = useState<LnWMatchData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [overlayKey, setOverlayKey] = useState(0);
 
     // Set transparent background (standalone mode only)
     useEffect(() => {
@@ -131,6 +133,26 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
         };
     }, [searchParams, embedded, propSocket]);
 
+    // Update overlay key when overlay file changes to force reload
+    useEffect(() => {
+        if (data) {
+            const t1p1Active = data.team1.players[0]?.active || false;
+            const t1p2Active = data.team1.players[1]?.active || false;
+            const t2p1Active = data.team2.players[0]?.active || false;
+            const t2p2Active = data.team2.players[1]?.active || false;
+
+            let newOverlay: string | null = null;
+            if (t1p1Active && t2p2Active) newOverlay = 'overlay_01.png';
+            else if (t1p1Active && t2p1Active) newOverlay = 'overlay_02.png';
+            else if (t1p2Active && t2p1Active) newOverlay = 'overlay_03.png';
+            else if (t1p2Active && t2p2Active) newOverlay = 'overlay_04.png';
+
+            if (newOverlay) {
+                setOverlayKey(prev => prev + 1);
+            }
+        }
+    }, [data?.team1.players, data?.team2.players]);
+
     const containerClass = embedded ? 'w-full h-full' : 'w-[1920px] h-[1080px]';
 
     if (error && !embedded) {
@@ -157,6 +179,38 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
     }
 
     const { team1, team2, round } = data;
+
+    // Determine which stream overlay to load based on active players
+    const getStreamOverlay = (): string | null => {
+        if (!data) return null;
+        
+        const t1p1Active = team1.players[0]?.active || false;
+        const t1p2Active = team1.players[1]?.active || false;
+        const t2p1Active = team2.players[0]?.active || false;
+        const t2p2Active = team2.players[1]?.active || false;
+
+        // 01: team1 player 1 AND team2 player 2
+        if (t1p1Active && t2p2Active) {
+            return 'overlay_01.png';
+        }
+        // 02: player 1 on both teams (team1 player 1 AND team2 player 1)
+        if (t1p1Active && t2p1Active) {
+            return 'overlay_02.png';
+        }
+        // 03: team1 player 2 AND team2 player 1
+        if (t1p2Active && t2p1Active) {
+            return 'overlay_03.png';
+        }
+        // 04: player 2 on both teams (team1 player 2 AND team2 player 2)
+        if (t1p2Active && t2p2Active) {
+            return 'overlay_04.png';
+        }
+        
+        // Default: return null if no specific match
+        return null;
+    };
+
+    const streamOverlayFile = getStreamOverlay();
 
     // Match Card view (full-screen centered display)
     if (showAsMatchCard) {
@@ -255,20 +309,36 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
             style={{ fontFamily: "'ED Manteca', sans-serif" }}
         >
             <div className="relative w-full h-full">
-                {/* Background overlay image */}
+                {/* Stream overlay based on active players */}
+                {streamOverlayFile && (
+                    <img 
+                        key={`${streamOverlayFile}-${overlayKey}`}
+                        src={`/source/overlay/love_and_war/stream_overlays/${streamOverlayFile}`}
+                        alt="Stream Overlay"
+                        className="absolute inset-0 w-full h-full object-cover z-0"
+                        onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                        }}
+                    />
+                )}
                 <img 
-                    src="/source/overlay/love_and_war/overlay.png"
-                    alt="Love and War Overlay"
-                    className="absolute inset-0 w-full h-full object-cover"
+                    src={"/source/overlay/love_and_war/stream_overlays/bottom_page.png"}
+                    alt="Bottom Page"
+                    className="absolute bottom-0 left-0 w-full h-full object-cover z-0"
+                    onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                    }}
                 />
 
                 {/* Team 1 - Matching TagTeam positioning */}
-                <div className="absolute top-[22px] w-full h-[100px]">
+                <div className="absolute w-full h-[100px] z-10 flex items-center">
                     <PlayerCard 
                         player={team1.players[0]} 
                         className="absolute left-[195px] right-[calc(100%-415px)]" 
                     />
-                    <div className="absolute top-7 left-[427px] w-0.5 h-[30px] bg-red-500 hidden" />
+                    <div className="absolute top-[22px] left-[427px] w-0.5 h-[30px] bg-red-500 hidden" />
                     <PlayerCard 
                         player={team1.players[1]} 
                         className="absolute left-[432px] w-[258px]" 
@@ -276,7 +346,7 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
                 </div>
                 {/* Team 1 Score */}
                 <div 
-                    className="absolute top-[-5px] left-[724px] text-[26px] w-[100px] text-center font-bold"
+                    className="absolute top-[-5px] left-[724px] text-[26px] w-[100px] text-center font-bold z-10"
                     style={{ 
                         fontFamily: "'Archivo Expanded Bold', sans-serif"
                     }}
@@ -285,20 +355,20 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
                 </div>
 
                 {/* Team 2 - Matching TagTeam positioning */}
-                <div className="absolute top-[20px] w-full h-[100px]">
+                <div className="absolute w-full h-[100px] z-10 flex items-center">
                     <PlayerCard 
                         player={team2.players[0]} 
-                        className="absolute right-[195px] left-[calc(100%-410px)]" 
+                        className="absolute right-[428px] w-[262px]" 
                     />
                     <div className="absolute top-[22px] right-[423px] w-0.5 h-[30px] bg-red-500 hidden" />
                     <PlayerCard 
                         player={team2.players[1]} 
-                        className="absolute right-[428px] w-[262px]" 
+                        className="absolute right-[195px] left-[calc(100%-410px)]" 
                     />
                 </div>
                 {/* Team 2 Score */}
                 <div 
-                    className="absolute top-[-5px] right-[725px] text-[26px] w-[100px] text-center font-bold"
+                    className="absolute top-[-5px] right-[725px] text-[26px] w-[100px] text-center font-bold z-10"
                     style={{ 
                         fontFamily: "'Archivo Expanded Bold', sans-serif"
                     }}
@@ -308,7 +378,7 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
 
                 {/* Round - Centered */}
                 <div 
-                    className="absolute top-[1px] left-1/2 -translate-x-1/2 text-base text-center w-[600px] tracking-[2px] font-semibold"
+                    className="absolute top-[1px] left-1/2 -translate-x-1/2 text-base text-center w-[600px] tracking-[2px] font-semibold z-10"
                     style={{ 
                         fontFamily: "'Archivo Semi Condensed Bold', sans-serif"
                     }}
