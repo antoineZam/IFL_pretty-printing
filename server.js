@@ -1204,6 +1204,13 @@ app.post('/api/iff/love-and-war/display-state', (req, res) => {
     res.status(200).json(loveAndWarDisplayState);
 });
 
+// Love & War unified overlay display mode
+let lnwDisplayMode = {
+    mode: 'idle',
+    teamId: null,
+    visible: false
+};
+
 // Love & War match data (for stream overlay - similar to tag team)
 let lnwMatchData = {
     team1: {
@@ -1486,6 +1493,7 @@ io.on('connection', async (socket) => {
     socket.emit('rib-overlay-state-update', ribOverlayState);
     socket.emit('love-and-war-display-update', loveAndWarDisplayState);
     socket.emit('lnw-match-data', lnwMatchData);
+    socket.emit('lnw-display-mode', lnwDisplayMode);
   } catch (error) {
     console.error('Error loading initial data for socket:', error);
     // Send cached data as fallback
@@ -1497,6 +1505,7 @@ io.on('connection', async (socket) => {
     socket.emit('rib-overlay-state-update', ribOverlayState);
     socket.emit('love-and-war-display-update', loveAndWarDisplayState);
     socket.emit('lnw-match-data', lnwMatchData);
+    socket.emit('lnw-display-mode', lnwDisplayMode);
   }
 
   // Handle 1v1 Updates
@@ -1586,6 +1595,12 @@ io.on('connection', async (socket) => {
     console.log('Received Love & War Match Update');
     lnwMatchData = { ...lnwMatchData, ...data };
     io.emit('lnw-match-data', lnwMatchData);
+  });
+
+  socket.on('lnw-display-mode', (data) => {
+    console.log('Received Love & War Display Mode:', data);
+    lnwDisplayMode = { ...lnwDisplayMode, ...data };
+    io.emit('lnw-display-mode', lnwDisplayMode);
   });
 });
 
