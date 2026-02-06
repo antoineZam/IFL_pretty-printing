@@ -45,7 +45,7 @@ export interface TeamWithStats {
     player_2: PlayerStats;
 }
 
-// Available team for selection
+// Available team for selection (includes player stats from DB join)
 export interface AvailableTeam {
     id: number;
     team_name: string;
@@ -53,6 +53,14 @@ export interface AvailableTeam {
     player_2_name: string;
     player_1_id?: number;
     player_2_id?: number;
+    player_1_character?: string;
+    player_2_character?: string;
+    player_1_division?: string;
+    player_2_division?: string;
+    player_1_iff_ranking?: string;
+    player_2_iff_ranking?: string;
+    player_1_iff_history?: string;
+    player_2_iff_history?: string;
 }
 
 // Match

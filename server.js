@@ -1602,6 +1602,16 @@ io.on('connection', async (socket) => {
     lnwDisplayMode = { ...lnwDisplayMode, ...data };
     io.emit('lnw-display-mode', lnwDisplayMode);
   });
+
+  socket.on('lnw-refresh-overlay', () => {
+    console.log('Received Love & War Refresh Overlay');
+    // Emit refresh first, then re-emit all current state so remounted components get data
+    io.emit('lnw-refresh-overlay');
+    setTimeout(() => {
+      io.emit('lnw-match-data', lnwMatchData);
+      io.emit('lnw-display-mode', lnwDisplayMode);
+    }, 100);
+  });
 });
 
 // Catch-all to serve React app

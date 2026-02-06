@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import LoveAndWarTextureOverlay from '../../components/LoveAndWarTextureOverlay';
 
 interface TeamData {
     id: number;
@@ -76,44 +77,6 @@ const LoveAndWarTeamStatsOverlay = ({ teamId: propTeamId, embedded = false }: Pr
     const [isVisible, setIsVisible] = useState(embedded); // If embedded, start visible
     const [animKey, setAnimKey] = useState(0);
     const [currentTeamId, setCurrentTeamId] = useState<number | null>(null);
-    const [textureOverlay, setTextureOverlay] = useState<string | null>(null);
-
-    // Available texture overlay filenames (add more as needed)
-    const textureOverlays = [
-        'texture_01.png',
-        'texture_02.png',
-        'texture_03.png',
-        'texture_04.png',
-        'texture_05.png',
-        'texture_06.png',
-        'texture_07.png',
-        'texture_08.png'
-    ];
-
-    // Select random texture overlay on mount/reload (different from previous)
-    useEffect(() => {
-        if (textureOverlays.length === 0) return;
-        
-        const storageKey = 'lnw_last_texture_overlay';
-        const lastTexture = sessionStorage.getItem(storageKey);
-        
-        // Filter out the last texture if it exists
-        const availableTextures = lastTexture 
-            ? textureOverlays.filter(t => t !== lastTexture)
-            : textureOverlays;
-        
-        // If only one texture and it's the last one, use it anyway
-        const texturesToChooseFrom = availableTextures.length > 0 
-            ? availableTextures 
-            : textureOverlays;
-        
-        // Randomly select a texture
-        const randomIndex = Math.floor(Math.random() * texturesToChooseFrom.length);
-        const selectedTexture = texturesToChooseFrom[randomIndex];
-        
-        setTextureOverlay(selectedTexture);
-        sessionStorage.setItem(storageKey, selectedTexture);
-    }, []); // Run only on mount
 
     // Embedded mode: fetch team directly when propTeamId changes
     useEffect(() => {
@@ -277,18 +240,7 @@ const LoveAndWarTeamStatsOverlay = ({ teamId: propTeamId, embedded = false }: Pr
             />
 
             {/* Random Texture Overlay - At the very foreground */}
-            {textureOverlay && (
-                <img 
-                    src={`/source/overlay/love_and_war/texture_overlays/${textureOverlay}`}
-                    alt="Texture Overlay"
-                    className="absolute inset-0 w-full h-full object-cover z-[100]"
-                    style={{ animation: 'fadeIn 0.6s ease-out' }}
-                    onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                    }}
-                />
-            )}
+            <LoveAndWarTextureOverlay />
 
             {/* Team Name Image - Centered (z-50 to be on top) */}
             <div 

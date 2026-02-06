@@ -9,6 +9,10 @@ import type { AvailableTeam } from '../../types/loveAndWar';
 interface Player {
     name: string;
     active: boolean;
+    character?: string;
+    iff_history?: string | null;
+    division?: string | null;
+    iff8_ranking?: string | null;
 }
 
 interface Team {
@@ -195,8 +199,22 @@ const LoveAndWarMatchControlPage = () => {
         updateTeam(teamKey, {
             name: selectedTeam.team_name,
             players: [
-                { name: selectedTeam.player_1_name, active: true },
-                { name: selectedTeam.player_2_name, active: false }
+                { 
+                    name: selectedTeam.player_1_name, 
+                    active: true,
+                    character: selectedTeam.player_1_character || undefined,
+                    iff_history: selectedTeam.player_1_iff_history || null,
+                    division: selectedTeam.player_1_division || null,
+                    iff8_ranking: selectedTeam.player_1_iff_ranking || null
+                },
+                { 
+                    name: selectedTeam.player_2_name, 
+                    active: false,
+                    character: selectedTeam.player_2_character || undefined,
+                    iff_history: selectedTeam.player_2_iff_history || null,
+                    division: selectedTeam.player_2_division || null,
+                    iff8_ranking: selectedTeam.player_2_iff_ranking || null
+                }
             ]
         });
     };
@@ -357,18 +375,33 @@ const LoveAndWarMatchControlPage = () => {
                             </select>
                         </div>
 
-                        {/* Save & Sync Button */}
-                        <button
-                            onClick={centralizedUpdate}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all font-semibold ${
-                                saved 
-                                    ? 'bg-green-600 text-white' 
-                                    : 'bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 hover:border-gray-500'
-                            }`}
-                        >
-                            <Send size={18} />
-                            {saved ? 'Saved!' : 'Save & Sync'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                            {/* Save & Sync Button */}
+                            <button
+                                onClick={centralizedUpdate}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all font-semibold ${
+                                    saved 
+                                        ? 'bg-green-600 text-white' 
+                                        : 'bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 hover:border-gray-500'
+                                }`}
+                            >
+                                <Send size={18} />
+                                {saved ? 'Saved!' : 'Save & Sync'}
+                            </button>
+
+                            {/* Refresh Overlay Button */}
+                            <button
+                                onClick={() => {
+                                    if (socket) {
+                                        socket.emit('lnw-refresh-overlay');
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-semibold bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 hover:border-gray-500"
+                            >
+                                <RotateCcw size={18} />
+                                Refresh
+                            </button>
+                        </div>
                     </div>
                 </div>
 

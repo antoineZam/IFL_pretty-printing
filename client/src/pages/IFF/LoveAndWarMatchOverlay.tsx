@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import LoveAndWarTextureOverlay from '../../components/LoveAndWarTextureOverlay';
 
 // Data interfaces
 interface Player {
     name: string;
     active: boolean;
+    character?: string;
+    iff_history?: string | null;
+    division?: string | null;
+    iff8_ranking?: string | null;
 }
 
 interface Team {
@@ -18,6 +23,8 @@ interface LnWMatchData {
     team1: Team;
     team2: Team;
     round: string;
+    match_number?: number;
+    win_score?: number; // First to X (default 2 for best of 3)
 }
 
 // Props for embedded use (optional)
@@ -25,6 +32,7 @@ interface Props {
     socket?: Socket | null;  // If provided, use this socket instead of creating one
     embedded?: boolean;  // If true, use w-full h-full instead of fixed dimensions
     showAsMatchCard?: boolean;  // If true, show match card view
+    initialData?: LnWMatchData | null;  // Pre-loaded data so component doesn't start empty
 }
 
 // PlayerCard component with player name image
@@ -70,9 +78,43 @@ const PlayerCard = ({ player, className }: PlayerCardProps) => {
     );
 };
 
-const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMatchCard = false }: Props) => {
+// PlayerInfoRow: renders a player name image + stats on separate lines (used in matchup card)
+interface PlayerInfoRowProps {
+    player: Player;
+    getPlayerNameImagePath: (name: string) => string;
+    getPlayerHistory: (player: Player) => string;
+    getPlayerDivisionRanking: (player: Player) => string;
+}
+
+const PlayerInfoRow = ({ player, getPlayerNameImagePath, getPlayerHistory, getPlayerDivisionRanking }: PlayerInfoRowProps) => {
+    const history = getPlayerHistory(player);
+    const divisionRanking = getPlayerDivisionRanking(player);
+    return (
+        <div className="flex items-center gap-6">
+            <div className="shrink-0" style={{ width: '200px' }}>
+                <img 
+                    src={getPlayerNameImagePath(player.name)}
+                    alt={player.name}
+                    className="h-auto object-contain object-left"
+                    style={{ maxHeight: '45px', maxWidth: '100%' }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+            </div>
+            <div className="flex flex-col" style={{ fontFamily: "'Archivo Semi Condensed Bold', 'Archivo', sans-serif" }}>
+                {history && (
+                    <span className="text-[18px] text-white/80 whitespace-nowrap">{history}</span>
+                )}
+                {divisionRanking && (
+                    <span className="text-[18px] text-white/80 whitespace-nowrap">{divisionRanking}</span>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMatchCard = false, initialData = null }: Props) => {
     const [searchParams] = useSearchParams();
-    const [data, setData] = useState<LnWMatchData | null>(null);
+    const [data, setData] = useState<LnWMatchData | null>(initialData);
     const [error, setError] = useState<string | null>(null);
     const [overlayKey, setOverlayKey] = useState(0);
 
@@ -211,92 +253,127 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
     };
 
     const streamOverlayFile = getStreamOverlay();
+    const winScore = data?.win_score || 2; // Default to 2 (best of 3)
+    const team1Won = team1.score >= winScore;
+    const team2Won = team2.score >= winScore;
+    const matchComplete = team1Won || team2Won;
 
-    // Match Card view (full-screen centered display)
+    // Helper: get player IFF history (separate line)
+    const getPlayerHistory = (player: Player): string => {
+        return player.iff_history || '';
+    };
+
+    // Helper: get player division + ranking (concatenated, separate line)
+    const getPlayerDivisionRanking = (player: Player): string => {
+        if (player.division && player.iff8_ranking) {
+            return `${player.division} ${player.iff8_ranking}`;
+        }
+        return player.division || player.iff8_ranking || '';
+    };
+
+    // Helper: matchup image path (same slug as team name images)
+    const getMatchupImagePath = (teamName: string): string => {
+        const slug = teamName.toLowerCase().trim().replace(/\s+/g, '_');
+        return `/source/overlay/love_and_war/matchups/${slug}.png`;
+    };
+
+    // Helper: team name image path
+    const getTeamNameImagePath = (teamName: string): string => {
+        const slug = teamName.toLowerCase().trim().replace(/\s+/g, '_');
+        return `/source/overlay/love_and_war/team_names/${slug}.png`;
+    };
+
+    // Helper: player name image path
+    const getPlayerNameImagePath = (playerName: string): string => {
+        const slug = playerName.toLowerCase().trim().replace(/\s+/g, '_');
+        return `/source/overlay/love_and_war/player_names/${slug}.png`;
+    };
+
+    // Match Card view (matchup card design)
     if (showAsMatchCard) {
         return (
             <div 
-                className={`${containerClass} bg-transparent text-white uppercase overflow-hidden flex items-center justify-center`}
-                style={{ fontFamily: "'ED Manteca', sans-serif" }}
+                className={`${embedded ? 'w-full h-full' : 'w-[1920px] h-[1080px]'} text-white uppercase relative overflow-hidden`}
+                style={{ 
+                    fontFamily: "'ED Manteca', sans-serif",
+                    backgroundColor: '#911A2C'
+                }}
             >
-                <div className="flex flex-col items-center gap-8 p-12">
-                    {/* Love & War Branding */}
-                    <div className="text-center">
-                        <h1 className="text-6xl font-bold tracking-wider" style={{ fontFamily: "'ED Manteca Black', sans-serif" }}>
-                            Love & War
-                        </h1>
-                        <p className="text-xl text-red-400 mt-2">{round}</p>
+
+                {/* Texture Overlay */}
+                <LoveAndWarTextureOverlay />
+
+                {/* ============ TOP 2/3: Matchup images in left & right vertical thirds ============ */}
+
+                {/* Team 1 Image - Left vertical third, top 66.66% height */}
+                <div className={`absolute top-0 left-0 w-[45%] h-[70%] z-10 overflow-visible pointer-events-none ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                    <img 
+                        src={getMatchupImagePath(team1.name)}
+                        className="w-full h-full  left-[100px] object-cover"
+                        alt={team1.name}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                </div>
+
+                {/* Team 2 Image - Right vertical third, top 66.66% height */}
+                <div className={`absolute top-0 right-0 w-[45%] h-[70%] z-10 overflow-visible pointer-events-none ${matchComplete && team1Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                    <img 
+                        src={getMatchupImagePath(team2.name)}
+                        alt={team2.name}
+                        className="w-full h-full  right-[100px] object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                </div>
+
+                {/* Score Display - VS. always centered, scores on each side */}
+                <div className="absolute left-1/2 -translate-x-1/2 top-[45%] -translate-y-1/2 text-2xl text-white/70 font-semibold z-30">VS.</div>
+                <div className="absolute top-1/2 -translate-y-1/2 z-30 text-[180px] font-bold leading-none" style={{ fontFamily: "'Crook', sans-serif", right: 'calc(50% + 40px)', textAlign: 'right' }}>{team1.score}</div>
+                <div className="absolute top-1/2 -translate-y-1/2 z-30 text-[180px] font-bold leading-none" style={{ fontFamily: "'Crook', sans-serif", left: 'calc(50% + 40px)', textAlign: 'left' }}>{team2.score}</div>
+
+                {/* Round / Match Info */}
+                <div className="absolute top-[440px] left-1/2 -translate-x-1/2 text-sm text-white/70 tracking-wider z-50" style={{ fontFamily: "'Archivo Semi Condensed Bold', sans-serif" }}>
+                
+                    {data?.round || 'ROUND 1'}
+                </div>
+
+                {/* ============ BOTTOM 1/3: Team names — tops aligned higher ============ */}
+                <div className="absolute bottom-[10%] left-0 w-full h-[38%] flex z-40">
+                    {/* Team 1 Name - Left third */}
+                    <div className={`left-[10%] w-[50%] h-full flex flex-col justify-end pb-10 px-8 ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                        <img 
+                            src={getTeamNameImagePath(team1.name)}
+                            className="h-auto object-contain self-start"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
                     </div>
 
-                    {/* Teams */}
-                    <div className="flex items-center gap-16">
-                        {/* Team 1 */}
-                        <div className="text-center min-w-[300px]">
-                            <h2 className="text-4xl font-bold mb-4" style={{ fontFamily: "'ED Manteca Black', sans-serif" }}>
-                                {team1.name}
-                            </h2>
-                            <div className="flex flex-col gap-2 items-center">
-                                {team1.players.map((p, i) => {
-                                    const playerNameSlug = p.name.toLowerCase().trim().replace(/\s+/g, '_');
-                                    const playerNameImagePath = `/source/overlay/love_and_war/player_names/${playerNameSlug}.png`;
-                                    return (
-                                        <img 
-                                            key={i}
-                                            src={playerNameImagePath}
-                                            alt={p.name}
-                                            className={`max-w-full h-auto object-contain ${p.active ? 'opacity-100' : 'opacity-50'}`}
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.style.display = 'none';
-                                                const parent = target.parentElement;
-                                                if (parent && !parent.querySelector(`.fallback-${i}`)) {
-                                                    const fallback = document.createElement('span');
-                                                    fallback.className = `fallback-${i} text-2xl ${p.active ? 'text-white' : 'text-white/50'}`;
-                                                    fallback.textContent = p.name;
-                                                    parent.appendChild(fallback);
-                                                }
-                                            }}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    {/* Center third - empty spacer */}
+                    <div className="w-[10%]" />
 
-                        {/* VS */}
-                        <div className="text-5xl font-bold text-red-500">VS</div>
-
-                        {/* Team 2 */}
-                        <div className="text-center min-w-[300px]">
-                            <h2 className="text-4xl font-bold mb-4" style={{ fontFamily: "'ED Manteca Black', sans-serif" }}>
-                                {team2.name}
-                            </h2>
-                            <div className="flex flex-col gap-2 items-center">
-                                {team2.players.map((p, i) => {
-                                    const playerNameSlug = p.name.toLowerCase().trim().replace(/\s+/g, '_');
-                                    const playerNameImagePath = `/source/overlay/love_and_war/player_names/${playerNameSlug}.png`;
-                                    return (
-                                        <img 
-                                            key={i}
-                                            src={playerNameImagePath}
-                                            alt={p.name}
-                                            className={`max-w-full h-auto object-contain ${p.active ? 'opacity-100' : 'opacity-50'}`}
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.style.display = 'none';
-                                                const parent = target.parentElement;
-                                                if (parent && !parent.querySelector(`.fallback-${i}`)) {
-                                                    const fallback = document.createElement('span');
-                                                    fallback.className = `fallback-${i} text-2xl ${p.active ? 'text-white' : 'text-white/50'}`;
-                                                    fallback.textContent = p.name;
-                                                    parent.appendChild(fallback);
-                                                }
-                                            }}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    {/* Team 2 Name - Right third, closer to center */}
+                    <div className={`top-[60.67%] right-[10%] w-[50%] h-full flex flex-col justify-end items-start pb-10 px-8 ${matchComplete && team1Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                        <img 
+                            src={getTeamNameImagePath(team2.name)}
+                            className="h-auto object-contain self-start"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
                     </div>
+                </div>
+
+                {/* ============ Player names + stats (independently positioned) ============ */}
+
+                {/* Team 1 Players + Stats */}
+                <div className={`absolute bottom-[220px] left-[5%] z-50 space-y-0 ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                    {team1.players.map((player, i) => (
+                        <PlayerInfoRow key={i} player={player} getPlayerNameImagePath={getPlayerNameImagePath} getPlayerHistory={getPlayerHistory} getPlayerDivisionRanking={getPlayerDivisionRanking} />
+                    ))}
+                </div>
+
+                {/* Team 2 Players + Stats — left-aligned at 40% of screen */}
+                <div className={`absolute bottom-[220px] right-[15%] z-50 space-y-0 ${matchComplete && team1Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                    {team2.players.map((player, i) => (
+                        <PlayerInfoRow key={i} player={player} getPlayerNameImagePath={getPlayerNameImagePath} getPlayerHistory={getPlayerHistory} getPlayerDivisionRanking={getPlayerDivisionRanking} />
+                    ))}
                 </div>
             </div>
         );

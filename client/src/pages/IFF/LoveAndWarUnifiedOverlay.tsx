@@ -15,12 +15,22 @@ interface DisplayState {
     visible: boolean;
 }
 
+interface LnWMatchData {
+    team1: { name: string; players: any[]; score: number };
+    team2: { name: string; players: any[]; score: number };
+    round: string;
+    match_number?: number;
+    win_score?: number;
+}
+
 const LoveAndWarUnifiedOverlay = () => {
     const [searchParams] = useSearchParams();
     const [displayMode, setDisplayMode] = useState<DisplayMode>('idle');
     const [teamIdForStats, setTeamIdForStats] = useState<number | null>(null);
     const [isVisible, setIsVisible] = useState(false);
     const [socket, setSocket] = useState<Socket | null>(null);
+    const [matchData, setMatchData] = useState<LnWMatchData | null>(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     // Set transparent background
     useEffect(() => {
@@ -54,6 +64,12 @@ const LoveAndWarUnifiedOverlay = () => {
             }
         });
 
+        // Listen for explicit refresh requests — bump key to force full remount
+        newSocket.on('lnw-refresh-overlay', () => {
+            console.log('[LnW Unified] Refresh overlay requested');
+            setRefreshKey(prev => prev + 1);
+        });
+
         // Also listen for legacy team display updates
         newSocket.on('love-and-war-display-update', (state: { teamId: number | null; visible: boolean }) => {
             console.log('[LnW Unified] Team display update:', state);
@@ -66,10 +82,30 @@ const LoveAndWarUnifiedOverlay = () => {
             }
         });
 
+        // Listen for match data updates to check for auto-switch
+        newSocket.on('lnw-match-data', (data: LnWMatchData) => {
+            console.log('[LnW Unified] Match data update:', data);
+            setMatchData(data);
+        });
+
         return () => {
             newSocket.disconnect();
         };
     }, [searchParams]);
+
+    // Auto-switch to matchup card when a team reaches winning score
+    useEffect(() => {
+        if (!matchData || displayMode !== 'match') return;
+        
+        const winScore = matchData.win_score || 4;
+        const team1Won = matchData.team1.score >= winScore;
+        const team2Won = matchData.team2.score >= winScore;
+        
+        if (team1Won || team2Won) {
+            console.log('[LnW Unified] Auto-switching to matchup card - match complete');
+            setDisplayMode('match-card');
+        }
+    }, [matchData, displayMode]);
 
     // Render based on display mode
     const renderContent = () => {
@@ -92,12 +128,12 @@ const LoveAndWarUnifiedOverlay = () => {
 
         // Match mode - render the match overlay (embedded mode)
         if (displayMode === 'match') {
-            return <LoveAndWarMatchOverlay socket={socket} embedded />;
+            return <LoveAndWarMatchOverlay socket={socket} embedded initialData={matchData} />;
         }
 
         // Match card mode - render match card (embedded mode)
         if (displayMode === 'match-card') {
-            return <LoveAndWarMatchOverlay socket={socket} embedded showAsMatchCard />;
+            return <LoveAndWarMatchOverlay socket={socket} embedded showAsMatchCard initialData={matchData} />;
         }
 
         // Team stats mode - render the team stats overlay (embedded mode)
@@ -131,7 +167,9 @@ const LoveAndWarUnifiedOverlay = () => {
             className="w-[1920px] h-[1080px] text-white overflow-hidden"
             style={{ fontFamily: "'ED Manteca', sans-serif", backgroundColor: containerBgColor }}
         >
-            {renderContent()}
+            <div key={refreshKey} className="w-full h-full">
+                {renderContent()}
+            </div>
         </div>
     );
 };
