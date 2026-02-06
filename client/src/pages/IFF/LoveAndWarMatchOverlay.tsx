@@ -24,7 +24,7 @@ interface LnWMatchData {
     team2: Team;
     round: string;
     match_number?: number;
-    win_score?: number; // First to X (default 2 for best of 3)
+    win_score?: number; // First to X (default 4)
 }
 
 // Props for embedded use (optional)
@@ -78,36 +78,33 @@ const PlayerCard = ({ player, className }: PlayerCardProps) => {
     );
 };
 
-// PlayerInfoRow: renders a player name image + stats on separate lines (used in matchup card)
-interface PlayerInfoRowProps {
-    player: Player;
+// TeamPlayersRow: renders "player1name ---- player2name" in a single row (used in matchup card)
+interface TeamPlayersRowProps {
+    players: Player[];
     getPlayerNameImagePath: (name: string) => string;
-    getPlayerHistory: (player: Player) => string;
-    getPlayerDivisionRanking: (player: Player) => string;
 }
 
-const PlayerInfoRow = ({ player, getPlayerNameImagePath, getPlayerHistory, getPlayerDivisionRanking }: PlayerInfoRowProps) => {
-    const history = getPlayerHistory(player);
-    const divisionRanking = getPlayerDivisionRanking(player);
+const TeamPlayersRow = ({ players, getPlayerNameImagePath }: TeamPlayersRowProps) => {
+    const player1 = players[0];
+    const player2 = players[1];
+    if (!player1 || !player2) return null;
+
     return (
-        <div className="flex items-center gap-6">
-            <div className="shrink-0" style={{ width: '200px' }}>
-                <img 
-                    src={getPlayerNameImagePath(player.name)}
-                    alt={player.name}
-                    className="h-auto object-contain object-left"
-                    style={{ maxHeight: '45px', maxWidth: '100%' }}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-            </div>
-            <div className="flex flex-col" style={{ fontFamily: "'Archivo Semi Condensed Bold', 'Archivo', sans-serif" }}>
-                {history && (
-                    <span className="text-[18px] text-white/80 whitespace-nowrap">{history}</span>
-                )}
-                {divisionRanking && (
-                    <span className="text-[18px] text-white/80 whitespace-nowrap">{divisionRanking}</span>
-                )}
-            </div>
+        <div className="flex items-center gap-4">
+            <img 
+                src={getPlayerNameImagePath(player1.name)}
+                className="h-auto object-contain shrink-0"
+                style={{ maxHeight: '53px' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+            <div className="flex-1 border-t-2 border-white/40" />
+            <img 
+                src={getPlayerNameImagePath(player2.name)}
+                alt={player2.name}
+                className="h-auto object-contain shrink-0"
+                style={{ maxHeight: '53px' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
         </div>
     );
 };
@@ -253,23 +250,10 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
     };
 
     const streamOverlayFile = getStreamOverlay();
-    const winScore = data?.win_score || 2; // Default to 2 (best of 3)
+    const winScore = data?.win_score || 4; // Default to 4
     const team1Won = team1.score >= winScore;
     const team2Won = team2.score >= winScore;
     const matchComplete = team1Won || team2Won;
-
-    // Helper: get player IFF history (separate line)
-    const getPlayerHistory = (player: Player): string => {
-        return player.iff_history || '';
-    };
-
-    // Helper: get player division + ranking (concatenated, separate line)
-    const getPlayerDivisionRanking = (player: Player): string => {
-        if (player.division && player.iff8_ranking) {
-            return `${player.division} ${player.iff8_ranking}`;
-        }
-        return player.division || player.iff8_ranking || '';
-    };
 
     // Helper: matchup image path (same slug as team name images)
     const getMatchupImagePath = (teamName: string): string => {
@@ -300,23 +284,32 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
                 }}
             >
 
+                {/* Boiler Plate */}
+                <img 
+                    src="/source/overlay/love_and_war/boiler_plate.png"
+                    alt="Boiler Plate"
+                    className="absolute w-full h-full object-cover z-[5]"
+                    style={{ animation: 'fadeIn 0.6s ease-out', top: '980px', left: 0 }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+
                 {/* Texture Overlay */}
                 <LoveAndWarTextureOverlay />
 
                 {/* ============ TOP 2/3: Matchup images in left & right vertical thirds ============ */}
 
-                {/* Team 1 Image - Left vertical third, top 66.66% height */}
-                <div className={`absolute top-0 left-0 w-[45%] h-[70%] z-10 overflow-visible pointer-events-none ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                {/* Team 1 Image - Left vertical third */}
+                <div className={`absolute top-[5%] left-[%] w-[45%] h-[70%] z-10 overflow-visible pointer-events-none ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
                     <img 
                         src={getMatchupImagePath(team1.name)}
-                        className="w-full h-full  left-[100px] object-cover"
+                        className="w-full h-full  left-[90px] object-cover"
                         alt={team1.name}
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                 </div>
 
-                {/* Team 2 Image - Right vertical third, top 66.66% height */}
-                <div className={`absolute top-0 right-0 w-[45%] h-[70%] z-10 overflow-visible pointer-events-none ${matchComplete && team1Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                {/* Team 2 Image - Right vertical third */}
+                <div className={`absolute top-[5%] right-0 w-[45%] h-[70%] z-10 overflow-visible pointer-events-none ${matchComplete && team1Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
                     <img 
                         src={getMatchupImagePath(team2.name)}
                         alt={team2.name}
@@ -325,21 +318,20 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
                     />
                 </div>
 
-                {/* Score Display - VS. always centered, scores on each side */}
-                <div className="absolute left-1/2 -translate-x-1/2 top-[45%] -translate-y-1/2 text-2xl text-white/70 font-semibold z-30">VS.</div>
-                <div className="absolute top-1/2 -translate-y-1/2 z-30 text-[180px] font-bold leading-none" style={{ fontFamily: "'Crook', sans-serif", right: 'calc(50% + 40px)', textAlign: 'right' }}>{team1.score}</div>
-                <div className="absolute top-1/2 -translate-y-1/2 z-30 text-[180px] font-bold leading-none" style={{ fontFamily: "'Crook', sans-serif", left: 'calc(50% + 40px)', textAlign: 'left' }}>{team2.score}</div>
+                {/* Score Display - VS. vertically centered between scores */}
+                <div className="absolute left-1/2 -translate-x-1/2 top-[43%] -translate-y-1/2 text-2xl text-white/70 font-semibold z-30">VS.</div>
+                <div className="absolute top-[43%] -translate-y-1/2 z-30 text-[180px] font-bold leading-none" style={{ fontFamily: "'Crook', sans-serif", right: 'calc(50% + 40px)', textAlign: 'right' }}>{team1.score}</div>
+                <div className="absolute top-[43%] -translate-y-1/2 z-30 text-[180px] font-bold leading-none" style={{ fontFamily: "'Crook', sans-serif", left: 'calc(50% + 40px)', textAlign: 'left' }}>{team2.score}</div>
 
                 {/* Round / Match Info */}
-                <div className="absolute top-[440px] left-1/2 -translate-x-1/2 text-sm text-white/70 tracking-wider z-50" style={{ fontFamily: "'Archivo Semi Condensed Bold', sans-serif" }}>
-                
+                <div className="absolute left-1/2 -translate-x-1/2 text-sm text-white/70 tracking-wider z-50" style={{ fontFamily: "'Archivo Semi Condensed Bold', sans-serif", top: 'calc(43% - 100px)' }}>
                     {data?.round || 'ROUND 1'}
                 </div>
 
-                {/* ============ BOTTOM 1/3: Team names — tops aligned higher ============ */}
-                <div className="absolute bottom-[10%] left-0 w-full h-[38%] flex z-40">
-                    {/* Team 1 Name - Left third */}
-                    <div className={`left-[10%] w-[50%] h-full flex flex-col justify-end pb-10 px-8 ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                {/* ============ BOTTOM 1/3: Team names ============ */}
+                <div className="absolute bottom-0 left-0 w-full h-[38%] flex z-40">
+                    {/* Team 1 Name - Left third, slightly closer to center */}
+                    <div className={`left-[10%] w-[50%] h-full flex flex-col justify-end pb-10 pl-16 pr-8 ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
                         <img 
                             src={getTeamNameImagePath(team1.name)}
                             className="h-auto object-contain self-start"
@@ -360,20 +352,16 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
                     </div>
                 </div>
 
-                {/* ============ Player names + stats (independently positioned) ============ */}
+                {/* ============ Player names (centered under team names) ============ */}
 
-                {/* Team 1 Players + Stats */}
-                <div className={`absolute bottom-[220px] left-[5%] z-50 space-y-0 ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
-                    {team1.players.map((player, i) => (
-                        <PlayerInfoRow key={i} player={player} getPlayerNameImagePath={getPlayerNameImagePath} getPlayerHistory={getPlayerHistory} getPlayerDivisionRanking={getPlayerDivisionRanking} />
-                    ))}
+                {/* Team 1 Players: centered at 25% of left half (12.5% from left) */}
+                <div className={`absolute bottom-[15%] w-[32%] -translate-x-1/2 z-50 ${matchComplete && team2Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`} style={{ left: '24%' }}>
+                    <TeamPlayersRow players={team1.players} getPlayerNameImagePath={getPlayerNameImagePath} />
                 </div>
 
-                {/* Team 2 Players + Stats — left-aligned at 40% of screen */}
-                <div className={`absolute bottom-[220px] right-[15%] z-50 space-y-0 ${matchComplete && team1Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
-                    {team2.players.map((player, i) => (
-                        <PlayerInfoRow key={i} player={player} getPlayerNameImagePath={getPlayerNameImagePath} getPlayerHistory={getPlayerHistory} getPlayerDivisionRanking={getPlayerDivisionRanking} />
-                    ))}
+                {/* Team 2 Players: centered at 25% of right half (75% from left) */}
+                <div className={`absolute bottom-[15%] w-[32%] -translate-x-1/2 z-50 ${matchComplete && team1Won ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`} style={{ left: '77%' }}>
+                    <TeamPlayersRow players={team2.players} getPlayerNameImagePath={getPlayerNameImagePath} />
                 </div>
             </div>
         );
