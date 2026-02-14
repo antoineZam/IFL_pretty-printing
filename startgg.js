@@ -369,8 +369,14 @@ async function searchIronFistLeagueTournaments(maxResults = 50) {
       
       if (data && data.tournaments && data.tournaments.nodes) {
         for (const t of data.tournaments.nodes) {
-          // STRICT FILTER: slug MUST contain 'iron-fist-league'
-          const slugMatch = t.slug && t.slug.toLowerCase().includes('iron-fist-league');
+          // STRICT FILTER: slug MUST contain 'iron-fist-league' OR 'ifl'
+          // This handles both full-name slugs (iron-fist-league-1) and abbreviated slugs (ifl-season-2)
+          const slugLower = t.slug ? t.slug.toLowerCase() : '';
+          const slugMatch = slugLower.includes('iron-fist-league') || 
+                           slugLower.match(/\bifl\b/) ||  // Match 'ifl' as whole word
+                           slugLower.startsWith('ifl-') || 
+                           slugLower.includes('-ifl-') ||
+                           slugLower.endsWith('-ifl');
           
           if (slugMatch && !seenIds.has(t.id)) {
             seenIds.add(t.id);
@@ -391,21 +397,30 @@ async function searchIronFistLeagueTournaments(maxResults = 50) {
 }
 
 // Get tournament by slug - handles various formats like:
-// - iron-fist-league-1
-// - iron-fist-league-2-finals  
-// - iron-fist-league-10-grand-finals
+// - iron-fist-league-1, ifl-1
+// - iron-fist-league-2-finals, ifl-2-finals  
+// - iron-fist-league-10-grand-finals, ifl-10-grand-finals
 async function getIFLTournamentByNumber(tournamentNumber, suffix = '') {
-  let slug = `iron-fist-league-${tournamentNumber}`;
-  if (suffix) {
-    slug += `-${suffix}`;
+  // Try multiple slug patterns: full name first, then abbreviated
+  const slugPatterns = [
+    `iron-fist-league-${tournamentNumber}${suffix ? `-${suffix}` : ''}`,
+    `ifl-${tournamentNumber}${suffix ? `-${suffix}` : ''}`
+  ];
+  
+  for (const slug of slugPatterns) {
+    try {
+      const result = await getTournamentBySlug(slug);
+      if (result && result.tournament) {
+        console.log(`  ✓ Found IFL tournament with slug: ${slug}`);
+        return result;
+      }
+    } catch (error) {
+      console.log(`  ✗ Not found: ${slug}`);
+    }
   }
   
-  try {
-    return await getTournamentBySlug(slug);
-  } catch (error) {
-    console.error(`Tournament not found: ${slug}`);
-    return null;
-  }
+  console.error(`Tournament not found with any pattern for number: ${tournamentNumber}`);
+  return null;
 }
 
 // Get all sets (matches) for a tournament with full pagination

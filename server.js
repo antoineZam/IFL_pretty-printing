@@ -580,8 +580,9 @@ app.get('/api/db/tournaments/stats', async (req, res) => {
             .sort((a, b) => (a.startAt || 0) - (b.startAt || 0))
             .map(t => {
                 // Extract IFL number from name or slug if possible
+                // Supports both full slugs (iron-fist-league-1) and abbreviated slugs (ifl-1)
                 const iflMatch = t.name.match(/(?:Iron Fist League|IFL)\s*#?(\d+)/i) || 
-                                 t.slug.match(/iron-fist-league-(\d+)/i);
+                                 t.slug.match(/(?:iron-fist-league|ifl)-(\d+)/i);
                 const iflNumber = iflMatch ? parseInt(iflMatch[1]) : null;
                 
                 return {
