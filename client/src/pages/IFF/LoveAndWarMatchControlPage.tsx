@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { ChevronLeft, Users, Minus, Plus, RotateCcw, Eye, Send, Tv, Image, PlayCircle, Zap, ArrowLeftRight } from 'lucide-react';
+import { ChevronLeft, Users, Minus, Plus, RotateCcw, Eye, Send, Tv, Image, PlayCircle, Zap, ArrowLeftRight, User } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
@@ -21,10 +21,14 @@ interface Team {
     score: number;
 }
 
+type MatchMode = 'team' | '1v1';
+
 interface LnWMatchData {
     team1: Team;
     team2: Team;
     round: string;
+    match_mode: MatchMode;
+    win_score: number;
 }
 
 // Display mode for unified overlay
@@ -47,7 +51,9 @@ const defaultMatchData: LnWMatchData = {
         ],
         score: 0
     },
-    round: 'Round 1'
+    round: 'Round 1',
+    match_mode: 'team',
+    win_score: 4
 };
 
 const LoveAndWarMatchControlPage = () => {
@@ -405,6 +411,56 @@ const LoveAndWarMatchControlPage = () => {
                     </div>
                 </div>
 
+                {/* Match Mode Toggle */}
+                <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800 p-4 mb-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Match Mode</label>
+                            <div className="flex bg-gray-800/50 p-1 rounded-xl">
+                                <button
+                                    onClick={() => setMatchData(prev => ({ 
+                                        ...prev, 
+                                        match_mode: 'team',
+                                        win_score: 4
+                                    }))}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                                        matchData.match_mode === 'team' 
+                                            ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' 
+                                            : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                                    }`}
+                                >
+                                    <Users size={18} />
+                                    Team Match (2v2)
+                                </button>
+                                <button
+                                    onClick={() => setMatchData(prev => ({ 
+                                        ...prev, 
+                                        match_mode: '1v1',
+                                        win_score: 3
+                                    }))}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                                        matchData.match_mode === '1v1' 
+                                            ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/30' 
+                                            : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                                    }`}
+                                >
+                                    <User size={18} />
+                                    1v1 Match
+                                </button>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Win Score</label>
+                            <div className="flex items-center gap-2">
+                                <span className="text-3xl font-bold text-white">FT{matchData.win_score}</span>
+                                <span className="text-sm text-gray-500">
+                                    ({matchData.match_mode === '1v1' ? '1v1 default: 3' : 'Team default: 4'})
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Round Input */}
                 <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800 p-4 mb-6">
                     <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Round / Match Info</label>
@@ -466,22 +522,38 @@ const LoveAndWarMatchControlPage = () => {
 
                 {/* Live Preview */}
                 <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800 p-5">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Live Preview</h3>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                        Live Preview 
+                        <span className={`ml-2 px-2 py-0.5 rounded text-xs ${matchData.match_mode === '1v1' ? 'bg-orange-600/30 text-orange-400' : 'bg-purple-600/30 text-purple-400'}`}>
+                            {matchData.match_mode === '1v1' ? '1v1 Mode' : 'Team Mode'}
+                        </span>
+                    </h3>
                     <div className="bg-black/80 rounded-xl p-6 border border-gray-700/50">
                         <div className="flex items-center justify-between">
-                            {/* Team 1 */}
+                            {/* Player/Team 1 */}
                             <div className="text-left flex-1">
-                                <p className="text-sm text-red-400 uppercase tracking-wider font-semibold mb-2">{matchData.team1.name}</p>
-                                <div className="flex items-center gap-4">
-                                    {matchData.team1.players.map((p, i) => (
-                                        <span 
-                                            key={i} 
-                                            className={`text-xl font-bold transition-colors ${p.active ? 'text-white' : 'text-gray-600'}`}
-                                        >
-                                            {p.name}
+                                {matchData.match_mode === '1v1' ? (
+                                    <>
+                                        <p className="text-sm text-orange-400 uppercase tracking-wider font-semibold mb-2">Player 1</p>
+                                        <span className="text-2xl font-bold text-white">
+                                            {matchData.team1.players.find(p => p.active)?.name || matchData.team1.players[0]?.name}
                                         </span>
-                                    ))}
-                                </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-red-400 uppercase tracking-wider font-semibold mb-2">{matchData.team1.name}</p>
+                                        <div className="flex items-center gap-4">
+                                            {matchData.team1.players.map((p, i) => (
+                                                <span 
+                                                    key={i} 
+                                                    className={`text-xl font-bold transition-colors ${p.active ? 'text-white' : 'text-gray-600'}`}
+                                                >
+                                                    {p.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             
                             {/* Scores & Round */}
@@ -490,23 +562,35 @@ const LoveAndWarMatchControlPage = () => {
                                 <div className="text-center">
                                     <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{matchData.round}</p>
                                     <p className="text-2xl text-red-500 font-black">VS</p>
+                                    <p className="text-xs text-gray-600 mt-1">FT{matchData.win_score}</p>
                                 </div>
                                 <span className="text-5xl font-black text-white">{matchData.team2.score}</span>
                             </div>
                             
-                            {/* Team 2 */}
+                            {/* Player/Team 2 */}
                             <div className="text-right flex-1">
-                                <p className="text-sm text-red-400 uppercase tracking-wider font-semibold mb-2">{matchData.team2.name}</p>
-                                <div className="flex items-center justify-end gap-4">
-                                    {matchData.team2.players.map((p, i) => (
-                                        <span 
-                                            key={i} 
-                                            className={`text-xl font-bold transition-colors ${p.active ? 'text-white' : 'text-gray-600'}`}
-                                        >
-                                            {p.name}
+                                {matchData.match_mode === '1v1' ? (
+                                    <>
+                                        <p className="text-sm text-orange-400 uppercase tracking-wider font-semibold mb-2">Player 2</p>
+                                        <span className="text-2xl font-bold text-white">
+                                            {matchData.team2.players.find(p => p.active)?.name || matchData.team2.players[0]?.name}
                                         </span>
-                                    ))}
-                                </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-red-400 uppercase tracking-wider font-semibold mb-2">{matchData.team2.name}</p>
+                                        <div className="flex items-center justify-end gap-4">
+                                            {matchData.team2.players.map((p, i) => (
+                                                <span 
+                                                    key={i} 
+                                                    className={`text-xl font-bold transition-colors ${p.active ? 'text-white' : 'text-gray-600'}`}
+                                                >
+                                                    {p.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

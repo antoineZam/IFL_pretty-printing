@@ -19,12 +19,15 @@ interface Team {
     score: number;
 }
 
+type MatchMode = 'team' | '1v1';
+
 interface LnWMatchData {
     team1: Team;
     team2: Team;
     round: string;
     match_number?: number;
-    win_score?: number; // First to X (default 4)
+    win_score?: number; // First to X (default 4 for team, 3 for 1v1)
+    match_mode?: MatchMode; // 'team' or '1v1'
 }
 
 // Props for embedded use (optional)
@@ -250,7 +253,8 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
     };
 
     const streamOverlayFile = getStreamOverlay();
-    const winScore = data?.win_score || 4; // Default to 4
+    const matchMode = data?.match_mode || 'team';
+    const winScore = data?.win_score || (matchMode === '1v1' ? 3 : 4); // Default to 3 for 1v1, 4 for team
     const team1Won = team1.score >= winScore;
     const team2Won = team2.score >= winScore;
     const matchComplete = team1Won || team2Won;
@@ -367,7 +371,116 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
         );
     }
 
-    // Match Overlay view (top bar)
+    // 1v1 Match Overlay view - simplified layout showing only active players
+    if (matchMode === '1v1') {
+        const player1 = team1.players.find(p => p.active) || team1.players[0];
+        const player2 = team2.players.find(p => p.active) || team2.players[0];
+
+        return (
+            <div 
+                className={`${containerClass} bg-transparent text-white uppercase overflow-hidden`}
+                style={{ fontFamily: "'ED Manteca', sans-serif" }}
+            >
+                <div className="relative w-full h-full">
+                    {/* 1v1 Stream overlay */}
+                    <img 
+                        src="/source/overlay/love_and_war/stream_overlays/1v1_overlay.png"
+                        alt="1v1 Overlay"
+                        className="absolute inset-0 w-full h-full object-cover z-0"
+                        onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                        }}
+                    />
+                    <img 
+                        src="/source/overlay/love_and_war/stream_overlays/bottom_page.png"
+                        alt="Bottom Page"
+                        className="absolute bottom-0 left-0 w-full h-full object-cover z-0"
+                        onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                        }}
+                    />
+
+                    {/* Player 1 - Left side, centered in left half */}
+                    <div className="absolute w-full h-[100px] z-10 flex items-center">
+                        <div className="absolute left-[-280px] right-[calc(50%+100px)] flex items-center justify-center">
+                            <img 
+                                src={getPlayerNameImagePath(player1.name)}
+                                alt={player1.name}
+                                className="object-contain"
+                                style={{ height: '45px', width: 'auto', maxWidth: '100%' }}
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent && !parent.querySelector('.fallback-text')) {
+                                        const fallback = document.createElement('span');
+                                        fallback.className = 'fallback-text text-[28px] font-bold text-white whitespace-nowrap uppercase';
+                                        fallback.style.fontFamily = "'ED Manteca Black', 'ED Manteca', sans-serif";
+                                        fallback.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.9)';
+                                        fallback.textContent = player1.name;
+                                        parent.appendChild(fallback);
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                    
+                    {/* Player 1 Score */}
+                    <div 
+                        className="absolute top-[-5px] left-[724px] text-[26px] w-[100px] text-center font-bold z-10"
+                        style={{ fontFamily: "'Archivo Expanded Bold', sans-serif" }}
+                    >
+                        {team1.score}
+                    </div>
+
+                    {/* Player 2 - Right side, centered in right half */}
+                    <div className="absolute w-full h-[100px] z-10 flex items-center">
+                        <div className="absolute right-[-280px] left-[calc(50%+100px)] flex items-center justify-center">
+                            <img 
+                                src={getPlayerNameImagePath(player2.name)}
+                                alt={player2.name}
+                                className="object-contain"
+                                style={{ height: '45px', width: 'auto', maxWidth: '100%' }}
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent && !parent.querySelector('.fallback-text')) {
+                                        const fallback = document.createElement('span');
+                                        fallback.className = 'fallback-text text-[28px] font-bold text-white whitespace-nowrap uppercase';
+                                        fallback.style.fontFamily = "'ED Manteca Black', 'ED Manteca', sans-serif";
+                                        fallback.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.9)';
+                                        fallback.textContent = player2.name;
+                                        parent.appendChild(fallback);
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                    
+                    {/* Player 2 Score */}
+                    <div 
+                        className="absolute top-[-5px] right-[725px] text-[26px] w-[100px] text-center font-bold z-10"
+                        style={{ fontFamily: "'Archivo Expanded Bold', sans-serif" }}
+                    >
+                        {team2.score}
+                    </div>
+
+                    {/* Round - Centered */}
+                    <div 
+                        className="absolute top-[1px] left-1/2 -translate-x-1/2 text-base text-center w-[600px] tracking-[2px] font-semibold z-10"
+                        style={{ fontFamily: "'Archivo Semi Condensed Bold', sans-serif" }}
+                    >
+                        {round}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Team Match Overlay view (top bar)
     return (
         <div 
             className={`${containerClass} bg-transparent text-white uppercase overflow-hidden`}

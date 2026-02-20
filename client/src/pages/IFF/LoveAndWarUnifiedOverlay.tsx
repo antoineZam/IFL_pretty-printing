@@ -15,12 +15,15 @@ interface DisplayState {
     visible: boolean;
 }
 
+type MatchMode = 'team' | '1v1';
+
 interface LnWMatchData {
     team1: { name: string; players: any[]; score: number };
     team2: { name: string; players: any[]; score: number };
     round: string;
     match_number?: number;
     win_score?: number;
+    match_mode?: MatchMode;
 }
 
 const LoveAndWarUnifiedOverlay = () => {
@@ -97,7 +100,9 @@ const LoveAndWarUnifiedOverlay = () => {
     useEffect(() => {
         if (!matchData || displayMode !== 'match') return;
         
-        const winScore = matchData.win_score || 4;
+        // Default win score: 3 for 1v1, 4 for team matches
+        const defaultWinScore = matchData.match_mode === '1v1' ? 3 : 4;
+        const winScore = matchData.win_score || defaultWinScore;
         const team1Won = matchData.team1.score >= winScore;
         const team2Won = matchData.team2.score >= winScore;
         
