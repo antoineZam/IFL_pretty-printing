@@ -7,6 +7,7 @@ import useDynamicFontSize from '../../hooks/useDynamicFontSize';
 interface Player {
     name: string;
     sponsor: string;
+    flag?: string;
     active: boolean;
 }
 interface Team {
