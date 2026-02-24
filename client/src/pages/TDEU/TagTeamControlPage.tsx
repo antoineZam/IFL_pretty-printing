@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { Swords, RotateCcw, Users, Trash2 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
@@ -58,6 +59,7 @@ const initialData: TagTeamData = {
 type PlayerKey = 'team1.0' | 'team1.1' | 'team2.0' | 'team2.1';
 
 const TagTeamControlPage = () => {
+    const [searchParams] = useSearchParams();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [data, setData] = useState<TagTeamData>(initialData);
     const [playerHistory, setPlayerHistory] = useState<PlayerHistoryItem[]>([]);
@@ -71,6 +73,12 @@ const TagTeamControlPage = () => {
     });
 
     useEffect(() => {
+        // Get connection key from URL or localStorage
+        const key = searchParams.get('key') || localStorage.getItem('connectionKey');
+        if (!key) {
+            console.warn('No connection key found - socket may not authenticate');
+        }
+
         // Fetch player history from database
         const fetchPlayerHistory = async () => {
             try {
@@ -83,11 +91,15 @@ const TagTeamControlPage = () => {
         };
         fetchPlayerHistory();
 
-        const newSocket = io();
+        const newSocket = io({ auth: { token: key || '' } });
         setSocket(newSocket);
         
         newSocket.on('connect', () => {
-            console.log('Connected to server');
+            console.log('Connected to server (Tag Team)');
+        });
+
+        newSocket.on('connect_error', (err) => {
+            console.error('Socket connection error:', err.message);
         });
 
         // Listen for tag team data updates from server
@@ -116,10 +128,15 @@ const TagTeamControlPage = () => {
         return () => {
             newSocket.disconnect();
         };
-    }, []);
+    }, [searchParams]);
 
     const sendUpdate = (updatedData: TagTeamData) => {
-        socket?.emit('tag-team-update', updatedData);
+        if (socket) {
+            console.log('Sending tag-team-update:', updatedData);
+            socket.emit('tag-team-update', updatedData);
+        } else {
+            console.error('Socket not connected - cannot send update');
+        }
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
