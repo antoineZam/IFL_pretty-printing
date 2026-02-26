@@ -110,7 +110,7 @@ const TagTeamOverlayPage = () => {
                 <div className="absolute top-0 right-[690px] text-[27px] w-[100px] text-center font-bold font-archivo-expanded-regular">{team2.score}</div>
                 
                 {/* Round */}
-                <div className="absolute top-1.5 left-1/2 -translate-x-1/2 text-base text-center w-[600px] tracking-[2px] font-semibold">{round}</div>
+                <div className="absolute top-1 left-1/2 -translate-x-1/2 text-base text-center w-[600px] tracking-[2px] font-semibold">{round}</div>
             </div>
         </div>
     );
