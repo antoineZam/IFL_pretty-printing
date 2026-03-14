@@ -86,10 +86,10 @@ const IFLMatchOverlayPage = () => {
 
                 {/* Player 1 Flag (with recolour filter) */}
                 <div
-                    className="absolute top-[14px] left-[138px] w-[81px] h-[55px] bg-cover bg-center"
+                    className="absolute top-[15px] left-[138px] w-[82px] h-[54px] bg-cover bg-center"
                     style={{
                         backgroundImage: `linear-gradient(to bottom, rgba(10,15,30,0.36), transparent 35%, transparent 65%, rgba(10,15,30,0.36)), url(${p1FlagUrl})`,
-                        clipPath: 'polygon(0 0, 100% 0, 100% 100%, 63% 100%)',
+                        clipPath: 'polygon(0 0, 100% 0, 100% 100%, 62% 100%)',
                         filter: FLAG_FILTER,
                     }}
                 />
@@ -108,10 +108,10 @@ const IFLMatchOverlayPage = () => {
 
                 {/* Player 2 Flag (with recolour filter) */}
                 <div
-                    className="absolute top-[14px] right-[136px] w-[82px] h-[55px] bg-cover bg-center"
+                    className="absolute top-[15px] right-[136px] w-[82px] h-[54px] bg-cover bg-center"
                     style={{
                         backgroundImage: `linear-gradient(to bottom, rgba(10,15,30,0.36), transparent 35%, transparent 65%, rgba(10,15,30,0.36)), url(${p2FlagUrl})`,
-                        clipPath: 'polygon(0 0, 100% 0, 38% 100%, 0 100%)',
+                        clipPath: 'polygon(0 0, 98% 0, 38% 100%, 0 100%)',
                         filter: FLAG_FILTER,
                     }}
                 />
@@ -132,15 +132,15 @@ const IFLMatchOverlayPage = () => {
                 <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[16px] text-center w-[600px] tracking-[3px] text-shadow">
                     {data.round}
                 </div>
-                <div className="absolute bottom-[30px] right-[550px] text-[32px] font-bold text-shadow">
+                {/* <div className="absolute bottom-[30px] right-[550px] text-[32px] font-bold text-shadow">
                     {data.eventNumber ? `# ${data.eventNumber}` : ''}
-                </div>
-                <div className="absolute bottom-[34px] right-[215px] text-[24px] font-archivo-semi-expanded-bold tracking-[0.05em] text-shadow">
+                </div> */}
+                {/* <div className="absolute bottom-[34px] right-[215px] text-[24px] font-archivo-semi-expanded-bold tracking-[0.05em] text-shadow">
                     IRON FIST LEAGUE
                 </div>
                 <div className="absolute bottom-[36px] left-[195px] text-[24px] font-archivo-condensed-bold tracking-normal text-shadow">
                     DISCORD.GG/TEKKENDOJOEU
-                </div>
+                </div> */}
             </div>
         </div>
     );
