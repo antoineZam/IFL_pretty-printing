@@ -2,7 +2,7 @@ node_modules
 .env
 
 # Build artifacts
-client/dist/
+client/dist/*
 dist/
 
 # Data files - contain runtime/user data
