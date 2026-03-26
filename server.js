@@ -579,10 +579,12 @@ app.get('/api/db/tournaments/stats', async (req, res) => {
         const stats = iflTournaments
             .sort((a, b) => (a.startAt || 0) - (b.startAt || 0))
             .map(t => {
-                // Extract IFL number from name or slug if possible
-                // Supports both full slugs (iron-fist-league-1) and abbreviated slugs (ifl-1)
-                const iflMatch = t.name.match(/(?:Iron Fist League|IFL)\s*#?(\d+)/i) || 
-                                 t.slug.match(/(?:iron-fist-league|ifl)-(\d+)/i);
+                // Extract IFL tournament number from name or slug
+                // Priority: [Week X] format > -week-X in slug > fallback to season number
+                const iflMatch = t.name.match(/\[Week\s*(\d+)\]/i) ||           // [Week 1] in name
+                                 t.slug.match(/-week-(\d+)/i) ||                 // -week-1 in slug
+                                 t.name.match(/(?:Iron Fist League|IFL)\s*#?(\d+)$/i) ||  // IFL 1 (at end)
+                                 t.slug.match(/(?:iron-fist-league|ifl)-(\d+)$/i);        // ifl-1 (at end)
                 const iflNumber = iflMatch ? parseInt(iflMatch[1]) : null;
                 
                 return {
