@@ -1,4 +1,5 @@
 const axios = require('axios');
+const queries = require('./startggQueries');
 
 // start.gg API configuration
 const STARTGG_API_URL = 'https://api.start.gg/gql/alpha';
@@ -47,51 +48,12 @@ async function queryStartGG(query, variables = {}) {
 
 // Get tournament by slug
 async function getTournamentBySlug(slug) {
-  const query = `
-    query TournamentQuery($slug: String!) {
-      tournament(slug: $slug) {
-        id
-        name
-        slug
-        startAt
-        endAt
-        events {
-          id
-          name
-          slug
-          videogame {
-            id
-            name
-          }
-        }
-      }
-    }
-  `;
-
-  return await queryStartGG(query, { slug });
+  return await queryStartGG(queries.tournament.bySlug, { slug });
 }
 
 // Get tournament events (without sets - just to get event IDs)
 async function getTournamentEvents(slug) {
-  const query = `
-    query TournamentEventsQuery($slug: String!) {
-      tournament(slug: $slug) {
-        id
-        name
-        slug
-        startAt
-        endAt
-        events {
-          id
-          name
-          slug
-          numEntrants
-        }
-      }
-    }
-  `;
-
-  const data = await queryStartGG(query, { slug });
+  const data = await queryStartGG(queries.tournament.events, { slug });
   
   // Now fetch all sets for each event with pagination
   if (data && data.tournament && data.tournament.events) {
@@ -135,37 +97,8 @@ async function getTournamentEvents(slug) {
 }
 
 // Get sets by event ID with match details
-// Simplified query to stay under complexity limits
 async function getEventSetsByEventId(eventId, page = 1, perPage = 20) {
-  const query = `
-    query EventSetsQuery($eventId: ID!, $page: Int!, $perPage: Int!) {
-      event(id: $eventId) {
-        id
-        name
-        sets(page: $page, perPage: $perPage, sortType: RECENT) {
-          pageInfo {
-            total
-            totalPages
-          }
-          nodes {
-            id
-            fullRoundText
-            displayScore
-            winnerId
-            completedAt
-            slots {
-              entrant {
-                id
-                name
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
-
-  return await queryStartGG(query, { eventId, page, perPage });
+  return await queryStartGG(queries.event.sets, { eventId, page, perPage });
 }
 
 // Legacy function for compatibility
@@ -175,138 +108,25 @@ async function getEventSets(tournamentSlug, eventId, page = 1, perPage = 50) {
 
 // Get player information from start.gg
 async function getPlayerInfo(playerSlug) {
-  const query = `
-    query PlayerQuery($slug: String!) {
-      player(slug: $slug) {
-        id
-        gamerTag
-        prefix
-        user {
-          id
-          slug
-          player {
-            gamerTag
-          }
-        }
-        recentStandings {
-          id
-          placement
-          event {
-            id
-            name
-            slug
-            tournament {
-              id
-              name
-              slug
-            }
-          }
-        }
-      }
-    }
-  `;
-
-  return await queryStartGG(query, { slug: playerSlug });
+  return await queryStartGG(queries.player.info, { slug: playerSlug });
 }
 
 // Get tournament participants/entrants with full player info
 async function getTournamentParticipants(slug) {
-  const query = `
-    query TournamentParticipantsQuery($slug: String!) {
-      tournament(slug: $slug) {
-        id
-        name
-        events {
-          id
-          name
-          entrants(query: {
-            page: 1
-            perPage: 100
-          }) {
-            nodes {
-              id
-              name
-              participants {
-                id
-                gamerTag
-                prefix
-                user {
-                  id
-                  location {
-                    country
-                    countryId
-                  }
-                }
-                player {
-                  id
-                  gamerTag
-                  prefix
-                  user {
-                    id
-                    location {
-                      country
-                      countryId
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
-
-  return await queryStartGG(query, { slug });
+  return await queryStartGG(queries.tournament.participants, { slug });
 }
 
 // Get upcoming/past tournaments for a tournament series (like "iron-fist-league")
 async function getTournamentSeries(slug, upcoming = true, past = true) {
-  const query = `
-    query TournamentSeriesQuery($slug: String!) {
-      tournament(slug: $slug) {
-        id
-        name
-        slug
-      }
-    }
-  `;
-
   // Note: start.gg doesn't have a direct "series" endpoint
   // You'll need to search for tournaments with similar slugs
-  // For now, we'll get the specific tournament
-  return await queryStartGG(query, { slug });
+  return await queryStartGG(queries.tournament.series, { slug });
 }
 
 // Search for tournaments by name/term
 async function searchTournaments(searchTerm, perPage = 50) {
-  const query = `
-    query SearchTournaments($perPage: Int!) {
-      tournaments(query: {
-        page: 1
-        perPage: $perPage
-        sortBy: "startAt desc"
-      }) {
-        nodes {
-          id
-          name
-          slug
-          startAt
-          endAt
-          numAttendees
-          events {
-            id
-            name
-            slug
-            numEntrants
-          }
-        }
-      }
-    }
-  `;
-
   try {
-    const data = await queryStartGG(query, { perPage });
+    const data = await queryStartGG(queries.search.tournaments, { perPage });
     
     if (!data || !data.tournaments || !data.tournaments.nodes) {
       return { tournaments: { nodes: [] } };
@@ -336,36 +156,12 @@ async function searchIronFistLeagueTournaments(maxResults = 50) {
   const allTournaments = [];
   const seenIds = new Set();
 
-
   // Search with multiple terms to find all potential matches
-  // Use simpler query to avoid complexity limits
   const searchTerms = ['Iron Fist League', 'IFL', 'iron fist'];
   
   for (const term of searchTerms) {
     try {
-      // Simplified query - no nested events to reduce complexity
-      const searchQuery = `
-        query SearchTerm($term: String!) {
-          tournaments(query: {
-            page: 1
-            perPage: 50
-            filter: {
-              name: $term
-            }
-          }) {
-            nodes {
-              id
-              name
-              slug
-              startAt
-              endAt
-              numAttendees
-            }
-          }
-        }
-      `;
-      
-      const data = await queryStartGG(searchQuery, { term });
+      const data = await queryStartGG(queries.search.tournamentsByName, { term });
       
       if (data && data.tournaments && data.tournaments.nodes) {
         for (const t of data.tournaments.nodes) {
@@ -426,19 +222,7 @@ async function getIFLTournamentByNumber(tournamentNumber, suffix = '') {
 // Get all sets (matches) for a tournament with full pagination
 async function getAllTournamentSets(slug) {
   // First get the tournament events
-  const eventsQuery = `
-    query TournamentEventsQuery($slug: String!) {
-      tournament(slug: $slug) {
-        id
-        events {
-          id
-          name
-        }
-      }
-    }
-  `;
-  
-  const eventsData = await queryStartGG(eventsQuery, { slug });
+  const eventsData = await queryStartGG(queries.tournament.eventsBasic, { slug });
   
   if (!eventsData || !eventsData.tournament || !eventsData.tournament.events) {
     return [];
@@ -479,39 +263,10 @@ async function getAllTournamentSets(slug) {
   return allSets;
 }
 
-// Get league standings from start.gg
+// Get league standings from start.gg (includes rank and points)
 async function getLeagueStandings(leagueSlug = 'iron-fist-league', limit = 8) {
-  const query = `
-    query LeagueStandings($slug: String!, $page: Int!, $perPage: Int!) {
-      league(slug: $slug) {
-        id
-        name
-        standings(query: { page: $page, perPage: $perPage }) {
-          nodes {
-            id
-            placement
-            entrant {
-              id
-              name
-              participants {
-                gamerTag
-                prefix
-                user {
-                  location {
-                    country
-                  }
-                }
-              }
-            }
-            totalPoints
-          }
-        }
-      }
-    }
-  `;
-
   try {
-    const data = await queryStartGG(query, { 
+    const data = await queryStartGG(queries.league.standings, { 
       slug: leagueSlug, 
       page: 1, 
       perPage: limit 
@@ -555,35 +310,8 @@ async function getLeagueStandings(leagueSlug = 'iron-fist-league', limit = 8) {
 
 // Get event standings from start.gg (top placements for a tournament event)
 async function getEventStandings(eventSlug, limit = 8) {
-  const query = `
-    query EventStandings($slug: String!, $page: Int!, $perPage: Int!) {
-      event(slug: $slug) {
-        id
-        name
-        standings(query: { page: $page, perPage: $perPage }) {
-          nodes {
-            placement
-            entrant {
-              id
-              name
-              participants {
-                gamerTag
-                prefix
-                user {
-                  location {
-                    country
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
-
   try {
-    const data = await queryStartGG(query, { 
+    const data = await queryStartGG(queries.event.standings, { 
       slug: eventSlug, 
       page: 1, 
       perPage: limit 
@@ -622,39 +350,8 @@ async function getEventStandings(eventSlug, limit = 8) {
 
 // Get player's placements across tournaments in a league
 async function getPlayerLeaguePlacements(leagueSlug, playerName, limit = 20) {
-  // First get all events in the league
-  const query = `
-    query LeagueEvents($slug: String!) {
-      league(slug: $slug) {
-        id
-        name
-        events(query: { page: 1, perPage: 50 }) {
-          nodes {
-            id
-            name
-            slug
-            tournament {
-              name
-            }
-            standings(query: { page: 1, perPage: 64 }) {
-              nodes {
-                placement
-                entrant {
-                  name
-                  participants {
-                    gamerTag
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
-
   try {
-    const data = await queryStartGG(query, { slug: leagueSlug });
+    const data = await queryStartGG(queries.league.events, { slug: leagueSlug });
     
     if (!data || !data.league || !data.league.events) {
       return [];
