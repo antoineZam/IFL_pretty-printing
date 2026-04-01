@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { getCountryCode } from '../../utils/countries';
 
 interface Player {
     id: number;
     name: string;
     sponsor: string | null;
     score: number | null;
+    country: string | null;
 }
 
 interface BracketSet {
@@ -77,23 +79,37 @@ const MatchSlot = ({
     // Debug log for troubleshooting (always log for now)
     console.log(`[Match] ${set.roundText}: ${set.player1?.name} vs ${set.player2?.name} | displayScore: "${set.displayScore}" | p1Score: ${p1Score}, p2Score: ${p2Score}`);
 
-    const renderPlayer = (player: Player | null, score: number | null | undefined, isWinner: boolean, isBottomPlayer: boolean) => (
-        <div 
-            className="relative flex items-center px-4 w-full"
-            style={{ marginLeft: isBottomPlayer ? '8px' : '0' }}
-        >
-            <span className={`flex-1 text-lg uppercase italic font-black truncate tracking-tight ${isWinner ? 'text-yellow-400' : 'text-white'}`} style={{ maxWidth: `${SCORE_OFFSET - 50}px` }}>
-                {player?.sponsor && <span className="text-sm opacity-70 mr-1.5 italic font-bold">{player.sponsor}</span>}
-                {player?.name || 'TBD'}
-            </span>
-            <span 
-                className={`absolute text-xl font-black ${isWinner ? 'text-yellow-400' : 'text-white/60'}`}
-                style={{ left: `${SCORE_OFFSET}px` }}
+    const renderPlayer = (player: Player | null, score: number | null | undefined, isWinner: boolean, isBottomPlayer: boolean) => {
+        const countryCode = getCountryCode(player?.country);
+        const flagUrl = countryCode 
+            ? `https://flagcdn.com/h40/${countryCode}.png`
+            : '/source/overlay/ifl/no-flag.png';
+        
+        return (
+            <div 
+                className="relative flex items-center px-2 w-full gap-2"
+                style={{ marginLeft: isBottomPlayer ? '8px' : '0' }}
             >
-                {score ?? '-'}
-            </span>
-        </div>
-    );
+                <img 
+                    src={flagUrl} 
+                    alt={player?.country || 'flag'} 
+                    className="h-5 w-auto object-contain"
+                    style={{ filter: 'saturate(0.93) hue-rotate(-8deg) brightness(0.97) contrast(.97) saturate(.83)' }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/source/overlay/ifl/no-flag.png'; }}
+                />
+                <span className={`flex-1 text-lg uppercase italic font-black truncate tracking-tight ${isWinner ? 'text-yellow-400' : 'text-white'}`} style={{ maxWidth: `${SCORE_OFFSET - 80}px` }}>
+                    {player?.sponsor && <span className="text-sm opacity-70 mr-1.5 italic font-bold">{player.sponsor}</span>}
+                    {player?.name || 'TBD'}
+                </span>
+                <span 
+                    className={`absolute text-xl font-black ${isWinner ? 'text-yellow-400' : 'text-white/60'}`}
+                    style={{ left: `${SCORE_OFFSET}px` }}
+                >
+                    {score ?? '-'}
+                </span>
+            </div>
+        );
+    };
 
     return (
         <div 

@@ -167,6 +167,13 @@ const queries = {
                 entrant {
                   id
                   name
+                  participants {
+                    user {
+                      location {
+                        country
+                      }
+                    }
+                  }
                 }
                 standing {
                   stats {

@@ -363,7 +363,7 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
 
     const event = data.event;
     
-    // Parse entrant info helper - includes score from standing.stats
+    // Parse entrant info helper - includes score and country
     const parseEntrant = (slot) => {
       if (!slot?.entrant) return null;
       
@@ -381,11 +381,15 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
       // Get score from standing.stats.score.value (start.gg API structure)
       const score = slot.standing?.stats?.score?.value ?? null;
       
+      // Get country from first participant's user location
+      const country = slot.entrant.participants?.[0]?.user?.location?.country || null;
+      
       return {
         id: slot.entrant.id,
         name: username || 'Unknown',
         sponsor: sponsor,
-        score: score
+        score: score,
+        country: country
       };
     };
 
