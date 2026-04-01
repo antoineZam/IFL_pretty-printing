@@ -40,15 +40,41 @@ interface Top8Data {
 }
 
 // Match slot component - scaled and styled for the specific overlay
-// Fixed score offset from column start (in pixels)
-const SCORE_OFFSET = 275;
+// Layout offsets (in pixels from left edge of match slot)
+const FLAG_OFFSET = -65;      // Distance from left edge to flag
+const FLAG_WIDTH = 70;        // Width of flag container
+const FLAG_HEIGHT = 68;       // Height of flag container
+const FLAG_VERTICAL_OFFSET = 2; // Vertical offset for flags (top player goes up, bottom player goes down)
+const NAME_OFFSET = 10;       // Distance from left edge to player name
+const SCORE_OFFSET = 247;     // Distance from left edge to score
+
+// Bottom player adjustments (relative to top player)
+const BOTTOM_PLAYER_HORIZONTAL_OFFSET = 9; // How much more to the right
+const BOTTOM_PLAYER_VERTICAL_OFFSET = -3.2;   // Negative = higher, positive = lower
+
+// Score polygon dimensions (larger than flags)
+const SCORE_WIDTH = 75;       // Width of score container
+const SCORE_HEIGHT = 69;      // Height of score container
+const SCORE_VERTICAL_OFFSET = -2; // Negative = higher, positive = lower
+
+// Colors and styles
+const NAME_COLOR = '#F0ECEC';
+const TEAM_COLOR = '#87CEEB';
+const WINNER_GRADIENT = 'linear-gradient(to top, rgba(21, 128, 61, 0.5), rgba(134, 239, 172, 0.15))';  // Dark green to light green, 50% to 15%
+const LOSER_GRADIENT = 'linear-gradient(to top, rgba(185, 28, 28, 0.5), rgba(252, 165, 165, 0.15))';   // Dark red to light red, 50% to 15%
+
+// Flag filter for color consistency
+const FLAG_FILTER = 'saturate(0.93) hue-rotate(-8deg) brightness(0.97) contrast(.97) saturate(.83)';
+
+// Polygon clip path (same as flags)
+const SCORE_CLIP_PATH = 'polygon(0 0, 79% 0, 91% 100%, 12% 100%)';
 
 const MatchSlot = ({ 
     set, 
     left,
     top,
     width = 340,
-    height = 100,
+    height = 152,
 }: { 
     set: BracketSet | null;
     left: number;
@@ -79,34 +105,88 @@ const MatchSlot = ({
     // Debug log for troubleshooting (always log for now)
     console.log(`[Match] ${set.roundText}: ${set.player1?.name} vs ${set.player2?.name} | displayScore: "${set.displayScore}" | p1Score: ${p1Score}, p2Score: ${p2Score}`);
 
-    const renderPlayer = (player: Player | null, score: number | null | undefined, isWinner: boolean, isBottomPlayer: boolean) => {
+    const renderFlag = (player: Player | null, isBottomPlayer: boolean) => {
         const countryCode = getCountryCode(player?.country);
         const flagUrl = countryCode 
-            ? `https://flagcdn.com/h40/${countryCode}.png`
+            ? `https://flagcdn.com/h80/${countryCode}.png`
             : '/source/overlay/ifl/no-flag.png';
+        
+        // Calculate offsets based on top/bottom player
+        const flagVerticalOffset = isBottomPlayer ? FLAG_VERTICAL_OFFSET : -FLAG_VERTICAL_OFFSET;
+        const horizontalOffset = isBottomPlayer ? BOTTOM_PLAYER_HORIZONTAL_OFFSET : 0;
+        const verticalOffset = isBottomPlayer ? BOTTOM_PLAYER_VERTICAL_OFFSET : 0;
         
         return (
             <div 
-                className="relative flex items-center px-2 w-full gap-2"
-                style={{ marginLeft: isBottomPlayer ? '8px' : '0' }}
+                className="absolute overflow-hidden"
+                style={{ 
+                    left: `${FLAG_OFFSET + horizontalOffset}px`,
+                    top: `calc(50% - ${FLAG_HEIGHT / 2}px + ${flagVerticalOffset + verticalOffset}px)`,
+                    width: `${FLAG_WIDTH}px`,
+                    height: `${FLAG_HEIGHT}px`,
+                    clipPath: 'polygon(0 0, 79% 0, 91.5% 100%, 13% 100%)'
+                }}
             >
                 <img 
                     src={flagUrl} 
                     alt={player?.country || 'flag'} 
-                    className="h-5 w-auto object-contain"
-                    style={{ filter: 'saturate(0.93) hue-rotate(-8deg) brightness(0.97) contrast(.97) saturate(.83)' }}
+                    className="w-full h-full object-cover"
+                    style={{ filter: FLAG_FILTER }}
                     onError={(e) => { (e.target as HTMLImageElement).src = '/source/overlay/ifl/no-flag.png'; }}
                 />
-                <span className={`flex-1 text-lg uppercase italic font-black truncate tracking-tight ${isWinner ? 'text-yellow-400' : 'text-white'}`} style={{ maxWidth: `${SCORE_OFFSET - 80}px` }}>
-                    {player?.sponsor && <span className="text-sm opacity-70 mr-1.5 italic font-bold">{player.sponsor}</span>}
+            </div>
+        );
+    };
+
+    const renderPlayer = (player: Player | null, score: number | null | undefined, isWinner: boolean, isBottomPlayer: boolean) => {
+        // Calculate offsets for bottom player
+        const horizontalOffset = isBottomPlayer ? BOTTOM_PLAYER_HORIZONTAL_OFFSET : 0;
+        const verticalOffset = isBottomPlayer ? BOTTOM_PLAYER_VERTICAL_OFFSET : 0;
+        
+        return (
+            <div 
+                className="relative w-full h-1/2 flex items-center"
+                style={{ transform: `translateY(${verticalOffset}px)` }}
+            >
+                {/* Flag in polygon container */}
+                {renderFlag(player, isBottomPlayer)}
+                
+                {/* Player name - Archivo Semi Condensed */}
+                <span 
+                    className="absolute uppercase italic font-black truncate tracking-tight font-archivo-semi-condensed-bold"
+                    style={{ 
+                        left: `${NAME_OFFSET + horizontalOffset}px`,
+                        maxWidth: `${SCORE_OFFSET - NAME_OFFSET - 20}px`,
+                        color: NAME_COLOR
+                    }}
+                >
+                    {player?.sponsor && (
+                        <span 
+                            className="text-sm mr-1.5 italic font-bold"
+                            style={{ color: TEAM_COLOR }}
+                        >
+                            {player.sponsor}
+                        </span>
+                    )}
                     {player?.name || 'TBD'}
                 </span>
-                <span 
-                    className={`absolute text-xl font-black ${isWinner ? 'text-yellow-400' : 'text-white/60'}`}
-                    style={{ left: `${SCORE_OFFSET}px` }}
+                
+                {/* Score in polygon container with gradient */}
+                <div 
+                    className="absolute flex items-center justify-center font-archivo-semi-condensed-bold"
+                    style={{ 
+                        left: `${SCORE_OFFSET + horizontalOffset}px`,
+                        top: `calc(50% - ${SCORE_HEIGHT / 2}px + ${SCORE_VERTICAL_OFFSET}px)`,
+                        width: `${SCORE_WIDTH}px`,
+                        height: `${SCORE_HEIGHT}px`,
+                        background: isWinner ? WINNER_GRADIENT : LOSER_GRADIENT,
+                        clipPath: SCORE_CLIP_PATH
+                    }}
                 >
-                    {score ?? '-'}
-                </span>
+                    <span className="text-2xl font-black text-white">
+                        {score ?? '-'}
+                    </span>
+                </div>
             </div>
         );
     };
@@ -250,17 +330,17 @@ const IFLTop8OverlayPage = () => {
     const COL = {
         1: 185,   // Leftmost matches
         2: 640,   // Second column
-        3: 1065,  // Third column
+        3: 1067,  // Third column
         4: 1500   // Rightmost column
     };
 
     const ROW = {
-        WIN_TOP: 157,
-        WIN_MID: 267, // Perfect middle between 120 and 310
-        WIN_BOT: 363,
-        LOS_TOP: 622,
-        LOS_MID: 730, // Perfect middle between 550 and 740
-        LOS_BOT: 826
+        WIN_TOP: 135,
+        WIN_MID: 243,
+        WIN_BOT: 339,
+        LOS_TOP: 598,
+        LOS_MID: 706, // Perfect middle between 550 and 740
+        LOS_BOT: 802
     };
 
     return (
