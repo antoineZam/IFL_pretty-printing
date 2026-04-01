@@ -363,7 +363,7 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
 
     const event = data.event;
     
-    // Parse entrant info helper (simplified - just name parsing)
+    // Parse entrant info helper - includes score from standing.stats
     const parseEntrant = (slot) => {
       if (!slot?.entrant) return null;
       
@@ -378,43 +378,52 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
         username = parts.slice(1).join(' | ');
       }
       
+      // Get score from standing.stats.score.value (start.gg API structure)
+      const score = slot.standing?.stats?.score?.value ?? null;
+      
       return {
         id: slot.entrant.id,
         name: username || 'Unknown',
         sponsor: sponsor,
-        score: null
+        score: score
       };
     };
 
-    // Parse scores from displayScore (e.g., "Player1 2 - 0 Player2" or "2 - 0")
-    const parseScores = (displayScore, player1, player2) => {
+    // Fallback: Parse scores from displayScore if API scores are null
+    const parseScoresFromDisplay = (displayScore, player1, player2) => {
       if (!displayScore || displayScore === 'DQ' || !player1 || !player2) return;
+      if (player1.score !== null && player2.score !== null) return; // Already have scores
       
-      // Try different score patterns
-      // Pattern 1: "Name 2 - 1 Name" 
-      // Pattern 2: Just "2 - 1"
+      // displayScore format: "PlayerName 3 - 1 PlayerName" or "3 - 1"
       const scoreMatch = displayScore.match(/(\d+)\s*-\s*(\d+)/);
       if (scoreMatch) {
-        // Figure out which score belongs to which player
-        // If displayScore contains player names, parse them
         const parts = displayScore.split(/\s*-\s*/);
         if (parts.length >= 2) {
-          // Extract just the numbers
           const score1 = parseInt(parts[0].match(/(\d+)\s*$/)?.[1] || scoreMatch[1]);
           const score2 = parseInt(parts[1].match(/^\s*(\d+)/)?.[1] || scoreMatch[2]);
-          player1.score = score1;
-          player2.score = score2;
+          if (player1.score === null) player1.score = score1;
+          if (player2.score === null) player2.score = score2;
         }
       }
     };
 
     // Parse sets into a cleaner format
-    const sets = (event.sets?.nodes || []).map(set => {
+    const sets = (event.sets?.nodes || []).map((set, idx) => {
+      // Debug: log first few sets to see raw data
+      if (idx < 3) {
+        console.log(`[DEBUG Set ${idx}] displayScore: "${set.displayScore}", slot0 standing:`, JSON.stringify(set.slots?.[0]?.standing));
+      }
+      
       const player1 = parseEntrant(set.slots?.[0]);
       const player2 = parseEntrant(set.slots?.[1]);
       
-      // Parse scores from displayScore
-      parseScores(set.displayScore, player1, player2);
+      // Fallback: parse scores from displayScore if API didn't provide them
+      parseScoresFromDisplay(set.displayScore, player1, player2);
+      
+      // Debug: log parsed scores for first few sets
+      if (idx < 3) {
+        console.log(`[DEBUG Set ${idx}] After parsing - p1: ${player1?.name} score: ${player1?.score}, p2: ${player2?.name} score: ${player2?.score}`);
+      }
       
       return {
         id: set.id,

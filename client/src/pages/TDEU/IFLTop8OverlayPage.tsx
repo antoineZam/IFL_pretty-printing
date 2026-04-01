@@ -39,7 +39,7 @@ interface Top8Data {
 
 // Match slot component - scaled and styled for the specific overlay
 // Fixed score offset from column start (in pixels)
-const SCORE_OFFSET = 280;
+const SCORE_OFFSET = 275;
 
 const MatchSlot = ({ 
     set, 
@@ -60,17 +60,22 @@ const MatchSlot = ({
     const p1Won = isCompleted && set.winnerId === set.player1?.id;
     const p2Won = isCompleted && set.winnerId === set.player2?.id;
     
-    // Parse score from displayScore if player scores are null
-    let p1Score = set.player1?.score;
-    let p2Score = set.player2?.score;
+    // Parse scores - try player.score first, then displayScore
+    let p1Score: number | null = set.player1?.score ?? null;
+    let p2Score: number | null = set.player2?.score ?? null;
     
+    // Fallback: parse from displayScore if scores are missing
     if ((p1Score === null || p2Score === null) && set.displayScore) {
-        const match = set.displayScore.match(/(\d+)\s*-\s*(\d+)/);
-        if (match) {
-            p1Score = parseInt(match[1]);
-            p2Score = parseInt(match[2]);
+        // displayScore format: "PlayerName 3 - 1 PlayerName" or just "3 - 1"
+        const scoreMatch = set.displayScore.match(/(\d+)\s*-\s*(\d+)/);
+        if (scoreMatch) {
+            p1Score = parseInt(scoreMatch[1]);
+            p2Score = parseInt(scoreMatch[2]);
         }
     }
+    
+    // Debug log for troubleshooting (always log for now)
+    console.log(`[Match] ${set.roundText}: ${set.player1?.name} vs ${set.player2?.name} | displayScore: "${set.displayScore}" | p1Score: ${p1Score}, p2Score: ${p2Score}`);
 
     const renderPlayer = (player: Player | null, score: number | null | undefined, isWinner: boolean, isBottomPlayer: boolean) => (
         <div 

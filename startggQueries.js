@@ -168,6 +168,13 @@ const queries = {
                   id
                   name
                 }
+                standing {
+                  stats {
+                    score {
+                      value
+                    }
+                  }
+                }
               }
             }
           }
