@@ -348,6 +348,100 @@ async function getEventStandings(eventSlug, limit = 8) {
   }
 }
 
+// Get event bracket data (matches/sets) from start.gg
+async function getEventBracket(eventSlug, page = 1, perPage = 25) {
+  try {
+    const data = await queryStartGG(queries.event.bracket, { 
+      slug: eventSlug, 
+      page, 
+      perPage 
+    });
+    
+    if (!data || !data.event) {
+      return null;
+    }
+
+    const event = data.event;
+    
+    // Parse entrant info helper (simplified - just name parsing)
+    const parseEntrant = (slot) => {
+      if (!slot?.entrant) return null;
+      
+      const entrantName = slot.entrant.name || '';
+      
+      let username = entrantName;
+      let sponsor = null;
+      
+      if (entrantName.includes(' | ')) {
+        const parts = entrantName.split(' | ');
+        sponsor = parts[0];
+        username = parts.slice(1).join(' | ');
+      }
+      
+      return {
+        id: slot.entrant.id,
+        name: username || 'Unknown',
+        sponsor: sponsor,
+        score: null
+      };
+    };
+
+    // Parse scores from displayScore (e.g., "Player1 2 - 0 Player2" or "2 - 0")
+    const parseScores = (displayScore, player1, player2) => {
+      if (!displayScore || displayScore === 'DQ' || !player1 || !player2) return;
+      
+      // Try different score patterns
+      // Pattern 1: "Name 2 - 1 Name" 
+      // Pattern 2: Just "2 - 1"
+      const scoreMatch = displayScore.match(/(\d+)\s*-\s*(\d+)/);
+      if (scoreMatch) {
+        // Figure out which score belongs to which player
+        // If displayScore contains player names, parse them
+        const parts = displayScore.split(/\s*-\s*/);
+        if (parts.length >= 2) {
+          // Extract just the numbers
+          const score1 = parseInt(parts[0].match(/(\d+)\s*$/)?.[1] || scoreMatch[1]);
+          const score2 = parseInt(parts[1].match(/^\s*(\d+)/)?.[1] || scoreMatch[2]);
+          player1.score = score1;
+          player2.score = score2;
+        }
+      }
+    };
+
+    // Parse sets into a cleaner format
+    const sets = (event.sets?.nodes || []).map(set => {
+      const player1 = parseEntrant(set.slots?.[0]);
+      const player2 = parseEntrant(set.slots?.[1]);
+      
+      // Parse scores from displayScore
+      parseScores(set.displayScore, player1, player2);
+      
+      return {
+        id: set.id,
+        round: set.round,
+        roundText: set.fullRoundText,
+        displayScore: set.displayScore,
+        state: set.state, // 1=not started, 2=in progress, 3=completed
+        winnerId: set.winnerId,
+        player1,
+        player2
+      };
+    });
+
+    return {
+      id: event.id,
+      name: event.name,
+      state: event.state, // CREATED, ACTIVE, COMPLETED
+      numEntrants: event.numEntrants,
+      sets,
+      pageInfo: event.sets?.pageInfo || { total: 0, totalPages: 0 }
+    };
+  } catch (error) {
+    console.error('Error fetching event bracket:', error.message);
+    return null;
+  }
+}
+
 // Get player's placements across tournaments in a league
 async function getPlayerLeaguePlacements(leagueSlug, playerName, limit = 20) {
   try {
@@ -404,6 +498,7 @@ module.exports = {
   getAllTournamentSets,
   getLeagueStandings,
   getEventStandings,
+  getEventBracket,
   getPlayerLeaguePlacements,
   queryStartGG
 };

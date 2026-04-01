@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink, Database, Monitor, Users, Gamepad2, Trophy, Tv, ChevronLeft, TrendingUp } from 'lucide-react';
+import { getCountryCode } from '../../utils/countries';
 
 interface NavItem {
     name: string;
@@ -88,6 +89,12 @@ const TDEUDashboardPage = () => {
             icon: <Gamepad2 size={20} />,
         },
         {
+            name: "IFL Top 8",
+            description: "Tournament standings display",
+            path: "/tdeu/ifl/top8",
+            icon: <Trophy size={20} />,
+        },
+        {
             name: "Tag Team Control",
             description: "Team vs team overlay controller",
             path: "/tag/match-control",
@@ -101,6 +108,13 @@ const TDEUDashboardPage = () => {
             description: "1v1 stream overlay",
             path: "/ifl/match-overlay",
             icon: <Monitor size={20} />,
+            external: true
+        },
+        {
+            name: "IFL Top 8 Overlay",
+            description: "Tournament standings overlay",
+            path: "/tdeu/ifl/top8/overlay",
+            icon: <Trophy size={20} />,
             external: true
         },
         {
@@ -396,57 +410,60 @@ const TDEUDashboardPage = () => {
                             </div>
                         ) : (
                             <div className="divide-y divide-white/5">
-                                {leaderboard.map((player) => (
-                                    <div 
-                                        key={player.user_id || player.rank}
-                                        className={`px-4 py-2.5 flex items-center gap-3 ${
-                                            player.rank <= 3 ? 'bg-gradient-to-r from-amber-500/5 to-transparent' : ''
-                                        }`}
-                                    >
-                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                                            player.rank === 1 ? 'bg-amber-500 text-black' :
-                                            player.rank === 2 ? 'bg-gray-400 text-black' :
-                                            player.rank === 3 ? 'bg-amber-700 text-white' :
-                                            'bg-white/10 text-gray-400'
-                                        }`}>
-                                            {player.rank}
-                                        </div>
+                                {leaderboard.map((player) => {
+                                    const countryCode = getCountryCode(player.country);
+                                    return (
+                                        <div 
+                                            key={player.user_id || player.rank}
+                                            className={`px-4 py-2.5 flex items-center gap-3 ${
+                                                player.rank <= 3 ? 'bg-gradient-to-r from-amber-500/5 to-transparent' : ''
+                                            }`}
+                                        >
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                                                player.rank === 1 ? 'bg-amber-500 text-black' :
+                                                player.rank === 2 ? 'bg-gray-400 text-black' :
+                                                player.rank === 3 ? 'bg-amber-700 text-white' :
+                                                'bg-white/10 text-gray-400'
+                                            }`}>
+                                                {player.rank}
+                                            </div>
 
-                                        {player.country ? (
-                                            <img 
-                                                src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`}
-                                                alt={player.country}
-                                                className="w-5 h-auto"
-                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                            />
-                                        ) : (
-                                            <div className="w-5" />
-                                        )}
+                                            {countryCode ? (
+                                                <img 
+                                                    src={`https://flagcdn.com/w20/${countryCode}.png`}
+                                                    alt={player.country || ''}
+                                                    className="w-5 h-auto"
+                                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                />
+                                            ) : (
+                                                <div className="w-5" />
+                                            )}
 
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-baseline gap-1.5 truncate">
-                                                {player.sponsor && (
-                                                    <span className="text-[10px] text-gray-500">{player.sponsor}</span>
-                                                )}
-                                                <span className={`text-sm font-medium truncate ${
-                                                    player.rank === 1 ? 'text-amber-400' : 'text-white'
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-baseline gap-1.5 truncate">
+                                                    {player.sponsor && (
+                                                        <span className="text-[10px] text-gray-500">{player.sponsor}</span>
+                                                    )}
+                                                    <span className={`text-sm font-medium truncate ${
+                                                        player.rank === 1 ? 'text-amber-400' : 'text-white'
+                                                    }`}>
+                                                        {player.username}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-right">
+                                                <p className={`text-lg font-bold ${
+                                                    player.rank === 1 ? 'text-amber-400' : 
+                                                    player.rank <= 3 ? 'text-amber-300/80' : 'text-white'
                                                 }`}>
-                                                    {player.username}
-                                                </span>
+                                                    {player.points}
+                                                </p>
+                                                <p className="text-[9px] text-gray-500 uppercase">pts</p>
                                             </div>
                                         </div>
-
-                                        <div className="text-right">
-                                            <p className={`text-lg font-bold ${
-                                                player.rank === 1 ? 'text-amber-400' : 
-                                                player.rank <= 3 ? 'text-amber-300/80' : 'text-white'
-                                            }`}>
-                                                {player.points}
-                                            </p>
-                                            <p className="text-[9px] text-gray-500 uppercase">pts</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

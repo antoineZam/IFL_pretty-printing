@@ -472,6 +472,54 @@ app.get('/api/startgg/tournament/:slug/participants', async (req, res) => {
     }
 });
 
+// Get event standings (top 8) directly from start.gg
+app.get('/api/startgg/event/:eventSlug/standings', async (req, res) => {
+    try {
+        const { eventSlug } = req.params;
+        const limit = Math.min(Math.max(parseInt(req.query.limit) || 8, 1), 64);
+        
+        const standings = await startgg.getEventStandings(eventSlug, limit);
+        
+        const formattedStandings = standings.map(player => ({
+            placement: player.placement,
+            entrant_id: player.entrantId,
+            username: player.username,
+            sponsor: player.sponsor,
+            country: player.country
+        }));
+        
+        res.status(200).json({ standings: formattedStandings });
+    } catch (error) {
+        console.error('Error fetching event standings:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch event standings' });
+    }
+});
+
+// Get event bracket data (matches/sets) from start.gg
+app.get('/api/startgg/event/:eventSlug/bracket', async (req, res) => {
+    try {
+        const { eventSlug } = req.params;
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
+        // Limit to 25 sets per page to avoid start.gg complexity limits
+        const perPage = Math.min(Math.max(parseInt(req.query.perPage) || 25, 1), 30);
+        
+        console.log(`[Bracket API] Fetching bracket for event: ${eventSlug} (page ${page}, perPage ${perPage})`);
+        
+        const bracket = await startgg.getEventBracket(eventSlug, page, perPage);
+        
+        if (!bracket) {
+            console.log(`[Bracket API] No bracket data found for: ${eventSlug}`);
+            return res.status(404).json({ error: 'Event not found or no bracket data' });
+        }
+        
+        console.log(`[Bracket API] Found ${bracket.sets?.length || 0} sets for: ${eventSlug}`);
+        res.status(200).json(bracket);
+    } catch (error) {
+        console.error('[Bracket API] Error fetching event bracket:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch event bracket' });
+    }
+});
+
 // Get player information
 app.get('/api/startgg/player/:slug', async (req, res) => {
     try {
@@ -633,44 +681,18 @@ app.get('/api/db/league/standings', async (req, res) => {
         // Fetch standings directly from start.gg league API
         const standings = await startgg.getLeagueStandings('iron-fist-league', limit);
         
-        // Map country names to 2-letter codes for flag display
-        const countryCodeMap = {
-            'france': 'fr', 'germany': 'de', 'united states': 'us', 'united kingdom': 'gb',
-            'spain': 'es', 'italy': 'it', 'japan': 'jp', 'south korea': 'kr', 'china': 'cn',
-            'canada': 'ca', 'australia': 'au', 'brazil': 'br', 'mexico': 'mx', 'netherlands': 'nl',
-            'belgium': 'be', 'sweden': 'se', 'poland': 'pl', 'portugal': 'pt', 'switzerland': 'ch',
-            'austria': 'at', 'denmark': 'dk', 'norway': 'no', 'finland': 'fi', 'ireland': 'ie',
-            'russia': 'ru', 'turkey': 'tr', 'greece': 'gr', 'czech republic': 'cz', 'romania': 'ro',
-            'hungary': 'hu', 'slovakia': 'sk', 'croatia': 'hr', 'slovenia': 'si', 'bulgaria': 'bg',
-            'estonia': 'ee', 'latvia': 'lv', 'lithuania': 'lt', 'malta': 'mt', 'saudi arabia': 'sa',
-            'uae': 'ae', 'israel': 'il', 'south africa': 'za', 'egypt': 'eg', 'morocco': 'ma',
-            'tunisia': 'tn', 'algeria': 'dz', 'nigeria': 'ng', 'kenya': 'ke', 'pakistan': 'pk',
-            'india': 'in', 'singapore': 'sg', 'malaysia': 'my', 'philippines': 'ph', 'indonesia': 'id',
-            'thailand': 'th', 'vietnam': 'vn', 'taiwan': 'tw', 'hong kong': 'hk', 'new zealand': 'nz',
-            'argentina': 'ar', 'chile': 'cl', 'colombia': 'co', 'peru': 'pe', 'venezuela': 've',
-            'puerto rico': 'pr'
-        };
-        
-        const formattedStandings = standings.map(player => {
-            // Convert country name to code if needed
-            let countryCode = player.country;
-            if (player.country && player.country.length > 2) {
-                countryCode = countryCodeMap[player.country.toLowerCase()] || null;
-            }
-            
-            return {
-                rank: player.rank,
-                user_id: player.playerId,
-                username: player.username,
-                sponsor: player.sponsor,
-                country: countryCode,
-                wins: 0, // Not provided by standings API
-                losses: 0,
-                total_matches: 0,
-                tournaments_played: 0,
-                points: player.points
-            };
-        });
+        const formattedStandings = standings.map(player => ({
+            rank: player.rank,
+            user_id: player.playerId,
+            username: player.username,
+            sponsor: player.sponsor,
+            country: player.country,
+            wins: 0,
+            losses: 0,
+            total_matches: 0,
+            tournaments_played: 0,
+            points: player.points
+        }));
         
         res.status(200).json({ standings: formattedStandings });
     } catch (error) {
@@ -1546,6 +1568,17 @@ io.on('connection', async (socket) => {
     } catch (error) {
       console.error('Error handling tag-team-update:', error);
     }
+  });
+
+  // Handle Top 8 Updates
+  socket.on('top8-data', (data) => {
+    console.log('Received Top 8 Data Update');
+    io.emit('top8-data', data);
+  });
+
+  socket.on('top8-refresh', (data) => {
+    console.log('Received Top 8 Refresh Request');
+    io.emit('top8-refresh', data);
   });
 
   // Handle Run It Back Updates

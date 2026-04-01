@@ -144,6 +144,37 @@ const queries = {
       }
     `,
 
+    bracket: `
+      query EventBracket($slug: String!, $page: Int!, $perPage: Int!) {
+        event(slug: $slug) {
+          id
+          name
+          state
+          numEntrants
+          sets(page: $page, perPage: $perPage, sortType: STANDARD, filters: { hideEmpty: true }) {
+            pageInfo {
+              total
+              totalPages
+            }
+            nodes {
+              id
+              round
+              fullRoundText
+              displayScore
+              state
+              winnerId
+              slots {
+                entrant {
+                  id
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    `,
+
     standings: `
       query EventStandings($slug: String!, $page: Int!, $perPage: Int!) {
         event(slug: $slug) {
