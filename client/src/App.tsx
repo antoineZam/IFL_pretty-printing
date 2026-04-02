@@ -8,6 +8,8 @@ import IFLMatchControlPage from './pages/TDEU/IFLMatchControlPage';
 import IFLMatchOverlayPage from './pages/TDEU/IFLMatchOverlayPage';
 import IFLTop8ControlPage from './pages/TDEU/IFLTop8ControlPage';
 import IFLTop8OverlayPage from './pages/TDEU/IFLTop8OverlayPage';
+import IFLTop8StandingsControlPage from './pages/TDEU/IFLTop8StandingsControlPage';
+import IFLTop8StandingsOverlayPage from './pages/TDEU/IFLTop8StandingsOverlayPage';
 import TagTeamControlPage from './pages/TDEU/TagTeamControlPage';
 import TagTeamOverlayPage from './pages/TDEU/TagTeamOverlayPage';
 // Run It Back pages
@@ -50,6 +52,8 @@ function App() {
         <Route path="/ifl/match-overlay" element={<IFLMatchOverlayPage />} />
         <Route path="/tdeu/ifl/top8" element={<IFLTop8ControlPage />} />
         <Route path="/tdeu/ifl/top8/overlay" element={<IFLTop8OverlayPage />} />
+        <Route path="/tdeu/ifl/top8/standings" element={<IFLTop8StandingsControlPage />} />
+        <Route path="/tdeu/ifl/top8/standings/overlay" element={<IFLTop8StandingsOverlayPage />} />
         <Route path="/tag/match-control" element={<TagTeamControlPage />} />
         <Route path="/tag/match-overlay" element={<TagTeamOverlayPage />} />
         {/* Run It Back routes - Protected by RIB Access Key */}

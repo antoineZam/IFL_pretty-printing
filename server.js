@@ -1581,6 +1581,12 @@ io.on('connection', async (socket) => {
     io.emit('top8-refresh', data);
   });
 
+  // Handle Top 8 Standings Updates
+  socket.on('top8-standings-data', (data) => {
+    console.log('Received Top 8 Standings Data Update');
+    io.emit('top8-standings-data', data);
+  });
+
   // Handle Run It Back Updates
   socket.on('rib-match-cards-update', async (data) => {
     try {

@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import { RefreshCw, Eye, Search, Trophy, LayoutGrid, List, Zap } from 'lucide-react';
+import { RefreshCw, Eye, Search, Trophy, LayoutGrid, List, Zap, Upload, Users } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import { CyberInput } from '../../components/ui/CyberInput';
 import { NeonButton } from '../../components/ui/NeonButton';
 import { getCountryCode } from '../../utils/countries';
+
+// Available characters for Tekken 8
+const CHARACTERS = [
+    'alisa', 'anna', 'armor king', 'asuka', 'azucena', 'bryan', 'claudio',
+    'devil jin', 'dragunov', 'eddy', 'feng', 'heihachi', 'hwoarang',
+    'jack-8', 'jin', 'jun', 'kazuya', 'king', 'kuma', 'lars', 'law',
+    'lee', 'leo', 'leroy', 'lidia', 'lili', 'nina', 'panda', 'paul',
+    'raven', 'reina', 'shaheen', 'steve', 'victor', 'xiaoyu', 'yoshimitsu', 'zafina'
+];
 
 interface Tournament {
     id: number;
@@ -57,6 +66,15 @@ interface BracketData {
     sets: BracketSet[];
 }
 
+interface Top8Player {
+    placement: number;
+    name: string;
+    sponsor: string | null;
+    country: string | null;
+    twitter: string;
+    character: string;
+}
+
 const IFLTop8ControlPage = () => {
     const [searchParams] = useSearchParams();
     const key = searchParams.get('key') || localStorage.getItem('connectionKey');
@@ -72,7 +90,20 @@ const IFLTop8ControlPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [tournamentSlug, setTournamentSlug] = useState('');
     const [pushed, setPushed] = useState(false);
-    const [viewMode, setViewMode] = useState<'standings' | 'bracket'>('standings');
+    const [viewMode, setViewMode] = useState<'standings' | 'bracket' | 'standingsEdit'>('standings');
+    const [weekNumber, setWeekNumber] = useState('01');
+    
+    // Top 8 player data with manual fields
+    const [top8Players, setTop8Players] = useState<Top8Player[]>(
+        Array.from({ length: 8 }, (_, i) => ({
+            placement: i + 1,
+            name: '',
+            sponsor: null,
+            country: null,
+            twitter: '',
+            character: ''
+        }))
+    );
 
     // Socket connection
     useEffect(() => {
@@ -271,6 +302,75 @@ const IFLTop8ControlPage = () => {
         setTimeout(() => setPushed(false), 2000);
     };
 
+    // Push Top 8 Standings to overlay
+    const pushStandingsToOverlay = () => {
+        if (!socket) {
+            console.error('[Top8] No socket connection!');
+            return;
+        }
+
+        const data = {
+            weekNumber,
+            tournamentName: selectedTournament?.name || 'IFL Tournament',
+            players: top8Players,
+            lastUpdated: new Date().toISOString()
+        };
+        
+        console.log('[Top8] Pushing standings data:', data);
+        socket.emit('top8-standings-data', data);
+
+        setPushed(true);
+        setTimeout(() => setPushed(false), 2000);
+    };
+
+    // Populate top 8 from standings
+    const populateTop8FromStandings = () => {
+        const newTop8 = standings.slice(0, 8).map((s, idx) => ({
+            placement: s.placement,
+            name: s.username,
+            sponsor: s.sponsor,
+            country: s.country,
+            twitter: top8Players[idx]?.twitter || '',
+            character: top8Players[idx]?.character || ''
+        }));
+        
+        // Fill remaining slots if less than 8
+        while (newTop8.length < 8) {
+            const idx = newTop8.length;
+            newTop8.push({
+                placement: idx + 1,
+                name: '',
+                sponsor: null,
+                country: null,
+                twitter: '',
+                character: ''
+            });
+        }
+        
+        setTop8Players(newTop8);
+        
+        // Extract week number from tournament name
+        const weekMatch = selectedTournament?.name.match(/#(\d+)/);
+        if (weekMatch) {
+            setWeekNumber(weekMatch[1].padStart(2, '0'));
+        }
+    };
+
+    // Update individual player field
+    const updateTop8Player = (index: number, field: keyof Top8Player, value: string) => {
+        setTop8Players(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            return updated;
+        });
+    };
+
+    const getCharacterImagePath = (character: string, isFirst: boolean) => {
+        if (!character) return '';
+        const folder = isFirst ? 'stat_screen' : 'P1_icon';
+        return `/source/overlay/characters/${folder}/${character.toLowerCase()}.png`;
+    };
+
     const refreshData = () => {
         if (selectedEvent) {
             fetchEventData(selectedEvent.slug);
@@ -436,19 +536,46 @@ const IFLTop8ControlPage = () => {
                                                 <LayoutGrid size={14} />
                                                 Bracket
                                             </button>
+                                            <button
+                                                onClick={() => {
+                                                    setViewMode('standingsEdit');
+                                                    if (standings.length > 0) {
+                                                        populateTop8FromStandings();
+                                                    }
+                                                }}
+                                                className={`px-3 py-2 flex items-center gap-1 text-sm ${
+                                                    viewMode === 'standingsEdit' 
+                                                        ? 'bg-yellow-600 text-white' 
+                                                        : 'bg-surfaceHighlight/50 text-gray-400 hover:text-white'
+                                                }`}
+                                            >
+                                                <Users size={14} />
+                                                Top 8 Edit
+                                            </button>
                                         </div>
                                         
                                         <NeonButton variant="ghost" onClick={refreshData} disabled={loading}>
                                             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                                             Refresh
                                         </NeonButton>
-                                        <NeonButton 
-                                            onClick={pushToOverlay} 
-                                            disabled={standings.length === 0 && !bracket}
-                                            className={pushed ? 'bg-green-600' : ''}
-                                        >
-                                            {pushed ? 'Pushed!' : 'Push to Overlay'}
-                                        </NeonButton>
+                                        {viewMode === 'standingsEdit' ? (
+                                            <NeonButton 
+                                                onClick={pushStandingsToOverlay} 
+                                                disabled={!socket}
+                                                className={pushed ? 'bg-green-600' : 'bg-yellow-600 hover:bg-yellow-500'}
+                                            >
+                                                <Upload size={16} className="mr-1" />
+                                                {pushed ? 'Pushed!' : 'Push Top 8'}
+                                            </NeonButton>
+                                        ) : (
+                                            <NeonButton 
+                                                onClick={pushToOverlay} 
+                                                disabled={standings.length === 0 && !bracket}
+                                                className={pushed ? 'bg-green-600' : ''}
+                                            >
+                                                {pushed ? 'Pushed!' : 'Push to Overlay'}
+                                            </NeonButton>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -503,6 +630,139 @@ const IFLTop8ControlPage = () => {
                                     </p>
                                 </div>
                             )
+                        ) : viewMode === 'standingsEdit' ? (
+                            /* Top 8 Standings Editor */
+                            <div className="space-y-4">
+                                {/* Week Number */}
+                                <div className="flex items-center gap-4 mb-4 pb-4 border-b border-white/10">
+                                    <span className="text-gray-400">Week Number:</span>
+                                    <input
+                                        type="text"
+                                        value={weekNumber}
+                                        onChange={(e) => setWeekNumber(e.target.value)}
+                                        className="w-20 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-center"
+                                    />
+                                    <NeonButton 
+                                        variant="ghost" 
+                                        onClick={populateTop8FromStandings}
+                                        disabled={standings.length === 0}
+                                    >
+                                        <RefreshCw size={14} className="mr-1" />
+                                        Reload from Standings
+                                    </NeonButton>
+                                </div>
+
+                                {/* Top 8 Player Editor */}
+                                <div className="space-y-2">
+                                    {top8Players.map((player, idx) => (
+                                        <div 
+                                            key={idx}
+                                            className={`grid grid-cols-12 gap-3 items-center p-3 rounded-lg ${
+                                                idx === 0 ? 'bg-yellow-500/20 border border-yellow-500/50' : 'bg-surfaceHighlight/30'
+                                            }`}
+                                        >
+                                            {/* Placement */}
+                                            <div className="col-span-1">
+                                                <span className={`text-2xl font-black ${
+                                                    idx === 0 ? 'text-yellow-400' : 'text-gray-400'
+                                                }`}>
+                                                    {idx + 1}
+                                                    <sup className="text-sm">{idx === 0 ? 'st' : idx === 1 ? 'nd' : idx === 2 ? 'rd' : 'th'}</sup>
+                                                </span>
+                                            </div>
+
+                                            {/* Flag Preview */}
+                                            <div className="col-span-1">
+                                                {player.country && (
+                                                    <img
+                                                        src={`https://flagcdn.com/h40/${getCountryCode(player.country)}.png`}
+                                                        alt={player.country}
+                                                        className="h-6 w-auto"
+                                                    />
+                                                )}
+                                            </div>
+
+                                            {/* Player Name */}
+                                            <div className="col-span-3">
+                                                <input
+                                                    type="text"
+                                                    value={player.name}
+                                                    onChange={(e) => updateTop8Player(idx, 'name', e.target.value)}
+                                                    placeholder="Player Name"
+                                                    className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                                                />
+                                            </div>
+
+                                            {/* Twitter Handle */}
+                                            <div className="col-span-2">
+                                                <input
+                                                    type="text"
+                                                    value={player.twitter}
+                                                    onChange={(e) => updateTop8Player(idx, 'twitter', e.target.value)}
+                                                    placeholder="@twitter"
+                                                    className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                                                />
+                                            </div>
+
+                                            {/* Character Select */}
+                                            <div className="col-span-3">
+                                                <select
+                                                    value={player.character}
+                                                    onChange={(e) => updateTop8Player(idx, 'character', e.target.value)}
+                                                    className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm capitalize"
+                                                >
+                                                    <option value="">Select Character</option>
+                                                    {CHARACTERS.map(char => (
+                                                        <option key={char} value={char} className="capitalize">
+                                                            {char}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Character Preview */}
+                                            <div className="col-span-2 flex justify-center">
+                                                {player.character && (
+                                                    <img
+                                                        src={getCharacterImagePath(player.character, idx === 0)}
+                                                        alt={player.character}
+                                                        className="h-12 w-auto object-contain"
+                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Standings Overlay URL */}
+                                <div className="mt-6 pt-6 border-t border-white/10">
+                                    <p className="text-sm text-gray-400 mb-2">Top 8 Standings Overlay URL:</p>
+                                    <div className="flex items-center gap-2 bg-black/30 rounded-lg p-3">
+                                        <code className="flex-1 text-xs text-yellow-400 break-all">
+                                            {window.location.origin}/tdeu/ifl/top8/standings/overlay?key={key}
+                                        </code>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(
+                                                    `${window.location.origin}/tdeu/ifl/top8/standings/overlay?key=${key}`
+                                                );
+                                            }}
+                                            className="px-3 py-1 bg-yellow-600 hover:bg-yellow-500 rounded text-sm"
+                                        >
+                                            Copy
+                                        </button>
+                                        <Link
+                                            to={`/tdeu/ifl/top8/standings/overlay?key=${key}`}
+                                            target="_blank"
+                                            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm flex items-center gap-1"
+                                        >
+                                            <Eye size={14} />
+                                            Open
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
                         ) : (
                             /* Top 8 Matches View */
                             bracket && bracket.sets.length > 0 ? (
