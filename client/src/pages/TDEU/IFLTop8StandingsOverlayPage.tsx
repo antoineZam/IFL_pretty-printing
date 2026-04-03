@@ -23,21 +23,21 @@ interface Top8StandingsData {
 const FIRST_PLACE = {
     left: 130,
     top: 710,
-    width: 700,
+    width: 960,  // Half of 1920px
     height: 120
 };
 
 const PLACEMENTS_2_3 = [
-    { left: 620, top: 148, width: 280, height: 80 },  // 2nd
-    { left: 920, top: 148, width: 280, height: 80 }   // 3rd
+    { left: 1034, top: 208, width: 360, height: 80 },  // 2nd - shifted left
+    { left: 1463, top: 208, width: 380, height: 80 }   // 3rd - shifted left
 ];
 
 const PLACEMENTS_4_8 = [
-    { left: 620, top: 258, width: 580, height: 65 },  // 4th
-    { left: 620, top: 345, width: 580, height: 65 },  // 5th
-    { left: 620, top: 432, width: 580, height: 65 },  // 5th (tie)
-    { left: 620, top: 520, width: 580, height: 65 },  // 7th
-    { left: 620, top: 607, width: 580, height: 65 }   // 7th (tie)
+    { left: 1031, top: 438.5, width: 580, height: 65 },  // 4th
+    { left: 1031, top: 555.5, width: 580, height: 65 },  // 5th
+    { left: 1031, top: 672.5, width: 580, height: 65 },  // 5th (tie)
+    { left: 1031, top: 788.5, width: 580, height: 65 },  // 7th
+    { left: 1031, top: 906.5, width: 580, height: 65 }   // 7th (tie)
 ];
 
 const FLAG_FILTER = 'saturate(0.93) hue-rotate(-8deg) brightness(0.97) contrast(.97) saturate(.83)';
@@ -97,8 +97,8 @@ const IFLTop8StandingsOverlayPage = () => {
                 }}
             >
                 {/* Placement badge */}
-                <div className="absolute -left-2 top-1/2 -translate-y-1/2 text-8xl font-black text-yellow-400 drop-shadow-lg">
-                    1<sup className="text-xl">st</sup>
+                <div className="absolute -left-2 top-1/2 -translate-y-1/2 text-8xl font-black italic text-yellow-400 drop-shadow-lg font-archivo-semi-condensed-bold">
+                    1<sup className="ml-1 align-super" style={{ verticalAlign: 'super', fontSize: '0.4em' }}>st</sup>
                 </div>
 
                 {/* Flag */}
@@ -121,16 +121,16 @@ const IFLTop8StandingsOverlayPage = () => {
                     />
                 </div>
 
-                {/* Player Info */}
-                <div className="absolute left-[50%] top-1/2 -translate-y-1/2">
-                    <div className="text-2xl font-black text-white uppercase tracking-tight">
-                        {player.sponsor && (
-                            <span className="text-cyan-400 mr-2">{player.sponsor}</span>
-                        )}
+                {/* Player Info - starts after flag */}
+                <div className="absolute top-1/2 -translate-y-1/2 font-archivo-semi-condensed-bold" style={{ left: '300px' }}>
+                    <div className="text-4xl font-black italic text-white uppercase tracking-tight">
                         {player.name}
                     </div>
+                    {player.sponsor && (
+                        <div className="font-black italic text-cyan-400" style={{ fontSize: '80%' }}>[{player.sponsor}]</div>
+                    )}
                     {player.twitter && (
-                        <div className="text-lg text-gray-300">@{player.twitter.replace('@', '')}</div>
+                        <div className="font-black italic text-gray-300" style={{ fontSize: '80%' }}>@{player.twitter.replace('@', '')}</div>
                     )}
                 </div>
             </div>
@@ -153,32 +153,32 @@ const IFLTop8StandingsOverlayPage = () => {
                 }}
             >
                 {/* Player Info - Top */}
-                <div className="absolute top-0 left-0 right-16">
-                    <div className="text-sm font-black text-white uppercase truncate">
-                        {player.sponsor && (
-                            <span className="text-cyan-400 mr-1">[{player.sponsor}]</span>
-                        )}
+                <div className="absolute left-0 right-16 font-archivo-semi-condensed-bold" style={{ top: '8px' }}>
+                    <div className="text-3xl font-black italic text-white uppercase truncate">
                         {player.name}
                     </div>
+                    {player.sponsor && (
+                        <div className="font-black italic text-cyan-400" style={{ fontSize: '80%' }}>[{player.sponsor}]</div>
+                    )}
                     {player.twitter && (
-                        <div className="text-xs text-gray-400">@{player.twitter.replace('@', '')}</div>
+                        <div className="font-black italic text-gray-400" style={{ fontSize: '80%' }}>@{player.twitter.replace('@', '')}</div>
                     )}
                 </div>
 
-                {/* Placement */}
-                <div className="absolute bottom-0 left-0 text-2xl font-black text-white">
-                    {position}<sup className="text-sm">{position === 2 ? 'nd' : 'rd'}</sup>
+                {/* Placement - lower position */}
+                <div className="absolute left-0 text-5xl font-black italic text-white font-archivo-semi-condensed-bold" style={{ bottom: '-80px' }}>
+                    {position}<sup className="ml-1 align-super" style={{ verticalAlign: 'super', fontSize: '0.4em' }}>{position === 2 ? 'nd' : 'rd'}</sup>
                 </div>
 
                 {/* Flag */}
                 <div 
                     className="absolute overflow-hidden"
                     style={{
-                        left: '60px',
-                        bottom: '0',
-                        width: '60px',
-                        height: '40px',
-                        clipPath: 'polygon(0 0, 85% 0, 100% 100%, 15% 100%)'
+                        left: '75px',
+                        bottom: '-116px',
+                        width: '124px',
+                        height: '98px',
+                        clipPath: 'polygon(0 0, 89% 0, 100% 100%, 10% 100%)'
                     }}
                 >
                     <img
@@ -218,17 +218,18 @@ const IFLTop8StandingsOverlayPage = () => {
                 }}
             >
                 {/* Placement */}
-                <div className="w-14 text-xl font-black text-white">
-                    {placement}<sup className="text-xs">{placement === 4 ? 'th' : placement === 5 ? 'th' : 'th'}</sup>
+                <div className="w-20 text-5xl font-black italic text-white font-archivo-semi-condensed-bold pl-3">
+                    {placement}<sup className="ml-1 align-super" style={{ verticalAlign: 'super', fontSize: '0.4em' }}>th</sup>
                 </div>
 
                 {/* Flag */}
                 <div 
-                    className="overflow-hidden mr-3"
+                    className="overflow-hidden mr-4"
                     style={{
-                        width: '50px',
-                        height: '35px',
-                        clipPath: 'polygon(0 0, 85% 0, 100% 100%, 15% 100%)'
+                        width: '123px',
+                        height: '98px',
+                        marginLeft: '-2px',
+                        clipPath: 'polygon(0 0, 89.5% 0, 100% 100%, 10.5% 100%)'
                     }}
                 >
                     <img
@@ -240,15 +241,15 @@ const IFLTop8StandingsOverlayPage = () => {
                 </div>
 
                 {/* Player Info */}
-                <div className="flex-1 min-w-0">
-                    <div className="text-base font-black text-white uppercase truncate">
-                        {player.sponsor && (
-                            <span className="text-cyan-400 mr-1">[{player.sponsor}]</span>
-                        )}
+                <div className="flex-1 min-w-0 font-archivo-semi-condensed-bold">
+                    <div className="text-3xl font-black italic text-white uppercase truncate">
                         {player.name}
                     </div>
+                    {player.sponsor && (
+                        <div className="font-black italic text-cyan-400" style={{ fontSize: '80%' }}>[{player.sponsor}]</div>
+                    )}
                     {player.twitter && (
-                        <div className="text-xs text-gray-400">@{player.twitter.replace('@', '')}</div>
+                        <div className="font-black italic text-gray-400" style={{ fontSize: '80%' }}>@{player.twitter.replace('@', '')}</div>
                     )}
                 </div>
 
@@ -281,9 +282,11 @@ const IFLTop8StandingsOverlayPage = () => {
             />
 
             {/* Title */}
-            <div className="absolute top-12 left-1/2 -translate-x-1/2 text-center">
-                <h1 className="text-5xl font-black text-white tracking-wider">
-                    IFL <span className="text-yellow-400">WEEK#{data?.weekNumber || '01'}</span> TOP 8
+            <div className="absolute top-[100px] left-2/3 -translate-x-1/2 text-center">
+                <h1 className="text-5xl text-white tracking-wider">
+                    <span className="font-archivo-black">IFL </span>
+                    <span className="text-gray-400 font-archivo-black">WEEK#{data?.weekNumber || '01'}</span>
+                    <span className="ml-3 text-sky-400 font-archivo-black">TOP 8</span>
                 </h1>
             </div>
 

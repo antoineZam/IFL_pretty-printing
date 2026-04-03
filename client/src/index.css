@@ -15,6 +15,13 @@
 }
 
 @font-face {
+    font-family: 'Archivo Condensed Black';
+    src: url('/source/fonts/Archivo/static/Archivo_Condensed-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+@font-face {
     font-family: 'Archivo Extra Condensed Bold';
     src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-Bold.ttf') format('truetype');
     font-weight: 700;
@@ -89,6 +96,41 @@
     src: url('/source/fonts/Archivo/static/Archivo-Bold.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Black';
+    src: url('/source/fonts/Archivo/static/Archivo-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Condensed Black Italic';
+    src: url('/source/fonts/Archivo/static/Archivo_Condensed-BlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Archivo Expanded Black';
+    src: url('/source/fonts/Archivo/static/Archivo_Expanded-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Semi Condensed Black';
+    src: url('/source/fonts/Archivo/static/Archivo_SemiCondensed-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Semi Condensed Black Italic';
+    src: url('/source/fonts/Archivo/static/Archivo_SemiCondensed-BlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
 }
 
 @font-face {
