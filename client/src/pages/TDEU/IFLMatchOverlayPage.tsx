@@ -166,7 +166,7 @@ const IFLMatchOverlayPage = () => {
                 </div>
 
                 {/* Round Name - Archivo Extra Condensed Light, 47% smaller than player name */}
-                <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[15px] text-center w-[600px] tracking-[3px] text-shadow uppercase font-archivo-extra-condensed-light">
+                <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[15px] text-center w-[600px] tracking-[2px] text-shadow uppercase font-archivo-extra-condensed-light">
                     {data.round}
                 </div>
                 {/* <div className="absolute bottom-[30px] right-[550px] text-[32px] font-bold text-shadow">
