@@ -141,6 +141,20 @@
 }
 
 @font-face {
+    font-family: 'Archivo Black Italic';
+    src: url('/source/fonts/Archivo/static/Archivo-BlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Archivo Expanded Black Italic';
+    src: url('/source/fonts/Archivo/static/Archivo_Expanded-BlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
+}
+
+@font-face {
     font-family: 'Archivo Condensed Black Italic';
     src: url('/source/fonts/Archivo/static/Archivo_Condensed-BlackItalic.ttf') format('truetype');
     font-weight: 900;

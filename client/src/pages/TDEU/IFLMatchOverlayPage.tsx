@@ -25,6 +25,12 @@ const LINK_ASSETS = [
     '/source/overlay/ifl/links/discord.png',
     '/source/overlay/ifl/links/twitch.png',
     '/source/overlay/ifl/links/twitter.png',
+    '/source/overlay/ifl/links/matcherino.png',
+];
+
+const LOGO_ASSETS = [
+    '/source/overlay/ifl/ifl_logo.png',
+    '/source/overlay/ifl/tekkendojo_logo.png',
 ];
 
 const IFLMatchOverlayPage = () => {
@@ -33,6 +39,8 @@ const IFLMatchOverlayPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
     const [isFading, setIsFading] = useState(false);
+    const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
+    const [isLogoFading, setIsLogoFading] = useState(false);
 
     // Rotate through link assets every 10 seconds with fade animation
     useEffect(() => {
@@ -41,6 +49,19 @@ const IFLMatchOverlayPage = () => {
             setTimeout(() => {
                 setCurrentLinkIndex((prev) => (prev + 1) % LINK_ASSETS.length);
                 setIsFading(false);
+            }, 500); // Fade out duration
+        }, 10000); // 10 second delay
+
+        return () => clearInterval(interval);
+    }, []);
+
+    // Rotate through logo assets every 10 seconds with fade animation
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIsLogoFading(true);
+            setTimeout(() => {
+                setCurrentLogoIndex((prev) => (prev + 1) % LOGO_ASSETS.length);
+                setIsLogoFading(false);
             }, 500); // Fade out duration
         }, 10000); // 10 second delay
 
@@ -181,10 +202,20 @@ const IFLMatchOverlayPage = () => {
                         style={{ opacity: isFading ? 0 : 1 }}
                     />
                 </div>
-                {/* IFL Week - 5% larger than player name */}
-                <div className="absolute bottom-[32px] left-[205px] text-[29px] tracking-normal text-shadow flex items-baseline">
-                    <span className="font-archivo-expanded-bold-italic">IFL</span>
-                    <span className="font-archivo-condensed-italic opacity-50 ml-2">WEEK #{data.eventNumber}</span>
+                {/* IFL WEEK# - stays visible all the time */}
+                <div className="absolute bottom-[32px] left-[215px] text-[29px] tracking-normal text-shadow flex items-baseline">
+                    <span className="font-archivo-expanded-black-italic">IFL</span>
+                    <span className="font-archivo-condensed-black-italic opacity-50 ml-2">WEEK #{data.eventNumber}</span>
+                </div>
+                
+                {/* Logo Carousel - IFL logo / Tekkendojo logo (same pattern as LINK_ASSETS) */}
+                <div className="absolute">
+                    <img
+                        src={LOGO_ASSETS[currentLogoIndex]}
+                        alt="logo"
+                        className="w-auto object-contain transition-opacity duration-500"
+                        style={{ opacity: isLogoFading ? 0 : 1 }}
+                    />
                 </div>
             </div>
         </div>
