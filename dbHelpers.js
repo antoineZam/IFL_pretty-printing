@@ -105,8 +105,8 @@ async function loadIFLData() {
     if (matches.length === 0) {
       // Return default data
       return {
-        p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1',
-        p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2',
+        p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null,
+        p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null,
         p1Score: 0, p2Score: 0,
         round: 'Winners Round 1', eventNumber: '1'
       };
@@ -117,9 +117,11 @@ async function loadIFLData() {
       p1Flag: match.p1Flag || 'fr',
       p1Team: 'Team 1', // Teams not in DB schema, keeping default
       p1Name: match.p1Name || 'Player 1',
+      p1Rank: null, // Rank not persisted to DB
       p2Flag: match.p2Flag || 'rn',
       p2Team: 'Team 2',
       p2Name: match.p2Name || 'Player 2',
+      p2Rank: null, // Rank not persisted to DB
       p1Score: match.score_p1 || 0,
       p2Score: match.score_p2 || 0,
       round: match.round_name || 'Winners Round 1',

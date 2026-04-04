@@ -84,8 +84,8 @@ async function initializeData() {
     console.error('Error initializing data from database:', error);
     // Set defaults on error
     overlayData = {
-      p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1',
-      p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2',
+      p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null,
+      p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null,
       p1Score: 0, p2Score: 0,
       round: 'Winners Round 1', eventNumber: '1'
     };

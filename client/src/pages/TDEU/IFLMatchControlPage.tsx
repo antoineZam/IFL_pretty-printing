@@ -11,9 +11,11 @@ interface PlayerData {
     p1Flag: string;
     p1Team: string;
     p1Name: string;
+    p1Rank: number | null;
     p2Flag: string;
     p2Team: string;
     p2Name: string;
+    p2Rank: number | null;
     p1Score: number;
     p2Score: number;
     round: string;
@@ -188,10 +190,12 @@ const IFLMatchControlPage = () => {
             p1Flag: data.p2Flag,
             p1Team: data.p2Team,
             p1Name: data.p2Name,
+            p1Rank: data.p2Rank,
             p1Score: data.p2Score,
             p2Flag: data.p1Flag,
             p2Team: data.p1Team,
             p2Name: data.p1Name,
+            p2Rank: data.p1Rank,
             p2Score: data.p1Score,
         };
         setData(updatedData);
@@ -251,7 +255,7 @@ const IFLMatchControlPage = () => {
                                     </div>
                                 )}
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <CyberInput id="p1Team" label="Team / Tag" value={data.p1Team} onChange={handleInputChange} />
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-xs font-bold uppercase text-gray-500">Nationality</label>
@@ -263,6 +267,21 @@ const IFLMatchControlPage = () => {
                                     >
                                         {Object.entries(countries).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
                                     </select>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold uppercase text-gray-500">Rank</label>
+                                    <input 
+                                        id="p1Rank" 
+                                        type="number"
+                                        min="1"
+                                        value={data.p1Rank || ''} 
+                                        onChange={(e) => {
+                                            const value = e.target.value ? parseInt(e.target.value) : null;
+                                            setData({ ...data, p1Rank: value });
+                                        }}
+                                        placeholder="#"
+                                        className="bg-gray-900/70 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-blue-500 outline-none h-[50px] backdrop-blur-sm"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -334,7 +353,22 @@ const IFLMatchControlPage = () => {
                                     </div>
                                 )}
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold uppercase text-gray-500">Rank</label>
+                                    <input 
+                                        id="p2Rank" 
+                                        type="number"
+                                        min="1"
+                                        value={data.p2Rank || ''} 
+                                        onChange={(e) => {
+                                            const value = e.target.value ? parseInt(e.target.value) : null;
+                                            setData({ ...data, p2Rank: value });
+                                        }}
+                                        placeholder="#"
+                                        className="bg-gray-900/70 border border-white/10 rounded-lg px-4 py-3 text-white text-right focus:border-red-500 outline-none h-[50px] backdrop-blur-sm"
+                                    />
+                                </div>
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-xs font-bold uppercase text-gray-500">Nationality</label>
                                     <select 

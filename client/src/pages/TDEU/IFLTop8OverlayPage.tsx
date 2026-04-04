@@ -43,7 +43,7 @@ interface Top8Data {
 // Layout offsets (in pixels from left edge of match slot)
 const FLAG_OFFSET = -65;      // Distance from left edge to flag
 const FLAG_WIDTH = 70;        // Width of flag container
-const FLAG_HEIGHT = 68;       // Height of flag container
+const FLAG_HEIGHT = 69;       // Height of flag container
 const FLAG_VERTICAL_OFFSET = 2; // Vertical offset for flags (top player goes up, bottom player goes down)
 const NAME_OFFSET = 10;       // Distance from left edge to player name
 const SCORE_OFFSET = 247;     // Distance from left edge to score
@@ -54,8 +54,8 @@ const BOTTOM_PLAYER_VERTICAL_OFFSET = -3.2;   // Negative = higher, positive = l
 
 // Score polygon dimensions (larger than flags)
 const SCORE_WIDTH = 75;       // Width of score container
-const SCORE_HEIGHT = 69;      // Height of score container
-const SCORE_VERTICAL_OFFSET = -2; // Negative = higher, positive = lower
+const SCORE_HEIGHT = 69.5;      // Height of score container
+const SCORE_VERTICAL_OFFSET = -1; // Negative = higher, positive = lower
 
 // Colors and styles
 const NAME_COLOR = '#F0ECEC';
@@ -337,7 +337,7 @@ const IFLTop8OverlayPage = () => {
     const ROW = {
         WIN_TOP: 135,
         WIN_MID: 243,
-        WIN_BOT: 339,
+        WIN_BOT: 340,
         LOS_TOP: 598,
         LOS_MID: 706, // Perfect middle between 550 and 740
         LOS_BOT: 802

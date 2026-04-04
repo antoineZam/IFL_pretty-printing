@@ -29,6 +29,41 @@
 }
 
 @font-face {
+    font-family: 'Archivo Extra Condensed Light';
+    src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Archivo Extra Condensed Medium Italic';
+    src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-MediumItalic.ttf') format('truetype');
+    font-weight: 500;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Archivo Expanded Bold Italic';
+    src: url('/source/fonts/Archivo/static/Archivo_Expanded-BoldItalic.ttf') format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Archivo Condensed Italic';
+    src: url('/source/fonts/Archivo/static/Archivo_Condensed-Italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Archivo Extra Condensed ExtraBold Italic';
+    src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-ExtraBoldItalic.ttf') format('truetype');
+    font-weight: 800;
+    font-style: italic;
+}
+
+@font-face {
     font-family: 'Archivo Extra Condensed SemiBold';
     src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-SemiBold.ttf') format('truetype');
     font-weight: 600;

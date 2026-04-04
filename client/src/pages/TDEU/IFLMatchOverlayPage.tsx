@@ -7,9 +7,11 @@ interface PlayerData {
     p1Flag: string;
     p1Team: string;
     p1Name: string;
+    p1Rank: number | null;
     p2Flag: string;
     p2Team: string;
     p2Name: string;
+    p2Rank: number | null;
     p1Score: number;
     p2Score: number;
     round: string;
@@ -19,10 +21,31 @@ interface PlayerData {
 const FLAG_FILTER =
     'saturate(0.93) hue-rotate(-8deg) brightness(0.97) contrast(.97) saturate(.83)';
 
+const LINK_ASSETS = [
+    '/source/overlay/ifl/links/discord.png',
+    '/source/overlay/ifl/links/twitch.png',
+    '/source/overlay/ifl/links/twitter.png',
+];
+
 const IFLMatchOverlayPage = () => {
     const [searchParams] = useSearchParams();
     const [data, setData] = useState<PlayerData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
+    const [isFading, setIsFading] = useState(false);
+
+    // Rotate through link assets every 10 seconds with fade animation
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIsFading(true);
+            setTimeout(() => {
+                setCurrentLinkIndex((prev) => (prev + 1) % LINK_ASSETS.length);
+                setIsFading(false);
+            }, 500); // Fade out duration
+        }, 10000); // 10 second delay
+
+        return () => clearInterval(interval);
+    }, []);
 
 
     useEffect(() => {
@@ -76,7 +99,7 @@ const IFLMatchOverlayPage = () => {
         : noFlagUrl;
 
     return (
-        <div className="w-[1920px] h-[1080px] bg-transparent text-white uppercase font-archivo-semi-expanded-bold overflow-hidden">
+        <div className="w-[1920px] h-[1080px] bg-transparent text-white font-archivo-semi-expanded-bold overflow-hidden">
             <div className="relative w-full h-full">
                 {/* Background Images */}
                 <div
@@ -95,14 +118,21 @@ const IFLMatchOverlayPage = () => {
                 />
 
                 {/* Player 1 Info */}
-                <div className="absolute top-[24px] left-[240px] text-[24px] font-medium w-[550px] flex items-baseline text-shadow">
+                <div className="absolute top-[22px] left-[240px] text-[28px] flex items-baseline text-shadow">
                     {data.p1Team && (
-                        <span className="text-[#cccccc] text-[20px]">{data.p1Team}</span>
+                        <span className="font-archivo-extra-condensed-light uppercase opacity-50" style={{ fontSize: '82%' }}>{data.p1Team}</span>
                     )}
-                    {data.p1Team && <span className="mx-[5px]">|</span>}
-                    <span className="text-[24px]">{data.p1Name}</span>
+                    {data.p1Team && <span className="mx-[5px] opacity-50"></span>}
+                    <span className="font-archivo-semi-condensed-bold">{data.p1Name}</span>
                 </div>
-                <div className="absolute top-[8px] left-[613px] text-[45px] w-[100px] text-center text-shadow">
+                {/* Player 1 Rank - Fixed position, 21% smaller than player name, same color as team */}
+                <div className="absolute top-[26px] left-[555px] text-[22px] text-white opacity-50 text-shadow flex items-baseline">
+                    <span className="font-archivo-extra-condensed-extrabold-italic mr-1">IFL</span>
+                    <span className="font-archivo-extra-condensed-medium-italic">RANK #</span>
+                    <span className={data.p1Rank ? 'font-archivo-bold' : 'font-archivo-condensed-bold'}>{data.p1Rank ?? 'N/A'}</span>
+                </div>
+                {/* Player 1 Score - Archivo Expanded Bold, 33% smaller than player name */}
+                <div className="absolute top-[2px] left-[700px] text-[19px] w-[100px] text-center text-shadow font-archivo-expanded-bold">
                     {data.p1Score}
                 </div>
 
@@ -116,31 +146,46 @@ const IFLMatchOverlayPage = () => {
                     }}
                 />
 
+                {/* Player 2 Rank - Fixed position, 21% smaller than player name, same color as team */}
+                <div className="absolute top-[26px] right-[555px] text-[22px] text-white opacity-50 text-shadow flex items-baseline">
+                    <span className="font-archivo-extra-condensed-extrabold-italic mr-1">IFL</span>
+                    <span className="font-archivo-extra-condensed-medium-italic">RANK #</span>
+                    <span className={data.p2Rank ? 'font-archivo-bold' : 'font-archivo-condensed-bold'}>{data.p2Rank ?? 'N/A'}</span>
+                </div>
                 {/* Player 2 Info */}
-                <div className="absolute top-[24px] right-[240px] text-[24px] font-medium w-[550px] flex items-baseline justify-end text-shadow">
-                    <span className="text-[24px]">{data.p2Name}</span>
-                    {data.p2Team && <span className="mx-[5px]">|</span>}
+                <div className="absolute top-[22px] right-[240px] text-[28px] flex items-baseline justify-end text-shadow">
+                    <span className="font-archivo-semi-condensed-bold">{data.p2Name}</span>
+                    {data.p2Team && <span className="mx-[5px] opacity-50"></span>}
                     {data.p2Team && (
-                        <span className="text-[#cccccc] text-[18px]">{data.p2Team}</span>
+                        <span className="font-archivo-extra-condensed-light uppercase opacity-50" style={{ fontSize: '82%' }}>{data.p2Team}</span>
                     )}
                 </div>
-                <div className="absolute top-[8px] right-[613px] text-[45px] w-[100px] text-center text-shadow">
+                {/* Player 2 Score - Archivo Expanded Bold, 33% smaller than player name */}
+                <div className="absolute top-[2px] right-[700px] text-[19px] w-[100px] text-center text-shadow font-archivo-expanded-bold">
                     {data.p2Score}
                 </div>
 
-                {/* Round and Event */}
-                <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[16px] text-center w-[600px] tracking-[3px] text-shadow">
+                {/* Round Name - Archivo Extra Condensed Light, 47% smaller than player name */}
+                <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[15px] text-center w-[600px] tracking-[3px] text-shadow uppercase font-archivo-extra-condensed-light">
                     {data.round}
                 </div>
                 {/* <div className="absolute bottom-[30px] right-[550px] text-[32px] font-bold text-shadow">
                     {data.eventNumber ? `# ${data.eventNumber}` : ''}
                 </div> */}
-                {/* <div className="absolute bottom-[34px] right-[215px] text-[24px] font-archivo-semi-expanded-bold tracking-[0.05em] text-shadow">
-                    IRON FIST LEAGUE
+                {/* Rotating Link Assets */}
+                <div className="absolute">
+                    <img
+                        src={LINK_ASSETS[currentLinkIndex]}
+                        alt="link"
+                        className="w-auto object-contain transition-opacity duration-500"
+                        style={{ opacity: isFading ? 0 : 1 }}
+                    />
                 </div>
-                <div className="absolute bottom-[36px] left-[195px] text-[24px] font-archivo-condensed-bold tracking-normal text-shadow">
-                    DISCORD.GG/TEKKENDOJOEU
-                </div> */}
+                {/* IFL Week - 5% larger than player name */}
+                <div className="absolute bottom-[32px] left-[205px] text-[29px] tracking-normal text-shadow flex items-baseline">
+                    <span className="font-archivo-expanded-bold-italic">IFL</span>
+                    <span className="font-archivo-condensed-italic opacity-50 ml-2">WEEK #{data.eventNumber}</span>
+                </div>
             </div>
         </div>
     );
