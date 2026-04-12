@@ -632,56 +632,18 @@ app.get('/api/db/tournaments', async (req, res) => {
     }
 });
 
-// Get tournament stats with participant counts for charts - fetches from start.gg for accurate attendee counts
+// Get tournament stats with participant counts for charts - fetches from IFL2 league on start.gg
 app.get('/api/db/tournaments/stats', async (req, res) => {
     try {
         const startgg = require('./startgg');
-        const pool = require('./db');
         
-        // Fetch IFL tournaments from start.gg for accurate numAttendees
-        const iflTournaments = await startgg.searchIronFistLeagueTournaments(15);
+        // Fetch tournament stats directly from the IFL2 league
+        const stats = await startgg.getLeagueTournamentStats(startgg.IFL_LEAGUE_SLUG, 20);
         
-        // Sort by date and format for the chart
-        const stats = iflTournaments
-            .sort((a, b) => (a.startAt || 0) - (b.startAt || 0))
-            .map(t => {
-                // Extract IFL tournament number from name or slug
-                // Priority: [Week X] format > -week-X in slug > fallback to season number
-                const iflMatch = t.name.match(/\[Week\s*(\d+)\]/i) ||           // [Week 1] in name
-                                 t.slug.match(/-week-(\d+)/i) ||                 // -week-1 in slug
-                                 t.name.match(/(?:Iron Fist League|IFL)\s*#?(\d+)$/i) ||  // IFL 1 (at end)
-                                 t.slug.match(/(?:iron-fist-league|ifl)-(\d+)$/i);        // ifl-1 (at end)
-                const iflNumber = iflMatch ? parseInt(iflMatch[1]) : null;
-                
-                return {
-                    tournament_id: t.id,
-                    name: t.name,
-                    start_date: t.startAt ? new Date(t.startAt * 1000).toISOString() : null,
-                    status: 'completed',
-                    participant_count: t.numAttendees || 0,
-                    match_count: 0, // Will be enriched from DB if needed
-                    ifl_number: iflNumber
-                };
-            });
+        console.log(`[Stats API] Fetched ${stats.length} tournaments from league ${startgg.IFL_LEAGUE_SLUG}`);
         
-        // Optionally enrich with match counts from local DB
-        const enrichedStats = await Promise.all(stats.map(async (tournament) => {
-            try {
-                // Try to find matching tournament in local DB by name
-                const [dbMatches] = await pool.execute(
-                    `SELECT COUNT(*) as match_count FROM matches m 
-                     JOIN tournaments t ON m.tournament_id = t.tournament_id 
-                     WHERE t.name LIKE ?`,
-                    [`%${tournament.name.substring(0, 30)}%`]
-                );
-                return {
-                    ...tournament,
-                    match_count: dbMatches[0]?.match_count || 0
-                };
-            } catch {
-                return tournament;
-            }
-        }));
+        // The stats are already sorted by date (oldest first) for chart display
+        const enrichedStats = stats;
         
         res.status(200).json({ stats: enrichedStats });
     } catch (error) {

@@ -18,6 +18,7 @@ interface TournamentStat {
     status: string;
     participant_count: number;
     match_count: number;
+    week_number?: number;
 }
 
 interface LeaderboardPlayer {
@@ -150,8 +151,14 @@ const TDEUDashboardPage = () => {
 
         const areaPath = `${linePath} L ${points[points.length - 1]?.x || 0} ${padding.top + chartHeight} L ${padding.left} ${padding.top + chartHeight} Z`;
 
-        const getLabel = (name: string) => {
-            const match = name.match(/#(\d+)/);
+        const getLabel = (tournament: TournamentStat) => {
+            // Use week_number from API if available, otherwise try to extract from name
+            if (tournament.week_number) {
+                return tournament.week_number.toString();
+            }
+            const match = tournament.name.match(/\[Week\s*(\d+)\]/i) || 
+                         tournament.name.match(/Week\s*(\d+)/i) ||
+                         tournament.name.match(/#(\d+)/);
             return match ? match[1] : '';
         };
 
@@ -214,7 +221,8 @@ const TDEUDashboardPage = () => {
                     {chartData.filter((_, i) => i % Math.ceil(chartData.length / 6) === 0 || i === chartData.length - 1).map((tournament) => {
                         const originalIdx = chartData.indexOf(tournament);
                         const x = padding.left + (originalIdx / (chartData.length - 1 || 1)) * chartWidth;
-                        return (
+                        const label = getLabel(tournament);
+                        return label ? (
                             <text
                                 key={tournament.tournament_id}
                                 x={x}
@@ -223,9 +231,9 @@ const TDEUDashboardPage = () => {
                                 fontSize="9"
                                 textAnchor="middle"
                             >
-                                #{getLabel(tournament.name)}
+                                #{label}
                             </text>
-                        );
+                        ) : null;
                     })}
 
                     {points.length > 1 && (

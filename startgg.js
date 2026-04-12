@@ -454,7 +454,7 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
   }
 }
 
-// Get all tournaments/events in a league
+// Get all tournaments/events in a league with participant counts
 async function getLeagueTournaments(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
   try {
     const data = await queryStartGG(queries.league.events, { slug: leagueSlug });
@@ -464,31 +464,59 @@ async function getLeagueTournaments(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
       return [];
     }
 
-    // Extract unique tournaments from events
+    // Extract unique tournaments from events, keeping participant counts
     const tournamentsMap = new Map();
     
     for (const event of data.league.events.nodes) {
-      const tournamentName = event.tournament?.name || event.name;
-      const slug = event.slug;
-      
-      // Extract tournament slug from event slug (e.g., "tournament/iron-fist-league-2-week-1/event/tekken-8" -> "tournament/iron-fist-league-2-week-1")
-      const tournamentSlug = slug.split('/event/')[0];
+      const tournament = event.tournament;
+      const tournamentSlug = tournament?.slug || event.slug.split('/event/')[0];
+      const tournamentId = tournament?.id || event.id;
       
       if (!tournamentsMap.has(tournamentSlug)) {
+        // Extract week number from tournament name or slug
+        const weekMatch = (tournament?.name || event.name).match(/\[Week\s*(\d+)\]/i) ||
+                         tournamentSlug.match(/-week-(\d+)/i) ||
+                         (tournament?.name || event.name).match(/Week\s*(\d+)/i);
+        const weekNumber = weekMatch ? parseInt(weekMatch[1]) : null;
+        
         tournamentsMap.set(tournamentSlug, {
-          id: event.id,
-          name: tournamentName,
+          id: tournamentId,
+          name: tournament?.name || event.name,
           slug: tournamentSlug,
-          eventSlug: slug
+          eventSlug: event.slug,
+          numAttendees: tournament?.numAttendees || event.numEntrants || 0,
+          numEntrants: event.numEntrants || 0,
+          startAt: tournament?.startAt || event.startAt || 0,
+          weekNumber: weekNumber
         });
       }
     }
 
-    return Array.from(tournamentsMap.values()).slice(0, limit);
+    // Sort by startAt (oldest first for chart display)
+    const tournaments = Array.from(tournamentsMap.values())
+      .sort((a, b) => (a.startAt || 0) - (b.startAt || 0))
+      .slice(0, limit);
+
+    return tournaments;
   } catch (error) {
     console.error('Error fetching league tournaments:', error.message);
     throw error;
   }
+}
+
+// Get league tournament stats for participation chart
+async function getLeagueTournamentStats(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
+  const tournaments = await getLeagueTournaments(leagueSlug, limit);
+  
+  return tournaments.map(t => ({
+    tournament_id: t.id,
+    name: t.name,
+    start_date: t.startAt ? new Date(t.startAt * 1000).toISOString() : null,
+    status: 'completed',
+    participant_count: t.numAttendees || t.numEntrants || 0,
+    match_count: 0,
+    week_number: t.weekNumber
+  }));
 }
 
 // Get player's placements across tournaments in a league
@@ -551,6 +579,7 @@ module.exports = {
   getAllTournamentSets,
   getLeagueStandings,
   getLeagueTournaments,
+  getLeagueTournamentStats,
   getEventStandings,
   getEventBracket,
   getPlayerLeaguePlacements,

@@ -299,8 +299,14 @@ const queries = {
               id
               name
               slug
+              numEntrants
+              startAt
               tournament {
+                id
                 name
+                slug
+                numAttendees
+                startAt
               }
               standings(query: { page: 1, perPage: 64 }) {
                 nodes {
