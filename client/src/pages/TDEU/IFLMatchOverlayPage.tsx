@@ -202,7 +202,7 @@ const IFLMatchOverlayPage = () => {
                         style={{ opacity: isFading ? 0 : 1 }}
                     />
                 </div>
-                {/* IFL WEEK# - stays visible all the time */}
+                {/* IFL WEEK# */}
                 <div className="absolute bottom-[32px] left-[215px] text-[29px] tracking-normal text-shadow flex items-baseline">
                     <span className="font-archivo-expanded-black-italic">IFL</span>
                     <span className="font-archivo-condensed-black-italic opacity-50 ml-2">WEEK #{data.eventNumber}</span>

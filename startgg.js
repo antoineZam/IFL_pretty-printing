@@ -150,8 +150,8 @@ async function searchTournaments(searchTerm, perPage = 50) {
   }
 }
 
-// Search for Iron Fist League tournaments specifically
-// ONLY returns tournaments where slug contains 'iron-fist-league'
+// Search for Iron Fist League Season 2 tournaments specifically
+// ONLY returns tournaments where slug starts with 'iron-fist-league-2'
 async function searchIronFistLeagueTournaments(maxResults = 50) {
   const allTournaments = [];
   const seenIds = new Set();
@@ -165,14 +165,11 @@ async function searchIronFistLeagueTournaments(maxResults = 50) {
       
       if (data && data.tournaments && data.tournaments.nodes) {
         for (const t of data.tournaments.nodes) {
-          // STRICT FILTER: slug MUST contain 'iron-fist-league' OR 'ifl'
-          // This handles both full-name slugs (iron-fist-league-1) and abbreviated slugs (ifl-season-2)
+          // STRICT FILTER: slug MUST start with 'iron-fist-league-2' (Season 2 tournaments)
           const slugLower = t.slug ? t.slug.toLowerCase() : '';
-          const slugMatch = slugLower.includes('iron-fist-league') || 
-                           slugLower.match(/\bifl\b/) ||  // Match 'ifl' as whole word
-                           slugLower.startsWith('ifl-') || 
-                           slugLower.includes('-ifl-') ||
-                           slugLower.endsWith('-ifl');
+          const slugMatch = slugLower.startsWith(`tournament/${IFL_TOURNAMENT_BASE}`) ||
+                           slugLower.startsWith(IFL_TOURNAMENT_BASE) ||
+                           slugLower.includes(`/${IFL_TOURNAMENT_BASE}`);
           
           if (slugMatch && !seenIds.has(t.id)) {
             seenIds.add(t.id);
@@ -192,15 +189,13 @@ async function searchIronFistLeagueTournaments(maxResults = 50) {
   return allTournaments;
 }
 
-// Get tournament by slug - handles various formats like:
-// - iron-fist-league-1, ifl-1
-// - iron-fist-league-2-finals, ifl-2-finals  
-// - iron-fist-league-10-grand-finals, ifl-10-grand-finals
-async function getIFLTournamentByNumber(tournamentNumber, suffix = '') {
-  // Try multiple slug patterns: full name first, then abbreviated
+// Get IFL Season 2 tournament by week/event identifier
+// Examples: iron-fist-league-2-week-1, iron-fist-league-2-finals
+async function getIFLTournamentByNumber(identifier, suffix = '') {
+  // Build slug using Season 2 base
   const slugPatterns = [
-    `iron-fist-league-${tournamentNumber}${suffix ? `-${suffix}` : ''}`,
-    `ifl-${tournamentNumber}${suffix ? `-${suffix}` : ''}`
+    `${IFL_TOURNAMENT_BASE}-week-${identifier}${suffix ? `-${suffix}` : ''}`,
+    `${IFL_TOURNAMENT_BASE}-${identifier}${suffix ? `-${suffix}` : ''}`
   ];
   
   for (const slug of slugPatterns) {
@@ -215,7 +210,7 @@ async function getIFLTournamentByNumber(tournamentNumber, suffix = '') {
     }
   }
   
-  console.error(`Tournament not found with any pattern for number: ${tournamentNumber}`);
+  console.error(`Tournament not found with any pattern for identifier: ${identifier}`);
   return null;
 }
 
@@ -263,8 +258,12 @@ async function getAllTournamentSets(slug) {
   return allSets;
 }
 
+// IFL Configuration
+const IFL_LEAGUE_SLUG = 'IFL2';  // Short slug for the league (https://www.start.gg/IFL2)
+const IFL_TOURNAMENT_BASE = 'iron-fist-league-2';  // Season 2 base slug for all tournaments
+
 // Get league standings from start.gg (includes rank and points)
-async function getLeagueStandings(leagueSlug = 'iron-fist-league', limit = 8) {
+async function getLeagueStandings(leagueSlug = IFL_LEAGUE_SLUG, limit = 8) {
   try {
     const data = await queryStartGG(queries.league.standings, { 
       slug: leagueSlug, 
@@ -455,6 +454,43 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
   }
 }
 
+// Get all tournaments/events in a league
+async function getLeagueTournaments(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
+  try {
+    const data = await queryStartGG(queries.league.events, { slug: leagueSlug });
+    
+    if (!data || !data.league || !data.league.events) {
+      console.log('No events found for league:', leagueSlug);
+      return [];
+    }
+
+    // Extract unique tournaments from events
+    const tournamentsMap = new Map();
+    
+    for (const event of data.league.events.nodes) {
+      const tournamentName = event.tournament?.name || event.name;
+      const slug = event.slug;
+      
+      // Extract tournament slug from event slug (e.g., "tournament/iron-fist-league-2-week-1/event/tekken-8" -> "tournament/iron-fist-league-2-week-1")
+      const tournamentSlug = slug.split('/event/')[0];
+      
+      if (!tournamentsMap.has(tournamentSlug)) {
+        tournamentsMap.set(tournamentSlug, {
+          id: event.id,
+          name: tournamentName,
+          slug: tournamentSlug,
+          eventSlug: slug
+        });
+      }
+    }
+
+    return Array.from(tournamentsMap.values()).slice(0, limit);
+  } catch (error) {
+    console.error('Error fetching league tournaments:', error.message);
+    throw error;
+  }
+}
+
 // Get player's placements across tournaments in a league
 async function getPlayerLeaguePlacements(leagueSlug, playerName, limit = 20) {
   try {
@@ -498,6 +534,10 @@ async function getPlayerLeaguePlacements(leagueSlug, playerName, limit = 20) {
 }
 
 module.exports = {
+  // Constants
+  IFL_LEAGUE_SLUG,
+  IFL_TOURNAMENT_BASE,
+  // Functions
   getTournamentBySlug,
   getTournamentEvents,
   getEventSets,
@@ -510,6 +550,7 @@ module.exports = {
   getIFLTournamentByNumber,
   getAllTournamentSets,
   getLeagueStandings,
+  getLeagueTournaments,
   getEventStandings,
   getEventBracket,
   getPlayerLeaguePlacements,

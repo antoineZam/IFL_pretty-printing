@@ -92,7 +92,7 @@ const IFLTop8StandingsControlPage = () => {
     const loadIFLTournaments = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/startgg/league/iron-fist-league/tournaments?limit=20');
+            const res = await fetch('/api/startgg/league/IFL2/tournaments?limit=20');
             if (res.ok) {
                 const data = await res.json();
                 setTournaments(data.tournaments || []);

@@ -520,6 +520,24 @@ app.get('/api/startgg/event/:eventSlug/bracket', async (req, res) => {
     }
 });
 
+// Get league tournaments from start.gg
+app.get('/api/startgg/league/:slug/tournaments', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const limit = parseInt(req.query.limit) || 20;
+        
+        console.log(`[League API] Fetching tournaments for league: ${slug}`);
+        
+        const tournaments = await startgg.getLeagueTournaments(slug, limit);
+        
+        console.log(`[League API] Found ${tournaments.length} tournaments for league: ${slug}`);
+        res.status(200).json({ tournaments });
+    } catch (error) {
+        console.error('[League API] Error fetching league tournaments:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch league tournaments' });
+    }
+});
+
 // Get player information
 app.get('/api/startgg/player/:slug', async (req, res) => {
     try {
@@ -678,8 +696,8 @@ app.get('/api/db/league/standings', async (req, res) => {
         const limit = parseInt(req.query.limit) || 8;
         const startgg = require('./startgg');
         
-        // Fetch standings directly from start.gg league API
-        const standings = await startgg.getLeagueStandings('iron-fist-league', limit);
+        // Fetch standings directly from start.gg league API (uses IFL_LEAGUE_SLUG constant)
+        const standings = await startgg.getLeagueStandings(startgg.IFL_LEAGUE_SLUG, limit);
         
         const formattedStandings = standings.map(player => ({
             rank: player.rank,
