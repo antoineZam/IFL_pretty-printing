@@ -6,6 +6,7 @@ import { Swords, RotateCcw, Trash2, Users } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import { CyberInput } from '../../components/ui/CyberInput';
 import { NeonButton } from '../../components/ui/NeonButton';
+import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 interface PlayerData {
     p1Flag: string;
@@ -209,6 +210,7 @@ const IFLMatchControlPage = () => {
 
     return (
         <div className="min-h-screen p-6 pb-24 max-w-[1600px] mx-auto">
+            <TDEUBurgerMenu />
             {/* Top Bar */}
             <div className="flex justify-between items-end mb-8">
                 <h1 className="text-2xl font-archivo-expanded-bold text-white/80">MATCH CONTROLLER</h1>

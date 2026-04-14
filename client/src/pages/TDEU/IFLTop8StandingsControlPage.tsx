@@ -5,6 +5,7 @@ import { RefreshCw, Eye, Trophy, Upload } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import { NeonButton } from '../../components/ui/NeonButton';
 import { getCountryCode } from '../../utils/countries';
+import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 // Available characters for Tekken 8
 const CHARACTERS = [
@@ -227,6 +228,7 @@ const IFLTop8StandingsControlPage = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 p-8">
+            <TDEUBurgerMenu />
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">

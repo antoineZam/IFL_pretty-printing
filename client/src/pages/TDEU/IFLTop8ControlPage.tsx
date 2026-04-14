@@ -6,6 +6,7 @@ import GlassCard from '../../components/ui/GlassCard';
 import { CyberInput } from '../../components/ui/CyberInput';
 import { NeonButton } from '../../components/ui/NeonButton';
 import { getCountryCode } from '../../utils/countries';
+import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 // Available characters for Tekken 8
 const CHARACTERS = [
@@ -388,6 +389,7 @@ const IFLTop8ControlPage = () => {
 
     return (
         <div className="min-h-screen p-6 pb-24 max-w-[1600px] mx-auto text-white">
+            <TDEUBurgerMenu />
             {/* Header */}
             <div className="flex justify-between items-end mb-8">
                 <div>

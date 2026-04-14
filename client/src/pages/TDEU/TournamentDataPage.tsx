@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Search, Download, Database, Trophy, Users, Swords, RefreshCw, ArrowLeft, Calendar, CheckCircle, XCircle, Edit2, X, Save } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Download, Database, Trophy, Users, Swords, RefreshCw, Calendar, CheckCircle, XCircle, Edit2, X, Save } from 'lucide-react';
+import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 interface Tournament {
     tournament_id: number;
@@ -334,6 +335,7 @@ const TournamentDataPage = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+            <TDEUBurgerMenu />
             {/* Background accent */}
             <div className="fixed inset-0 opacity-[0.02] pointer-events-none">
                 <div className="absolute inset-0" style={{
@@ -345,12 +347,6 @@ const TournamentDataPage = () => {
                 {/* Header */}
                 <header className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
-                        <Link 
-                            to="/" 
-                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
-                        >
-                            <ArrowLeft size={18} />
-                        </Link>
                         <div>
                             <h1 className="text-xl font-semibold text-white">Tournament Data</h1>
                             <p className="text-gray-500 text-sm">Manage and sync tournament information</p>
