@@ -276,7 +276,7 @@ const TagTeamControlPage = () => {
     };
     
     return (
-        <div className="min-h-screen p-6 pb-24 max-w-[1600px] mx-auto text-white">
+        <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px] mx-auto text-white">
             <TDEUBurgerMenu />
             {/* Top Bar */}
             <div className="flex justify-between items-end mb-8">
