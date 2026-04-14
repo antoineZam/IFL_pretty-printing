@@ -378,7 +378,8 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
       }
       
       // Get score from standing.stats.score.value (start.gg API structure)
-      const score = slot.standing?.stats?.score?.value ?? null;
+      const rawScore = slot.standing?.stats?.score?.value ?? null;
+      const score = rawScore != null ? Math.abs(rawScore) : null;
       
       // Get country from first participant's user location
       const country = slot.entrant.participants?.[0]?.user?.location?.country || null;

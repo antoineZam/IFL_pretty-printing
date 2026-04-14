@@ -184,7 +184,7 @@ const MatchSlot = ({
                     }}
                 >
                     <span className="text-2xl font-black text-white">
-                        {score ?? '-'}
+                        {score != null ? Math.abs(score) : '-'}
                     </span>
                 </div>
             </div>

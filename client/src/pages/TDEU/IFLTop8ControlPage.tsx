@@ -839,11 +839,11 @@ const IFLTop8ControlPage = () => {
                                                         {/* Score */}
                                                         <div className="flex items-center gap-2 font-mono text-lg font-bold">
                                                             <span className={p1Won ? 'text-green-400' : 'text-white/60'}>
-                                                                {set.player1?.score ?? '-'}
+                                                                {set.player1?.score != null ? Math.abs(set.player1.score) : '-'}
                                                             </span>
                                                             <span className="text-white/30">-</span>
                                                             <span className={p2Won ? 'text-green-400' : 'text-white/60'}>
-                                                                {set.player2?.score ?? '-'}
+                                                                {set.player2?.score != null ? Math.abs(set.player2.score) : '-'}
                                                             </span>
                                                         </div>
                                                         
