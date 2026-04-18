@@ -6,6 +6,7 @@ import GlassCard from '../../components/ui/GlassCard';
 import { CyberInput } from '../../components/ui/CyberInput';
 import { NeonButton } from '../../components/ui/NeonButton';
 import { getCountryCode } from '../../utils/countries';
+import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 // Available characters for Tekken 8
 const CHARACTERS = [
@@ -387,7 +388,8 @@ const IFLTop8ControlPage = () => {
     };
 
     return (
-        <div className="min-h-screen p-6 pb-24 max-w-[1600px] mx-auto text-white">
+        <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px] mx-auto text-white">
+            <TDEUBurgerMenu />
             {/* Header */}
             <div className="flex justify-between items-end mb-8">
                 <div>
@@ -839,11 +841,11 @@ const IFLTop8ControlPage = () => {
                                                         {/* Score */}
                                                         <div className="flex items-center gap-2 font-mono text-lg font-bold">
                                                             <span className={p1Won ? 'text-green-400' : 'text-white/60'}>
-                                                                {set.player1?.score ?? '-'}
+                                                                {set.player1?.score != null ? Math.abs(set.player1.score) : '-'}
                                                             </span>
                                                             <span className="text-white/30">-</span>
                                                             <span className={p2Won ? 'text-green-400' : 'text-white/60'}>
-                                                                {set.player2?.score ?? '-'}
+                                                                {set.player2?.score != null ? Math.abs(set.player2.score) : '-'}
                                                             </span>
                                                         </div>
                                                         

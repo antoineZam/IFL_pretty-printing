@@ -279,7 +279,7 @@ const LoveAndWarMatchControlPage = () => {
                 }} />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-6">
+            <div className="relative z-10 max-w-7xl mx-auto pl-16 pr-6 py-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div>

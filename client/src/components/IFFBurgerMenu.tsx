@@ -99,11 +99,11 @@ const IFFBurgerMenu = () => {
             {/* Burger Button - Fixed Position */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed top-4 left-4 p-3 bg-red-600 hover:bg-red-700 border-2 border-red-500 rounded-xl shadow-xl shadow-red-500/20 transition-all group"
+                className="fixed top-5 left-5 p-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white backdrop-blur-sm transition-all duration-200"
                 style={{ zIndex: 9999 }}
                 aria-label="Open navigation menu"
             >
-                <Menu size={24} className="text-white" />
+                <Menu size={20} />
             </button>
 
             {/* Overlay Backdrop */}

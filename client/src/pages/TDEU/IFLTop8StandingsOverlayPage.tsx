@@ -144,7 +144,7 @@ const IFLTop8StandingsOverlayPage = () => {
         
         return (
             <div
-                className="absolute flex items-center"
+                className="absolute overflow-visible"
                 style={{
                     left: `${layout.left}px`,
                     top: `${layout.top}px`,
@@ -189,14 +189,6 @@ const IFLTop8StandingsOverlayPage = () => {
                     />
                 </div>
 
-                {/* Character */}
-                {player.character && (
-                    <img
-                        src={getCharacterUrl(player.character, false)}
-                        alt={player.character}
-                        className="absolute right-0 bottom-0 h-20 w-auto object-contain"
-                    />
-                )}
             </div>
         );
     };
@@ -209,7 +201,7 @@ const IFLTop8StandingsOverlayPage = () => {
         
         return (
             <div
-                className="absolute flex items-center"
+                className="absolute overflow-visible"
                 style={{
                     left: `${layout.left}px`,
                     top: `${layout.top}px`,
@@ -218,17 +210,19 @@ const IFLTop8StandingsOverlayPage = () => {
                 }}
             >
                 {/* Placement */}
-                <div className="w-20 text-5xl font-black italic text-white font-archivo-semi-condensed-bold pl-3">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-20 text-5xl font-black italic text-white font-archivo-semi-condensed-bold pl-3">
                     {placement}<sup className="ml-1 align-super" style={{ verticalAlign: 'super', fontSize: '0.4em' }}>th</sup>
                 </div>
 
                 {/* Flag */}
                 <div 
-                    className="overflow-hidden mr-4"
+                    className="absolute overflow-hidden"
                     style={{
+                        left: '78px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
                         width: '123px',
                         height: '98px',
-                        marginLeft: '-2px',
                         clipPath: 'polygon(0 0, 89.5% 0, 100% 100%, 10.5% 100%)'
                     }}
                 >
@@ -241,7 +235,7 @@ const IFLTop8StandingsOverlayPage = () => {
                 </div>
 
                 {/* Player Info */}
-                <div className="flex-1 min-w-0 font-archivo-semi-condensed-bold">
+                <div className="absolute top-1/2 -translate-y-1/2 font-archivo-semi-condensed-bold" style={{ left: '220px', right: '120px' }}>
                     <div className="text-3xl font-black italic text-white uppercase truncate">
                         {player.name}
                     </div>
@@ -253,14 +247,6 @@ const IFLTop8StandingsOverlayPage = () => {
                     )}
                 </div>
 
-                {/* Character */}
-                {player.character && (
-                    <img
-                        src={getCharacterUrl(player.character, false)}
-                        alt={player.character}
-                        className="h-14 w-auto object-contain"
-                    />
-                )}
             </div>
         );
     };
@@ -272,61 +258,97 @@ const IFLTop8StandingsOverlayPage = () => {
                 src="/source/overlay/ifl/TOP8_background.png"
                 alt="background"
                 className="absolute inset-0 w-full h-full object-cover"
+                style={{ zIndex: 0 }}
             />
+
+            {/* 1st place character render - between background and plates */}
+            {data?.players?.[0]?.character && (
+                <img
+                    src={getCharacterUrl(data.players[0].character, true)}
+                    alt={data.players[0].character}
+                    className="absolute"
+                    style={{ zIndex: 1 }}
+                />
+            )}
 
             {/* Plates overlay */}
             <img
                 src="/source/overlay/ifl/TOP8_plates.png"
                 alt="plates"
                 className="absolute inset-0 w-full h-full object-cover"
+                style={{ zIndex: 2 }}
             />
 
-            {/* Title */}
-            <div className="absolute top-[100px] left-2/3 -translate-x-1/2 text-center">
-                <h1 className="text-5xl text-white tracking-wider">
-                    <span className="font-archivo-black">IFL </span>
-                    <span className="text-gray-400 font-archivo-black">WEEK#{data?.weekNumber || '01'}</span>
-                    <span className="ml-3 text-sky-400 font-archivo-black">TOP 8</span>
-                </h1>
-            </div>
+            {/* Everything above plates */}
+            <div className="absolute inset-0" style={{ zIndex: 3 }}>
+                {/* Title */}
+                <div className="absolute top-[100px] left-2/3 -translate-x-1/2 text-center">
+                    <h1 className="text-5xl text-white tracking-wider">
+                        <span className="font-archivo-black">IFL </span>
+                        <span className="text-gray-400 font-archivo-black">WEEK#{data?.weekNumber || '01'}</span>
+                        <span className="ml-3 text-sky-400 font-archivo-black">TOP 8</span>
+                    </h1>
+                </div>
 
-            {data?.players && (
-                <>
-                    {/* 1st Place - Large on left with big character render */}
-                    {renderFirstPlace(data.players[0])}
-                    
-                    {/* Large character render for 1st place */}
-                    {data.players[0]?.character && (
-                        <img
-                            src={getCharacterUrl(data.players[0].character, true)}
-                            alt={data.players[0].character}
-                            className="absolute left-32 top-24 h-[450px] w-auto object-contain"
-                            style={{ transform: 'scaleX(-1)' }}
-                        />
-                    )}
+                {data?.players && (
+                    <>
+                        {/* 1st Place */}
+                        {renderFirstPlace(data.players[0])}
 
-                    {/* 2nd and 3rd place */}
-                    {renderPlacement2or3(data.players[1], 2)}
-                    {renderPlacement2or3(data.players[2], 3)}
+                        {/* 2nd and 3rd place */}
+                        {renderPlacement2or3(data.players[1], 2)}
+                        {renderPlacement2or3(data.players[2], 3)}
 
-                    {/* 4th - 8th place */}
-                    {data.players.slice(3, 8).map((player, idx) => (
-                        renderPlacement4to8(player, idx)
-                    ))}
-                </>
-            )}
+                        {/* 2nd/3rd character renders - direct on root, no container */}
+                        {data.players[1]?.character && (
+                            <img
+                                src={getCharacterUrl(data.players[1].character, false)}
+                                alt={data.players[1].character}
+                                className="absolute pointer-events-none"
+                                style={{ left: `${PLACEMENTS_2_3[0].left + PLACEMENTS_2_3[0].width - 548}px`, top: '14px', height:'65%', width:'auto' }}
+                            />
+                        )}
+                        {data.players[2]?.character && (
+                            <img
+                                src={getCharacterUrl(data.players[2].character, false)}
+                                alt={data.players[2].character}
+                                className="absolute pointer-events-none"
+                                style={{ left: `${PLACEMENTS_2_3[1].left + PLACEMENTS_2_3[1].width - 568}px`, top: '14px' , height:'65%', width:'auto' }}
+                            />
+                        )}
 
-            {/* Footer */}
-            <div className="absolute bottom-6 left-8 flex items-center gap-4">
-                <img
-                    src="/source/overlay/ifl/tekkendojo_logo.png"
-                    alt="Tekken Dojo"
-                    className="h-12"
-                />
-            </div>
+                        {/* 4th - 8th place */}
+                        {data.players.slice(3, 8).map((player, idx) => (
+                            renderPlacement4to8(player, idx)
+                        ))}
 
-            <div className="absolute bottom-6 right-8 text-sm text-gray-400">
-                ALL RIGHTS RESERVED © 2026 &nbsp;&nbsp;&nbsp; TEKKEN 8 ™ BANDAI NAMCO
+                        {/* 4th-8th character renders - direct on root, no container */}
+                        {data.players.slice(3, 8).map((player, idx) => (
+                            player?.character ? (
+                                <img
+                                    key={`char-${idx}`}
+                                    src={getCharacterUrl(player.character, false)}
+                                    alt={player.character}
+                                    className="absolute pointer-events-none"
+                                    style={{ top: `${PLACEMENTS_4_8[idx].top - 278}px`, left: `${PLACEMENTS_4_8[idx].left + 290}px`, height:'60%', width:'auto' }}
+                                />
+                            ) : null
+                        ))}
+                    </>
+                )}
+
+                {/* Footer */}
+                <div className="absolute bottom-6 left-8 flex items-center gap-4">
+                    <img
+                        src="/source/overlay/ifl/tekkendojo_logo.png"
+                        alt="Tekken Dojo"
+                        className="h-12"
+                    />
+                </div>
+
+                <div className="absolute bottom-6 right-8 text-sm text-gray-400">
+                    ALL RIGHTS RESERVED © 2026 &nbsp;&nbsp;&nbsp; TEKKEN 8 ™ BANDAI NAMCO
+                </div>
             </div>
         </div>
     );

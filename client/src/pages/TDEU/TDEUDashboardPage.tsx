@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink, Database, Monitor, Users, Gamepad2, Trophy, Tv, ChevronLeft, TrendingUp } from 'lucide-react';
 import { getCountryCode } from '../../utils/countries';
+import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 interface NavItem {
     name: string;
@@ -315,6 +316,7 @@ const TDEUDashboardPage = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+            <TDEUBurgerMenu />
             {/* Subtle background pattern */}
             <div className="fixed inset-0 opacity-[0.02] pointer-events-none">
                 <div className="absolute inset-0" style={{
@@ -323,7 +325,7 @@ const TDEUDashboardPage = () => {
                 }} />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+            <div className="relative z-10 max-w-7xl mx-auto pl-16 pr-6 py-8">
                 {/* Header */}
                 <header className="mb-8">
                     <Link to="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors mb-4">

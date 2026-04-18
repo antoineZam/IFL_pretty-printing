@@ -6,6 +6,7 @@ import GlassCard from '../../components/ui/GlassCard';
 import { CyberInput } from '../../components/ui/CyberInput';
 import { NeonButton } from '../../components/ui/NeonButton';
 import { countries } from '../../utils/countries';
+import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 interface Player {
     name: string;
@@ -275,7 +276,8 @@ const TagTeamControlPage = () => {
     };
     
     return (
-        <div className="min-h-screen p-6 pb-24 max-w-[1600px] mx-auto text-white">
+        <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px] mx-auto text-white">
+            <TDEUBurgerMenu />
             {/* Top Bar */}
             <div className="flex justify-between items-end mb-8">
                 <h1 className="text-2xl font-archivo-expanded-bold text-white/80">TAG TEAM CONTROLLER</h1>

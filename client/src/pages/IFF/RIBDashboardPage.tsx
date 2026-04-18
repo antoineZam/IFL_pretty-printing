@@ -128,7 +128,7 @@ const RIBDashboardPage = () => {
                 }} />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+            <div className="relative z-10 max-w-7xl mx-auto pl-16 pr-6 py-8">
                 {/* Header */}
                 <header className="mb-8">
                     <Link to="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-4">
