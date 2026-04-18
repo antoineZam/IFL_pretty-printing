@@ -188,16 +188,21 @@ const MatchSlot = ({
                 {/* Player name - auto-scales to fit */}
                 <AutoFitText
                     maxWidth={SCORE_OFFSET - NAME_OFFSET - 20}
-                    className="absolute uppercase italic font-black tracking-tight font-archivo-semi-condensed-bold"
+                    className="absolute font-archivo-extra-condensed-medium"
                     style={{ 
                         left: `${NAME_OFFSET + horizontalOffset}px`,
-                        color: NAME_COLOR
+                        color: NAME_COLOR,
+                        fontSize: '30.4px',
+                        fontWeight: 500,
+                        fontStretch: '75%',
+                        letterSpacing: '-0.02em',
+                        opacity: 0.75
                     }}
                 >
                     {player?.sponsor && (
                         <span 
-                            className="text-sm mr-1.5 italic font-bold"
-                            style={{ color: TEAM_COLOR }}
+                            className="mr-1.5"
+                            style={{ color: TEAM_COLOR, fontSize: '67%' }}
                         >
                             {player.sponsor}
                         </span>
@@ -217,7 +222,7 @@ const MatchSlot = ({
                         clipPath: SCORE_CLIP_PATH
                     }}
                 >
-                    <span className="text-2xl font-black text-white">
+                    <span className="italic text-white font-archivo-semi-condensed-light-italic" style={{ fontSize: '30.4px', fontWeight: 500, fontStretch: '87.5%', marginLeft: '-6px', opacity: 0.75 }}>
                         {score != null ? Math.abs(score) : '-'}
                     </span>
                 </div>
@@ -362,10 +367,10 @@ const IFLTop8OverlayPage = () => {
 
     // --- Exact 1920x1080 Coordinates based on your layout image ---
     const COL = {
-        1: 185,   // Leftmost matches
-        2: 640,   // Second column
-        3: 1067,  // Third column
-        4: 1501   // Rightmost column
+        1: 185,
+        2: 640,
+        3: 1067,
+        4: 1501
     };
 
     const ROW = {
@@ -373,8 +378,8 @@ const IFLTop8OverlayPage = () => {
         WIN_MID: 243,
         WIN_BOT: 340,
         LOS_TOP: 599,
-        LOS_MID: 706, // Perfect middle between 550 and 740
-        LOS_BOT: 804
+        LOS_MID: 706,
+        LOS_BOT: 803
     };
 
     return (

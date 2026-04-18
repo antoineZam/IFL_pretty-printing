@@ -36,6 +36,12 @@
 }
 
 @font-face {
+    font-family: 'Archivo Extra Condensed Medium';
+    src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-Medium.ttf') format('truetype');
+    font-weight: 500;
+}
+
+@font-face {
     font-family: 'Archivo Extra Condensed Medium Italic';
     src: url('/source/fonts/Archivo/static/Archivo_ExtraCondensed-MediumItalic.ttf') format('truetype');
     font-weight: 500;
@@ -53,6 +59,12 @@
     font-family: 'Archivo Condensed Italic';
     src: url('/source/fonts/Archivo/static/Archivo_Condensed-Italic.ttf') format('truetype');
     font-weight: 400;
+    font-style: italic;
+}
+@font-face {
+    font-family: 'Archivo Semi Condensed Light Italic';
+    src: url('/source/fonts/Archivo/static/Archivo_SemiCondensed-LightItalic.ttf') format('truetype');
+    font-weight: 500;
     font-style: italic;
 }
 
