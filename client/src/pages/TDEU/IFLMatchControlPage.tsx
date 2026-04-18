@@ -30,16 +30,30 @@ interface PlayerHistoryItem {
     flag: string;      // Country code for flag
 }
 
+interface StandingEntry {
+    rank: number;
+    username: string;
+    sponsor: string | null;
+}
+
 const IFLMatchControlPage = () => {
     const [searchParams] = useSearchParams();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [data, setData] = useState<PlayerData | null>(null);
     const [playerHistory, setPlayerHistory] = useState<PlayerHistoryItem[]>([]);
+    const [standings, setStandings] = useState<StandingEntry[]>([]);
     
     // State for autocomplete suggestions
     const [p1Suggestions, setP1Suggestions] = useState<PlayerHistoryItem[]>([]);
     const [p2Suggestions, setP2Suggestions] = useState<PlayerHistoryItem[]>([]);
 
+    const findPlayerRank = (username: string): number | null => {
+        const normalizedName = username.toLowerCase().trim();
+        const entry = standings.find(s => 
+            s.username.toLowerCase().trim() === normalizedName
+        );
+        return entry?.rank ?? null;
+    };
 
     useEffect(() => {
         const fetchPlayerHistory = async () => {
@@ -52,7 +66,20 @@ const IFLMatchControlPage = () => {
             }
         };
 
+        const fetchStandings = async () => {
+            try {
+                const response = await fetch('/api/db/league/standings?limit=64');
+                const standingsData = await response.json();
+                if (standingsData.standings) {
+                    setStandings(standingsData.standings);
+                }
+            } catch (error) {
+                console.error("Failed to fetch league standings:", error);
+            }
+        };
+
         fetchPlayerHistory();
+        fetchStandings();
 
         const key = searchParams.get('key') || localStorage.getItem('connectionKey');
         if (!key) {
@@ -114,15 +141,13 @@ const IFLMatchControlPage = () => {
 
     const handleSuggestionClick = (player: 'p1' | 'p2', suggestion: PlayerHistoryItem) => {
         if (!data) return;
-        // Use username (raw player name) for the Name field, team for the Team/Sponsor field
-        // The overlay will display them as "Team | Name"
-        // Convert flag to uppercase to match the countries dropdown options
         const flag = suggestion.flag ? suggestion.flag.toUpperCase() : '';
+        const rank = findPlayerRank(suggestion.username);
         if (player === 'p1') {
-            setData({ ...data, p1Name: suggestion.username, p1Team: suggestion.team, p1Flag: flag });
+            setData({ ...data, p1Name: suggestion.username, p1Team: suggestion.team, p1Flag: flag, p1Rank: rank });
             setP1Suggestions([]);
         } else {
-            setData({ ...data, p2Name: suggestion.username, p2Team: suggestion.team, p2Flag: flag });
+            setData({ ...data, p2Name: suggestion.username, p2Team: suggestion.team, p2Flag: flag, p2Rank: rank });
             setP2Suggestions([]);
         }
     };
