@@ -284,7 +284,7 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
         let isDQ = false;
         
         if (set.displayScore) {
-          if (set.displayScore === 'DQ' || set.displayScore.includes('DQ')) {
+          if (set.displayScore === '-' || set.displayScore.includes('-')) {
             isDQ = true;
           } else {
             // Try to extract scores - format is usually "Name 2 - Name 3"

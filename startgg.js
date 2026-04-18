@@ -395,7 +395,7 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
 
     // Fallback: Parse scores from displayScore if API scores are null
     const parseScoresFromDisplay = (displayScore, player1, player2) => {
-      if (!displayScore || displayScore === 'DQ' || !player1 || !player2) return;
+      if (!displayScore || displayScore === '-' || !player1 || !player2) return;
       if (player1.score !== null && player2.score !== null) return; // Already have scores
       
       // displayScore format: "PlayerName 3 - 1 PlayerName" or "3 - 1"
