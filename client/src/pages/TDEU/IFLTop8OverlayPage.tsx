@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { getCountryCode } from '../../utils/countries';
@@ -68,6 +68,41 @@ const FLAG_FILTER = 'saturate(0.93) hue-rotate(-8deg) brightness(0.97) contrast(
 
 // Polygon clip path (same as flags)
 const SCORE_CLIP_PATH = 'polygon(0 0, 79% 0, 91% 100%, 12% 100%)';
+
+const AutoFitText = ({ children, maxWidth, className, style }: {
+    children: React.ReactNode;
+    maxWidth: number;
+    className?: string;
+    style?: React.CSSProperties;
+}) => {
+    const ref = useRef<HTMLSpanElement>(null);
+    const [scale, setScale] = useState(1);
+
+    useLayoutEffect(() => {
+        if (!ref.current) return;
+        ref.current.style.transform = 'scaleX(1)';
+        const natural = ref.current.scrollWidth;
+        const s = natural > maxWidth ? maxWidth / natural : 1;
+        setScale(s);
+        ref.current.style.transform = `scaleX(${s})`;
+    }, [children, maxWidth]);
+
+    return (
+        <span
+            ref={ref}
+            className={className}
+            style={{
+                ...style,
+                transformOrigin: 'left center',
+                transform: `scaleX(${scale})`,
+                whiteSpace: 'nowrap',
+                display: 'inline-block',
+            }}
+        >
+            {children}
+        </span>
+    );
+};
 
 const MatchSlot = ({ 
     set, 
@@ -151,12 +186,12 @@ const MatchSlot = ({
                 {/* Flag in polygon container */}
                 {renderFlag(player, isBottomPlayer)}
                 
-                {/* Player name - Archivo Semi Condensed */}
-                <span 
-                    className="absolute uppercase italic font-black truncate tracking-tight font-archivo-semi-condensed-bold"
+                {/* Player name - auto-scales to fit */}
+                <AutoFitText
+                    maxWidth={SCORE_OFFSET - NAME_OFFSET - 20}
+                    className="absolute uppercase italic font-black tracking-tight font-archivo-semi-condensed-bold"
                     style={{ 
                         left: `${NAME_OFFSET + horizontalOffset}px`,
-                        maxWidth: `${SCORE_OFFSET - NAME_OFFSET - 20}px`,
                         color: NAME_COLOR
                     }}
                 >
@@ -169,7 +204,7 @@ const MatchSlot = ({
                         </span>
                     )}
                     {player?.name || 'TBD'}
-                </span>
+                </AutoFitText>
                 
                 {/* Score in polygon container with gradient */}
                 <div 
