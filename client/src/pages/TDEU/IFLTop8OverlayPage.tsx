@@ -425,6 +425,31 @@ const IFLTop8OverlayPage = () => {
 
             {/* Losers Finals (Col 4) */}
             <MatchSlot set={top8Losers[5]} left={COL[4]} top={ROW.LOS_MID} />
+
+            {/* Date & Week # */}
+            <div 
+                className="absolute bottom-8 flex items-baseline justify-between font-archivo-semi-condensed-extrabold-italic text-white italic"
+                style={{ opacity: 0.33, fontSize: '23px', left: '1461px', right: `${1916 - (COL[4] + SCORE_OFFSET + SCORE_WIDTH)}px` }}
+            >
+                <span>
+                    {(() => {
+                        const d = new Date();
+                        const day = d.getDate();
+                        const suffix = [11,12,13].includes(day) ? 'TH' : { 1:'ST',2:'ND',3:'RD' }[day % 10] || 'TH';
+                        return `${d.toLocaleDateString('en-US', { weekday: 'long' })} ${d.toLocaleDateString('en-US', { month: 'long' })} ${day}${suffix}`.toUpperCase();
+                    })()}
+                </span>
+                <span>
+                    {(() => {
+                        const weekMatch = data.tournamentName.match(/#(\d+)/)
+                            || data.tournamentName.match(/week\s*(\d+)/i)
+                            || data.tournamentName.match(/\[week\s*(\d+)\]/i)
+                            || data.eventSlug.match(/-week-(\d+)/i)
+                            || data.eventSlug.match(/(?:week|w)-?(\d+)/i);
+                        return weekMatch ? `WEEK #${weekMatch[1]}` : '';
+                    })()}
+                </span>
+            </div>
         </div>
     );
 };

@@ -35,6 +35,7 @@ export default {
         'archivo-semi-condensed-black': ['Archivo Semi Condensed Black', 'sans-serif'],
         'archivo-semi-condensed-black-italic': ['Archivo Semi Condensed Black Italic', 'sans-serif'],
         'archivo-semi-condensed-light-italic': ['Archivo Semi Condensed Light Italic', 'sans-serif'],
+        'archivo-semi-condensed-extrabold-italic': ['Archivo Semi Condensed ExtraBold Italic', 'sans-serif'],
         'archivo-semi-expanded-bold': ['Archivo Semi Expanded Bold', 'sans-serif'],
         'archivo-extra-condensed-bold': ['Archivo Extra Condensed Bold', 'sans-serif'],
         'archivo-extra-condensed-light': ['Archivo Extra Condensed Light', 'sans-serif'],
