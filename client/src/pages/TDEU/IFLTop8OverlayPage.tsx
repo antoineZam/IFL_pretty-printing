@@ -44,7 +44,7 @@ interface Top8Data {
 const FLAG_OFFSET = -65;      // Distance from left edge to flag
 const FLAG_WIDTH = 70;        // Width of flag container
 const FLAG_HEIGHT = 69;       // Height of flag container
-const FLAG_VERTICAL_OFFSET = 2; // Vertical offset for flags (top player goes up, bottom player goes down)
+const FLAG_VERTICAL_OFFSET = 2; // Vertical offset for flags
 const NAME_OFFSET = 10;       // Distance from left edge to player name
 const SCORE_OFFSET = 247;     // Distance from left edge to score
 
@@ -55,7 +55,6 @@ const BOTTOM_PLAYER_VERTICAL_OFFSET = -3.2;   // Negative = higher, positive = l
 // Score polygon dimensions (larger than flags)
 const SCORE_WIDTH = 75;       // Width of score container
 const SCORE_HEIGHT = 69.5;      // Height of score container
-const SCORE_VERTICAL_OFFSET = -1; // Negative = higher, positive = lower
 
 // Colors and styles
 const NAME_COLOR = '#F0ECEC';
@@ -211,7 +210,7 @@ const MatchSlot = ({
                     className="absolute flex items-center justify-center font-archivo-semi-condensed-bold"
                     style={{ 
                         left: `${SCORE_OFFSET + horizontalOffset}px`,
-                        top: `calc(50% - ${SCORE_HEIGHT / 2}px + ${SCORE_VERTICAL_OFFSET}px)`,
+                        top: `calc(50% - ${SCORE_HEIGHT / 2}px + ${(isBottomPlayer ? FLAG_VERTICAL_OFFSET : -FLAG_VERTICAL_OFFSET) + (isBottomPlayer ? BOTTOM_PLAYER_VERTICAL_OFFSET : 0)}px)`,
                         width: `${SCORE_WIDTH}px`,
                         height: `${SCORE_HEIGHT}px`,
                         background: isWinner ? WINNER_GRADIENT : LOSER_GRADIENT,
@@ -366,16 +365,16 @@ const IFLTop8OverlayPage = () => {
         1: 185,   // Leftmost matches
         2: 640,   // Second column
         3: 1067,  // Third column
-        4: 1500   // Rightmost column
+        4: 1501   // Rightmost column
     };
 
     const ROW = {
         WIN_TOP: 135,
         WIN_MID: 243,
         WIN_BOT: 340,
-        LOS_TOP: 598,
+        LOS_TOP: 599,
         LOS_MID: 706, // Perfect middle between 550 and 740
-        LOS_BOT: 802
+        LOS_BOT: 804
     };
 
     return (
