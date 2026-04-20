@@ -500,19 +500,14 @@ app.get('/api/startgg/event/:eventSlug/bracket', async (req, res) => {
     try {
         const { eventSlug } = req.params;
         const page = Math.max(parseInt(req.query.page) || 1, 1);
-        // Limit to 25 sets per page to avoid start.gg complexity limits
         const perPage = Math.min(Math.max(parseInt(req.query.perPage) || 25, 1), 30);
-        
-        console.log(`[Bracket API] Fetching bracket for event: ${eventSlug} (page ${page}, perPage ${perPage})`);
         
         const bracket = await startgg.getEventBracket(eventSlug, page, perPage);
         
         if (!bracket) {
-            console.log(`[Bracket API] No bracket data found for: ${eventSlug}`);
             return res.status(404).json({ error: 'Event not found or no bracket data' });
         }
         
-        console.log(`[Bracket API] Found ${bracket.sets?.length || 0} sets for: ${eventSlug}`);
         res.status(200).json(bracket);
     } catch (error) {
         console.error('[Bracket API] Error fetching event bracket:', error);

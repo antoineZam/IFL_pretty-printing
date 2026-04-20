@@ -233,14 +233,12 @@ const IFLTop8ControlPage = () => {
                 }
             }
             
-            // Try to fetch bracket data - fetch multiple pages to get all top 8 matches
             try {
                 let allSets: BracketSet[] = [];
                 let bracketData: BracketData | null = null;
                 let page = 1;
                 let hasMore = true;
                 
-                // Fetch up to 5 pages (125 sets) to get all matches
                 while (hasMore && page <= 5) {
                     const bracketRes = await fetch(`/api/startgg/event/${encodeURIComponent(eventSlug)}/bracket?perPage=25&page=${page}`);
                     if (bracketRes.ok) {
@@ -774,43 +772,32 @@ const IFLTop8ControlPage = () => {
                                         <span>{bracket.sets.filter(s => s.state === 3).length} / {bracket.sets.length} matches completed</span>
                                     </div>
                                     
-                                    {/* Top 8 Match Results */}
+                                    {/* Top 8 Match Results - sets already filtered to Top 8 phase */}
                                     <div className="space-y-2">
-                                        {bracket.sets
-                                            .filter(s => {
-                                                const rt = s.roundText.toLowerCase();
-                                                return rt.includes('final') || 
-                                                       rt.includes('semi') || 
-                                                       rt.includes('quarter') ||
-                                                       (rt.includes('loser') && (rt.includes('round 5') || rt.includes('round 6') || rt.includes('round 7') || rt.includes('round 8')));
-                                            })
-                                            .sort((a, b) => {
-                                                // Sort order: Winners QF -> SF -> F, then Losers, then Grand Finals
-                                                const getOrder = (rt: string) => {
-                                                    const r = rt.toLowerCase();
-                                                    if (r.includes('grand')) return 100;
-                                                    if (r.includes('winner')) {
-                                                        if (r.includes('quarter')) return 10;
-                                                        if (r.includes('semi')) return 20;
-                                                        if (r.includes('final')) return 30;
-                                                    }
-                                                    if (r.includes('loser')) {
-                                                        if (r.includes('final')) return 90;
-                                                        if (r.includes('semi')) return 80;
-                                                        if (r.includes('quarter')) return 70;
-                                                        return 50 + (parseInt(r.match(/round\s*(\d+)/)?.[1] || '0'));
-                                                    }
-                                                    return 50;
-                                                };
-                                                return getOrder(a.roundText) - getOrder(b.roundText);
-                                            })
-                                            .map(set => {
+                                        {(() => {
+                                            const allSets = bracket.sets;
+                                            const gfRounds = new Set(
+                                                allSets.filter(s => s.roundText.toLowerCase().includes('grand final')).map(s => s.round)
+                                            );
+
+                                            // Sort: winners (positive round asc) → losers (negative round, abs asc) → grand finals
+                                            const sorted = [...allSets].sort((a, b) => {
+                                                const aIsGF = gfRounds.has(a.round) ? 2 : (a.round || 0) < 0 ? 1 : 0;
+                                                const bIsGF = gfRounds.has(b.round) ? 2 : (b.round || 0) < 0 ? 1 : 0;
+                                                if (aIsGF !== bIsGF) return aIsGF - bIsGF;
+                                                const aAbs = Math.abs(a.round || 0);
+                                                const bAbs = Math.abs(b.round || 0);
+                                                if (aAbs !== bAbs) return aAbs - bAbs;
+                                                return a.id - b.id;
+                                            });
+
+                                            return sorted.map(set => {
                                                 const isCompleted = set.state === 3;
                                                 const isLive = set.state === 2;
                                                 const p1Won = isCompleted && set.winnerId === set.player1?.id;
                                                 const p2Won = isCompleted && set.winnerId === set.player2?.id;
-                                                const isGrandFinals = set.roundText.toLowerCase().includes('grand');
-                                                const isWinners = set.roundText.toLowerCase().includes('winner');
+                                                const isGrandFinals = gfRounds.has(set.round);
+                                                const isWinners = (set.round || 0) > 0 && !isGrandFinals;
                                                 
                                                 return (
                                                     <div 
@@ -822,7 +809,6 @@ const IFLTop8ControlPage = () => {
                                                             'border-white/5 bg-black/20'
                                                         }`}
                                                     >
-                                                        {/* Round Label */}
                                                         <div className={`w-40 shrink-0 text-xs font-semibold uppercase tracking-wide ${
                                                             isGrandFinals ? 'text-amber-400' :
                                                             isWinners ? 'text-blue-400' :
@@ -832,13 +818,11 @@ const IFLTop8ControlPage = () => {
                                                             {isLive && <span className="ml-2 text-yellow-400 animate-pulse">LIVE</span>}
                                                         </div>
                                                         
-                                                        {/* Player 1 */}
                                                         <div className={`flex-1 flex items-center gap-2 ${p1Won ? 'text-green-400 font-semibold' : 'text-white'}`}>
                                                             {p1Won && <span className="text-green-500">✓</span>}
                                                             <span className="truncate">{set.player1?.name || 'TBD'}</span>
                                                         </div>
                                                         
-                                                        {/* Score */}
                                                         <div className="flex items-center gap-2 font-mono text-lg font-bold">
                                                             <span className={p1Won ? 'text-green-400' : 'text-white/60'}>
                                                                 {set.player1?.score != null ? Math.abs(set.player1.score) : '-'}
@@ -849,20 +833,17 @@ const IFLTop8ControlPage = () => {
                                                             </span>
                                                         </div>
                                                         
-                                                        {/* Player 2 */}
                                                         <div className={`flex-1 flex items-center justify-end gap-2 ${p2Won ? 'text-green-400 font-semibold' : 'text-white'}`}>
                                                             <span className="truncate text-right">{set.player2?.name || 'TBD'}</span>
                                                             {p2Won && <span className="text-green-500">✓</span>}
                                                         </div>
                                                     </div>
                                                 );
-                                            })}
+                                            });
+                                        })()}
                                     </div>
                                     
-                                    {bracket.sets.filter(s => {
-                                        const rt = s.roundText.toLowerCase();
-                                        return rt.includes('final') || rt.includes('semi') || rt.includes('quarter');
-                                    }).length === 0 && (
+                                    {bracket.sets.length === 0 && (
                                         <p className="text-center text-gray-500 py-4">
                                             No top 8 matches found. The tournament may still be in pools.
                                         </p>

@@ -347,14 +347,26 @@ async function getEventStandings(eventSlug, limit = 8) {
   }
 }
 
-// Get event bracket data (matches/sets) from start.gg
+// Get Top 8 bracket data from start.gg
+// Identifies the "Top 8" phase and only fetches sets from it
 async function getEventBracket(eventSlug, page = 1, perPage = 25) {
   try {
-    const data = await queryStartGG(queries.event.bracket, { 
-      slug: eventSlug, 
-      page, 
-      perPage 
-    });
+    // Find the Top 8 phase group IDs
+    let phaseGroupIds = null;
+    const phasesData = await queryStartGG(queries.event.phases, { slug: eventSlug });
+    if (phasesData?.event?.phases) {
+      const top8Phase = phasesData.event.phases.find(p => /top\s*8/i.test(p.name));
+      if (top8Phase?.phaseGroups?.nodes?.length) {
+        phaseGroupIds = top8Phase.phaseGroups.nodes.map(pg => pg.id);
+      }
+    }
+
+    const variables = { slug: eventSlug, page, perPage };
+    if (phaseGroupIds) {
+      variables.phaseGroupIds = phaseGroupIds;
+    }
+
+    const data = await queryStartGG(queries.event.bracket, variables);
     
     if (!data || !data.event) {
       return null;
@@ -411,40 +423,29 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
       }
     };
 
-    // Parse sets into a cleaner format
-    const sets = (event.sets?.nodes || []).map((set, idx) => {
-      // Debug: log first few sets to see raw data
-      if (idx < 3) {
-        console.log(`[DEBUG Set ${idx}] displayScore: "${set.displayScore}", slot0 standing:`, JSON.stringify(set.slots?.[0]?.standing));
-      }
-      
+    const sets = (event.sets?.nodes || []).map((set) => {
       const player1 = parseEntrant(set.slots?.[0]);
       const player2 = parseEntrant(set.slots?.[1]);
-      
-      // Fallback: parse scores from displayScore if API didn't provide them
       parseScoresFromDisplay(set.displayScore, player1, player2);
-      
-      // Debug: log parsed scores for first few sets
-      if (idx < 3) {
-        console.log(`[DEBUG Set ${idx}] After parsing - p1: ${player1?.name} score: ${player1?.score}, p2: ${player2?.name} score: ${player2?.score}`);
-      }
       
       return {
         id: set.id,
         round: set.round,
         roundText: set.fullRoundText,
         displayScore: set.displayScore,
-        state: set.state, // 1=not started, 2=in progress, 3=completed
+        state: set.state,
         winnerId: set.winnerId,
         player1,
         player2
       };
     });
 
+    console.log(`[Top8] ${event.name} | ${sets.length} sets${phaseGroupIds ? ' (Top 8 phase)' : ' (all phases)'}`);
+
     return {
       id: event.id,
       name: event.name,
-      state: event.state, // CREATED, ACTIVE, COMPLETED
+      state: event.state,
       numEntrants: event.numEntrants,
       sets,
       pageInfo: event.sets?.pageInfo || { total: 0, totalPages: 0 }

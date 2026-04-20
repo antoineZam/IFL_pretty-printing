@@ -144,14 +144,36 @@ const queries = {
       }
     `,
 
-    bracket: `
-      query EventBracket($slug: String!, $page: Int!, $perPage: Int!) {
+    phases: `
+      query EventPhases($slug: String!) {
         event(slug: $slug) {
           id
           name
           state
           numEntrants
-          sets(page: $page, perPage: $perPage, sortType: STANDARD, filters: { hideEmpty: true }) {
+          phases {
+            id
+            name
+            groupCount
+            phaseGroups {
+              nodes {
+                id
+                displayIdentifier
+              }
+            }
+          }
+        }
+      }
+    `,
+
+    bracket: `
+      query EventBracket($slug: String!, $page: Int!, $perPage: Int!, $phaseGroupIds: [ID]) {
+        event(slug: $slug) {
+          id
+          name
+          state
+          numEntrants
+          sets(page: $page, perPage: $perPage, sortType: STANDARD, filters: { hideEmpty: true, phaseGroupIds: $phaseGroupIds }) {
             pageInfo {
               total
               totalPages

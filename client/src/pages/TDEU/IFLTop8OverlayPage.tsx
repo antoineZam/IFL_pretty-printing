@@ -246,7 +246,6 @@ const IFLTop8OverlayPage = () => {
     const [data, setData] = useState<Top8Data | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Fetch ALL bracket data exactly as you originally had it to prevent missing sets
     const fetchBracket = useCallback(async (eventSlug: string) => {
         try {
             let allSets: BracketSet[] = [];
@@ -273,7 +272,6 @@ const IFLTop8OverlayPage = () => {
             
             if (bracketData) {
                 bracketData.sets = allSets;
-                console.log(`[Overlay] Loaded ${allSets.length} total sets`);
             }
             return bracketData;
         } catch (err) {
@@ -348,22 +346,24 @@ const IFLTop8OverlayPage = () => {
 
     const sets = data.bracket.sets;
     
-    // --- Bulletproof Top 8 Logic ---
-    // Start.gg is notoriously inconsistent with names. The safest way is to sort by round depth.
-    
-    // Winners Bracket (Positive Rounds)
-    const winnersSets = sets.filter(s => s.roundText.toLowerCase().includes('winner'))
+    // Positive rounds = winners, negative = losers, GF identified by roundText
+    const grandFinalRounds = new Set(
+        sets.filter(s => s.roundText.toLowerCase().includes('grand final')).map(s => s.round)
+    );
+
+    const grandFinals = sets
+        .filter(s => grandFinalRounds.has(s.round))
         .sort((a, b) => (a.round || 0) - (b.round || 0) || a.id - b.id);
-    const top8Winners = winnersSets.slice(-3); // Extracts the last 3 (WSF 1, WSF 2, WF)
 
-    // Losers Bracket (Negative Rounds)
-    const losersSets = sets.filter(s => s.roundText.toLowerCase().includes('loser'))
+    // Winners: round 1 = WSF (2 sets), round 2 = WF (1 set)
+    const top8Winners = sets
+        .filter(s => (s.round || 0) > 0 && !grandFinalRounds.has(s.round))
+        .sort((a, b) => (a.round || 0) - (b.round || 0) || a.id - b.id);
+
+    // Losers: round -1 = LR1 (2 sets), -2 = LQF (2 sets), -3 = LSF (1 set), -4 = LF (1 set)
+    const top8Losers = sets
+        .filter(s => (s.round || 0) < 0)
         .sort((a, b) => Math.abs(a.round || 0) - Math.abs(b.round || 0) || a.id - b.id);
-    const top8Losers = losersSets.slice(-6); // Extracts the last 6 (LR1 x2, LQF x2, LSF, LF)
-
-    // Grand Finals
-    const grandFinals = sets.filter(s => s.roundText.toLowerCase().includes('grand') || s.roundText.toLowerCase().includes('reset'))
-        .sort((a, b) => a.id - b.id);
 
     // --- Exact 1920x1080 Coordinates based on your layout image ---
     const COL = {
