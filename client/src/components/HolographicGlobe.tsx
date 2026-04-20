@@ -45,6 +45,90 @@ const EDGES = [
     [NODES[1], NODES[2]],
 ];
 
+// Electric signal component that travels along edges
+const ElectricSignal = ({ curve, edgeIndex }: { curve: THREE.QuadraticBezierCurve3; edgeIndex: number }) => {
+    const signalRef = useRef<THREE.Mesh>(null);
+    const glowRef = useRef<THREE.Mesh>(null);
+    const trailRef = useRef<THREE.Mesh>(null);
+    
+    useFrame((state) => {
+        if (!signalRef.current || !glowRef.current || !trailRef.current) return;
+        
+        // Each signal has a different offset based on edge index for variety
+        const offset = (edgeIndex * 0.3);
+        const time = state.clock.elapsedTime;
+        
+        // Progress along the curve (0 to 1), synced with breathing effect
+        // Complete one cycle every 3 seconds, with offset for staggering
+        const progress = ((time * 0.33 + offset) % 1);
+        
+        // Get position along curve
+        const position = curve.getPoint(progress);
+        signalRef.current.position.copy(position);
+        glowRef.current.position.copy(position);
+        
+        // Trail position slightly behind
+        const trailProgress = Math.max(0, progress - 0.08);
+        const trailPosition = curve.getPoint(trailProgress);
+        trailRef.current.position.copy(trailPosition);
+        
+        // Fade in/out as it travels (creates a pulsing effect)
+        const fadeIn = Math.min(progress * 5, 1); // Fade in quickly
+        const fadeOut = Math.max(1 - (progress - 0.75) * 4, 0); // Fade out at the end
+        const baseFade = Math.min(fadeIn, fadeOut);
+        
+        // Add breathing pulse synchronized with globe breathing
+        const breathingBeat = Math.pow(Math.sin(time / 3 * Math.PI), 2);
+        const breathingPulse = 0.7 + (breathingBeat * 0.3);
+        
+        // Very faint opacity
+        const signalOpacity = baseFade * 0.3 * breathingPulse;
+        const glowOpacity = baseFade * 0.15 * breathingPulse;
+        const trailOpacity = baseFade * 0.1 * breathingPulse;
+        
+        (signalRef.current.material as THREE.Material).opacity = signalOpacity;
+        (glowRef.current.material as THREE.Material).opacity = glowOpacity;
+        (trailRef.current.material as THREE.Material).opacity = trailOpacity;
+    });
+    
+    return (
+        <group>
+            {/* Trail */}
+            <mesh ref={trailRef}>
+                <sphereGeometry args={[0.06, 8, 8]} />
+                <meshBasicMaterial 
+                    color="#06b6d4" 
+                    transparent 
+                    opacity={0.1}
+                    blending={THREE.AdditiveBlending}
+                />
+            </mesh>
+            
+            {/* Main signal */}
+            <mesh ref={signalRef}>
+                <sphereGeometry args={[0.05, 8, 8]} />
+                <meshBasicMaterial 
+                    color="#ffffff" 
+                    transparent 
+                    opacity={0.3}
+                    blending={THREE.AdditiveBlending}
+                />
+            </mesh>
+            
+            {/* Glow */}
+            <mesh ref={glowRef}>
+                <sphereGeometry args={[0.12, 8, 8]} />
+                <meshBasicMaterial 
+                    color="#06b6d4" 
+                    transparent 
+                    opacity={0.15}
+                    blending={THREE.AdditiveBlending}
+                />
+            </mesh>
+        </group>
+    );
+};
+
 const RandomizedWireframe = () => {
     const geometry = useMemo(() => {
         const geo = new THREE.IcosahedronGeometry(RADIUS * 0.98, 3);
@@ -160,7 +244,7 @@ export default function HolographicGlobe() {
             
             <RandomizedWireframe />
 
-            {/* Connecting Lines */}
+            {/* Connecting Lines with Electric Signals */}
             {EDGES.map((edge, i) => {
                 // Create curved line (arc) between points
                 const distance = edge[0].position.distanceTo(edge[1].position);
@@ -176,14 +260,17 @@ export default function HolographicGlobe() {
                 const points = curve.getPoints(20);
 
                 return (
-                    <Line
-                        key={i}
-                        points={points}
-                        color="#3b82f6"
-                        lineWidth={2}
-                        transparent
-                        opacity={0.4}
-                    />
+                    <group key={i}>
+                        <Line
+                            points={points}
+                            color="#3b82f6"
+                            lineWidth={2}
+                            transparent
+                            opacity={0.4}
+                        />
+                        {/* Electric signal traveling along the line */}
+                        <ElectricSignal curve={curve} edgeIndex={i} />
+                    </group>
                 );
             })}
 
