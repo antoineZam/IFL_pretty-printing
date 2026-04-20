@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react
 import { useSearchParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { getCountryCode } from '../../utils/countries';
+import WarmParticles from '../../components/WarmParticles';
 
 interface Player {
     id: number;
@@ -389,6 +390,9 @@ const IFLTop8OverlayPage = () => {
                 className="absolute inset-0 bg-cover bg-center"
                 style={{ backgroundImage: "url('/source/overlay/ifl/top8-bracket-background.png')" }}
             />
+
+            {/* Glowing Warm Particles */}
+            <WarmParticles />
 
             {/* Overlay frame */}
             <div 
