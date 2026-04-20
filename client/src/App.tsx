@@ -38,10 +38,12 @@ import LoveAndWarUnifiedOverlay from './pages/IFF/LoveAndWarUnifiedOverlay';
 // Access Guard
 import IFFAccessGuard from './components/IFFAccessGuard';
 import TDEULayout from './components/TDEULayout';
+import ReturnHomeButton from './components/ReturnHomeButton';
 
 function App() {
   return (
     <BrowserRouter>
+      <ReturnHomeButton />
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
