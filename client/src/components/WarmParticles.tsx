@@ -31,8 +31,8 @@ export default function WarmParticles() {
             roughness: number[]
         }[] = [];
         
-        // Warm fire/ember colors
-        const colors = ['#ff7a00', '#ffaa00', '#ff3300', '#ffcc00', '#ff5500', '#ff9900'];
+        // Blueish-toned reds (magenta/pink/purple tones)
+        const colors = ['#ff3377', '#ff4488', '#ff3399', '#ee5599', '#ff2277', '#ff44aa'];
 
         const createParticle = (startY?: number) => {
             // Generate random roughness points for irregular rounded shape
@@ -49,7 +49,7 @@ export default function WarmParticles() {
                 speedY: Math.random() * 0.6 + 0.2, // Slower upwards speed (was 0.3 - 1.5)
                 speedX: -(Math.random() * 0.8 + 0.4), // Steady drift to the left (diagonal from bottom right)
                 color: colors[Math.floor(Math.random() * colors.length)],
-                life: Math.random() * 0.6 + 0.4, // Base opacity modifier
+                life: Math.random() * 0.3 + 0.3, // Base opacity modifier (reduced for faster fade)
                 wobbleSpeed: Math.random() * 0.01 + 0.005, // Slower, calmer wobble
                 wobbleDist: Math.random() * 1.0 + 0.2,
                 seed: Math.random() * Math.PI * 2,
@@ -60,8 +60,8 @@ export default function WarmParticles() {
         };
 
         // Pre-fill particles distributed across the screen height
-        // We use more particles at the bottom intrinsically, or just let them spawn over time
-        for (let i = 0; i < 250; i++) {
+        // Reduced particle count to avoid clutter
+        for (let i = 0; i < 180; i++) {
             particles.push(createParticle(Math.random() * canvas.height));
         }
 
@@ -78,11 +78,11 @@ export default function WarmParticles() {
                 p.x += p.speedX + wobble * 0.1;
                 
                 // Opacity is much higher at the bottom (y close to canvas.height)
-                // We use Math.pow(ratio, 2) to make it decay faster as it goes up
+                // We use Math.pow with higher exponent to make it fade faster
                 const heightRatio = p.y / canvas.height;
                 // Ensures particles completely fade out before hitting the top 20%
                 const verticalFade = Math.max(0, (heightRatio - 0.2) / 0.8);
-                const opacity = p.life * Math.pow(verticalFade, 1.5) * 0.85; 
+                const opacity = p.life * Math.pow(verticalFade, 3.0) * 0.5; 
                 
                 if (opacity > 0.005) {
                     ctx.save();
