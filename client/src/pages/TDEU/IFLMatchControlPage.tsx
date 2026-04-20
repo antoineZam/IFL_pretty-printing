@@ -39,7 +39,11 @@ interface StandingEntry {
 const IFLMatchControlPage = () => {
     const [searchParams] = useSearchParams();
     const [socket, setSocket] = useState<Socket | null>(null);
-    const [data, setData] = useState<PlayerData | null>(null);
+    const [data, setData] = useState<PlayerData>({
+        p1Flag: '', p1Team: '', p1Name: '', p1Rank: null,
+        p2Flag: '', p2Team: '', p2Name: '', p2Rank: null,
+        p1Score: 0, p2Score: 0, round: '', eventNumber: '',
+    });
     const [playerHistory, setPlayerHistory] = useState<PlayerHistoryItem[]>([]);
     const [standings, setStandings] = useState<StandingEntry[]>([]);
     
@@ -228,10 +232,6 @@ const IFLMatchControlPage = () => {
         sendUpdate(updatedData);
     };
 
-
-    if (!data) {
-        return <div className="bg-[#0a0e27] min-h-screen flex items-center justify-center text-white">Loading...</div>;
-    }
 
     return (
         <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px]">
