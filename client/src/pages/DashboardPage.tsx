@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Trophy, Menu, X, ChevronRight, Zap, Gamepad2, Database, Flame } from 'lucide-react';
+import { useRoutePreloader } from '../utils/routePreloader';
 
 const DashboardPage = () => {
     const [searchParams] = useSearchParams();
     const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
+    const { onMouseEnter, onTouchStart } = useRoutePreloader();
 
     useEffect(() => {
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
@@ -71,6 +73,8 @@ const DashboardPage = () => {
                         <Link 
                             to="/dashboard/tdeu" 
                             onClick={() => setMenuOpen(false)}
+                            onMouseEnter={onMouseEnter('/dashboard/tdeu')}
+                            onTouchStart={onTouchStart('/dashboard/tdeu')}
                             className="block mb-4"
                         >
                             <div className="p-5 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 hover:border-cyan-400 hover:from-cyan-500/20 hover:to-blue-500/10 transition-all group">
@@ -94,6 +98,8 @@ const DashboardPage = () => {
                         <Link 
                             to="/dashboard/rib" 
                             onClick={() => setMenuOpen(false)}
+                            onMouseEnter={onMouseEnter('/dashboard/rib')}
+                            onTouchStart={onTouchStart('/dashboard/rib')}
                             className="block"
                         >
                             <div className="p-5 rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 to-orange-500/5 hover:border-red-400 hover:from-red-500/20 hover:to-orange-500/10 transition-all group">

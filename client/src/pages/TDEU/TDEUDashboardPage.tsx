@@ -3,6 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink, Database, Monitor, Users, Gamepad2, Trophy, Tv, ChevronLeft, TrendingUp } from 'lucide-react';
 import { getCountryCode } from '../../utils/countries';
 import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
+import { useRoutePreloader } from '../../utils/routePreloader';
 
 interface NavItem {
     name: string;
@@ -39,6 +40,7 @@ const TDEUDashboardPage = () => {
     const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
     const navigate = useNavigate();
+    const { onMouseEnter, onTouchStart } = useRoutePreloader();
 
     useEffect(() => {
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
@@ -489,7 +491,12 @@ const TDEUDashboardPage = () => {
                         </h3>
                         <div className="space-y-3">
                             {controlItems.map((item) => (
-                                <Link key={item.path} to={item.path}>
+                                <Link 
+                                    key={item.path} 
+                                    to={item.path}
+                                    onMouseEnter={onMouseEnter(item.path)}
+                                    onTouchStart={onTouchStart(item.path)}
+                                >
                                     <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/30 bg-black/40 backdrop-blur-md hover:border-cyan-400 hover:bg-cyan-900/40 transition-all group">
                                         <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
                                             {item.icon}
@@ -513,7 +520,13 @@ const TDEUDashboardPage = () => {
                         </h3>
                         <div className="space-y-3">
                             {overlayItems.map((item) => (
-                                <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                <Link 
+                                    key={item.path} 
+                                    to={`${item.path}?key=${key}`} 
+                                    target="_blank"
+                                    onMouseEnter={onMouseEnter(item.path)}
+                                    onTouchStart={onTouchStart(item.path)}
+                                >
                                     <div className="flex items-center gap-4 p-4 rounded-xl border border-blue-500/30 bg-black/40 backdrop-blur-md hover:border-blue-400 hover:bg-blue-900/40 transition-all group">
                                         <div className="p-2.5 rounded-lg bg-blue-500/20 text-blue-400">
                                             {item.icon}

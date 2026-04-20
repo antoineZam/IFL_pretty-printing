@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Settings, Tv, ChevronLeft, Heart, Swords, Trophy, Gamepad2 } from 'lucide-react';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
+import { useRoutePreloader } from '../../utils/routePreloader';
 
 interface NavItem {
     name: string;
@@ -15,6 +16,7 @@ const LoveAndWarDashboardPage = () => {
     const [searchParams] = useSearchParams();
     const [key, setKey] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { onMouseEnter, onTouchStart } = useRoutePreloader();
 
     useEffect(() => {
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
@@ -115,7 +117,12 @@ const LoveAndWarDashboardPage = () => {
                     </h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                         {tournamentItems.map((item) => (
-                            <Link key={item.path} to={`${item.path}?key=${key}`}>
+                            <Link 
+                                key={item.path} 
+                                to={`${item.path}?key=${key}`}
+                                onMouseEnter={onMouseEnter(item.path)}
+                                onTouchStart={onTouchStart(item.path)}
+                            >
                                 <div className="flex items-center gap-4 p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 hover:border-yellow-400 hover:bg-yellow-500/10 transition-all group">
                                     <div className="p-2.5 rounded-lg bg-yellow-500/20 text-yellow-400">
                                         {item.icon}
@@ -141,7 +148,12 @@ const LoveAndWarDashboardPage = () => {
                         </h3>
                         <div className="space-y-3">
                             {controlItems.map((item) => (
-                                <Link key={item.path} to={`${item.path}?key=${key}`}>
+                                <Link 
+                                    key={item.path} 
+                                    to={`${item.path}?key=${key}`}
+                                    onMouseEnter={onMouseEnter(item.path)}
+                                    onTouchStart={onTouchStart(item.path)}
+                                >
                                     <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
                                         <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
                                             {item.icon}
@@ -167,7 +179,13 @@ const LoveAndWarDashboardPage = () => {
                         <div className="space-y-3">
                             {overlayItems.map((item) => (
                                 item.external ? (
-                                    <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                    <Link 
+                                        key={item.path} 
+                                        to={`${item.path}?key=${key}`} 
+                                        target="_blank"
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                    >
                                         <div className="flex items-center gap-4 p-4 rounded-xl border border-pink-500/20 bg-pink-500/5 hover:border-pink-400 hover:bg-pink-500/10 transition-all group">
                                             <div className="p-2.5 rounded-lg bg-pink-500/20 text-pink-400">
                                                 {item.icon}
@@ -186,7 +204,12 @@ const LoveAndWarDashboardPage = () => {
                                         </div>
                                     </Link>
                                 ) : (
-                                    <Link key={item.path} to={`${item.path}?key=${key}`}>
+                                    <Link 
+                                        key={item.path} 
+                                        to={`${item.path}?key=${key}`}
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                    >
                                         <div className="flex items-center gap-4 p-4 rounded-xl border border-pink-500/20 bg-pink-500/5 hover:border-pink-400 hover:bg-pink-500/10 transition-all group">
                                             <div className="p-2.5 rounded-lg bg-pink-500/20 text-pink-400">
                                                 {item.icon}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database, Heart } from 'lucide-react';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
+import { useRoutePreloader } from '../../utils/routePreloader';
 
 interface NavItem {
     name: string;
@@ -17,6 +18,7 @@ const RIBDashboardPage = () => {
     const [ribUnlocked, setRibUnlocked] = useState(false);
     const [ribKeyRequired, setRibKeyRequired] = useState(true);
     const navigate = useNavigate();
+    const { onMouseEnter, onTouchStart } = useRoutePreloader();
 
     useEffect(() => {
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
@@ -196,7 +198,13 @@ const RIBDashboardPage = () => {
                             <div className="space-y-3">
                                 {controlItems.map((item) => (
                                     item.external ? (
-                                        <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                        <Link 
+                                            key={item.path} 
+                                            to={`${item.path}?key=${key}`} 
+                                            target="_blank"
+                                            onMouseEnter={onMouseEnter(item.path)}
+                                            onTouchStart={onTouchStart(item.path)}
+                                        >
                                             <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
                                                 <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
                                                     {item.icon}
@@ -209,7 +217,12 @@ const RIBDashboardPage = () => {
                                             </div>
                                         </Link>
                                     ) : (
-                                        <Link key={item.path} to={item.path}>
+                                        <Link 
+                                            key={item.path} 
+                                            to={item.path}
+                                            onMouseEnter={onMouseEnter(item.path)}
+                                            onTouchStart={onTouchStart(item.path)}
+                                        >
                                             <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
                                                 <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
                                                     {item.icon}
@@ -234,7 +247,13 @@ const RIBDashboardPage = () => {
                             </h3>
                             <div className="space-y-3">
                                 {overlayItems.map((item) => (
-                                    <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                    <Link 
+                                        key={item.path} 
+                                        to={`${item.path}?key=${key}`} 
+                                        target="_blank"
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                    >
                                         <div className="flex items-center gap-4 p-4 rounded-xl border border-orange-500/20 bg-orange-500/5 hover:border-orange-400 hover:bg-orange-500/10 transition-all group">
                                             <div className="p-2.5 rounded-lg bg-orange-500/20 text-orange-400">
                                                 {item.icon}
@@ -260,7 +279,13 @@ const RIBDashboardPage = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                             {ewgfItems.map((item) => (
                                 item.external ? (
-                                    <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
+                                    <Link 
+                                        key={item.path} 
+                                        to={`${item.path}?key=${key}`} 
+                                        target="_blank"
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                    >
                                         <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all group">
                                             <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
                                                 {item.icon}
@@ -273,7 +298,12 @@ const RIBDashboardPage = () => {
                                         </div>
                                     </Link>
                                 ) : (
-                                    <Link key={item.path} to={`${item.path}?key=${key}`}>
+                                    <Link 
+                                        key={item.path} 
+                                        to={`${item.path}?key=${key}`}
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                    >
                                         <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all group">
                                             <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
                                                 {item.icon}
