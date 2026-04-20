@@ -3,6 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Trophy, Menu, X, ChevronRight, Zap, Gamepad2, Database, Flame } from 'lucide-react';
 import { useRoutePreloader } from '../utils/routePreloader';
 
+
 const DashboardPage = () => {
     const [searchParams] = useSearchParams();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -20,32 +21,12 @@ const DashboardPage = () => {
 
     return (
         <div className="min-h-screen relative overflow-hidden">
-            {/* YouTube Video Background */}
-            <div className="absolute inset-0 z-0 overflow-hidden">
-                <div className="absolute inset-0 scale-[1.5] origin-center">
-                    <iframe
-                        src="https://www.youtube.com/embed/fzqvmFrV46c?autoplay=1&mute=1&loop=1&playlist=fzqvmFrV46c&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1"
-                        title="Background Video"
-                        className="w-full h-full pointer-events-none"
-                        style={{ 
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            width: '177.78vh', /* 16:9 aspect ratio */
-                            height: '100vh',
-                            minWidth: '100%',
-                            minHeight: '56.25vw' /* 16:9 aspect ratio */
-                        }}
-                        allow="autoplay; encrypted-media"
-                        allowFullScreen={false}
-                        frameBorder="0"
-                    />
-                </div>
-                {/* Dimming overlay */}
-                <div className="absolute inset-0 bg-black/75" />
-                {/* Gradient overlay for depth */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
+            {/* Ambient depth layers - particles show through from AmbientParticles in App */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
+                <div className="absolute inset-0" style={{
+                    background: 'radial-gradient(ellipse at 50% 60%, rgba(218,165,32,0.06) 0%, transparent 55%)',
+                }} />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
             </div>
 
             {/* Burger Menu Button */}

@@ -386,7 +386,7 @@ const IFLTop8ControlPage = () => {
     };
 
     return (
-        <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px] mx-auto text-white">
+        <div className="min-h-screen p-6 pl-6 pb-24 max-w-[1600px] text-white">
             <TDEUBurgerMenu />
             {/* Header */}
             <div className="flex justify-between items-end mb-8">

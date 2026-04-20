@@ -234,7 +234,7 @@ const IFLMatchControlPage = () => {
     }
 
     return (
-        <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px] mx-auto">
+        <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px]">
             <TDEUBurgerMenu />
             {/* Top Bar */}
             <div className="flex justify-between items-end mb-8">

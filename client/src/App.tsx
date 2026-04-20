@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import IFFAccessGuard from './components/IFFAccessGuard';
 import TDEULayout from './components/TDEULayout';
 import ReturnHomeButton from './components/ReturnHomeButton';
+import AmbientParticles from './components/AmbientParticles';
 
 // Eager load only critical pages for initial render
 import AuthPage from './pages/AuthPage';
@@ -45,12 +46,11 @@ const LoveAndWarMatchControlPage = lazy(() => import('./pages/IFF/LoveAndWarMatc
 const LoveAndWarMatchOverlay = lazy(() => import('./pages/IFF/LoveAndWarMatchOverlay'));
 const LoveAndWarUnifiedOverlay = lazy(() => import('./pages/IFF/LoveAndWarUnifiedOverlay'));
 
-// Loading component for Suspense fallback
 const PageLoader = () => (
-  <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+  <div className="w-full h-screen flex items-center justify-center bg-transparent">
     <div className="text-center">
-      <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent mb-4"></div>
-      <p className="text-cyan-400 text-lg font-semibold">Loading...</p>
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-white/20 border-t-white/60 mb-4"></div>
+      <p className="text-white/40 text-lg font-semibold tracking-wider">Loading...</p>
     </div>
   </div>
 );
@@ -58,6 +58,7 @@ const PageLoader = () => (
 function App() {
   return (
     <BrowserRouter>
+      <AmbientParticles />
       <ReturnHomeButton />
       <Suspense fallback={<PageLoader />}>
         <Routes>

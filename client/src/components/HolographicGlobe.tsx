@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Line, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useLocation } from 'react-router-dom';
+import { getLayoutForPath } from '../config/tdeuLayouts';
 
 const RADIUS = 5;
 
@@ -177,37 +178,33 @@ export default function HolographicGlobe() {
     const groupRef = useRef<THREE.Group>(null);
     const location = useLocation();
     
-    // Target rotation based on current route
     const targetRotation = useRef(new THREE.Euler(0, 0, 0));
     const currentRotation = useRef(new THREE.Euler(0, 0, 0));
+    const targetPosition = useRef(new THREE.Vector3(0, 0, 0));
 
     useEffect(() => {
-        // Find current node
         const activeNode = NODES.find(n => location.pathname === n.path || location.pathname.startsWith(n.path + '/')) || NODES[0];
         
-        // Calculate the rotation needed to bring the active node to the front
-        // We want the active node's position to face the camera (which is at z = +something)
-        // If node is at (lat, lon), we rotate the globe by -lon around Y, and lat around X
         const targetLon = activeNode.lon;
         const targetLat = activeNode.lat;
-
-        // Convert to radians
         const lonRad = targetLon * (Math.PI / 180);
         const latRad = targetLat * (Math.PI / 180);
-
-        // Calculate rotation
         targetRotation.current.set(latRad, -lonRad, 0);
+
+        const layout = getLayoutForPath(location.pathname);
+        targetPosition.current.set(...layout.globeOffset);
     }, [location.pathname]);
 
     useFrame((state, delta) => {
         if (!groupRef.current) return;
         
-        // Smoothly interpolate rotation towards target
         currentRotation.current.x = THREE.MathUtils.lerp(currentRotation.current.x, targetRotation.current.x, delta * 2);
-        currentRotation.current.y = THREE.MathUtils.lerp(currentRotation.current.y, targetRotation.current.y + state.clock.elapsedTime * 0.05, delta * 2); // Add slow spin
+        currentRotation.current.y = THREE.MathUtils.lerp(currentRotation.current.y, targetRotation.current.y + state.clock.elapsedTime * 0.05, delta * 2);
         
         groupRef.current.rotation.x = currentRotation.current.x;
         groupRef.current.rotation.y = currentRotation.current.y;
+
+        groupRef.current.position.lerp(targetPosition.current, delta * 2);
     });
 
     // Generate random dots for the globe surface to make it look holographic
