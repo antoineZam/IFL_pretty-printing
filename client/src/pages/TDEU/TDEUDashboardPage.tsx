@@ -315,7 +315,7 @@ const TDEUDashboardPage = () => {
     const maxParticipants = Math.max(...tournamentStats.map(t => t.participant_count), 0);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+        <div className="min-h-screen bg-transparent">
             <TDEUBurgerMenu />
             {/* Subtle background pattern */}
             <div className="fixed inset-0 opacity-[0.02] pointer-events-none">
@@ -346,7 +346,7 @@ const TDEUDashboardPage = () => {
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     {/* Participation Trend Graph */}
-                    <div className="bg-gradient-to-b from-cyan-500/5 to-transparent border border-cyan-500/10 rounded-xl overflow-hidden">
+                    <div className="bg-black/40 backdrop-blur-md border border-cyan-500/20 rounded-xl overflow-hidden">
                         <div className="p-4 border-b border-white/5">
                             <div className="flex items-center gap-2">
                                 <div className="p-1.5 rounded-lg bg-cyan-500/20">
@@ -397,7 +397,7 @@ const TDEUDashboardPage = () => {
                     </div>
 
                     {/* League Standings */}
-                    <div className="bg-gradient-to-b from-amber-500/5 to-transparent border border-amber-500/10 rounded-xl overflow-hidden">
+                    <div className="bg-black/40 backdrop-blur-md border border-amber-500/20 rounded-xl overflow-hidden">
                         <div className="p-4 border-b border-white/5">
                             <div className="flex items-center gap-2">
                                 <div className="p-1.5 rounded-lg bg-amber-500/20">
@@ -490,7 +490,7 @@ const TDEUDashboardPage = () => {
                         <div className="space-y-3">
                             {controlItems.map((item) => (
                                 <Link key={item.path} to={item.path}>
-                                    <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all group">
+                                    <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/30 bg-black/40 backdrop-blur-md hover:border-cyan-400 hover:bg-cyan-900/40 transition-all group">
                                         <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
                                             {item.icon}
                                         </div>
@@ -514,7 +514,7 @@ const TDEUDashboardPage = () => {
                         <div className="space-y-3">
                             {overlayItems.map((item) => (
                                 <Link key={item.path} to={`${item.path}?key=${key}`} target="_blank">
-                                    <div className="flex items-center gap-4 p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 hover:border-blue-400 hover:bg-blue-500/10 transition-all group">
+                                    <div className="flex items-center gap-4 p-4 rounded-xl border border-blue-500/30 bg-black/40 backdrop-blur-md hover:border-blue-400 hover:bg-blue-900/40 transition-all group">
                                         <div className="p-2.5 rounded-lg bg-blue-500/20 text-blue-400">
                                             {item.icon}
                                         </div>

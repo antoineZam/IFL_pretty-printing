@@ -334,7 +334,7 @@ const TournamentDataPage = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+        <div className="min-h-screen bg-transparent">
             <TDEUBurgerMenu />
             {/* Background accent */}
             <div className="fixed inset-0 opacity-[0.02] pointer-events-none">
@@ -374,7 +374,7 @@ const TournamentDataPage = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                         {/* Tournaments List */}
                         <div className="lg:col-span-2">
-                            <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                            <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
                                 <div className="p-4 border-b border-white/5">
                                     <h2 className="font-medium text-white text-sm">Saved Tournaments</h2>
                                 </div>
@@ -427,7 +427,7 @@ const TournamentDataPage = () => {
 
                         {/* Match History */}
                         <div className="lg:col-span-3">
-                            <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                            <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
                                 <div className="p-4 border-b border-white/5 flex items-center justify-between">
                                     <h2 className="font-medium text-white text-sm">Match History</h2>
                                     {selectedTournament && (
@@ -482,7 +482,7 @@ const TournamentDataPage = () => {
 
                         {/* Tournament Top 8 */}
                         <div className="lg:col-span-2">
-                            <div className="bg-gradient-to-b from-amber-500/5 to-transparent border border-amber-500/10 rounded-xl overflow-hidden">
+                            <div className="bg-black/50 backdrop-blur-md border border-amber-500/20 rounded-xl overflow-hidden">
                                 <div className="p-4 border-b border-white/5 flex items-center gap-2">
                                     <Trophy size={16} className="text-amber-400" />
                                     <h2 className="font-medium text-white text-sm">Top 8</h2>
@@ -562,7 +562,7 @@ const TournamentDataPage = () => {
                 {activeTab === 'startgg' && (
                     <div className="space-y-6">
                         {/* Quick Sync */}
-                        <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 rounded-xl p-5">
+                        <div className="bg-black/50 backdrop-blur-md border border-amber-500/20 rounded-xl p-5">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <h3 className="font-medium text-amber-400 text-sm">Quick Sync</h3>
@@ -656,7 +656,7 @@ const TournamentDataPage = () => {
                         </div>
 
                         {/* Search */}
-                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5">
+                        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-5">
                             <h3 className="font-medium text-white text-sm mb-4">Search start.gg</h3>
                             <div className="flex gap-3">
                                 <input
@@ -691,7 +691,7 @@ const TournamentDataPage = () => {
 
                         {/* Results */}
                         {startggResults.length > 0 && (
-                            <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                            <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
                                 <div className="p-4 border-b border-white/5">
                                     <h3 className="font-medium text-white text-sm">{startggResults.length} tournaments found</h3>
                                 </div>
@@ -727,7 +727,7 @@ const TournamentDataPage = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                         {/* Players List */}
                         <div className="lg:col-span-2">
-                            <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                            <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
                                 <div className="p-4 border-b border-white/5">
                                     <h2 className="font-medium text-white text-sm mb-3">Players</h2>
                                     <input
@@ -817,7 +817,7 @@ const TournamentDataPage = () => {
 
                         {/* Player Matches */}
                         <div className="lg:col-span-3">
-                            <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                            <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
                                 <div className="p-4 border-b border-white/5 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         {selectedPlayer?.country && (
@@ -894,7 +894,7 @@ const TournamentDataPage = () => {
 
                         {/* Player Tournament Results */}
                         <div className="lg:col-span-2">
-                            <div className="bg-gradient-to-b from-purple-500/5 to-transparent border border-purple-500/10 rounded-xl overflow-hidden">
+                            <div className="bg-black/50 backdrop-blur-md border border-purple-500/20 rounded-xl overflow-hidden">
                                 <div className="p-4 border-b border-white/5 flex items-center gap-2">
                                     <Trophy size={16} className="text-purple-400" />
                                     <h2 className="font-medium text-white text-sm">Tournament Results</h2>

@@ -37,6 +37,7 @@ import LoveAndWarUnifiedOverlay from './pages/IFF/LoveAndWarUnifiedOverlay';
 
 // Access Guard
 import IFFAccessGuard from './components/IFFAccessGuard';
+import TDEULayout from './components/TDEULayout';
 
 function App() {
   return (
@@ -44,17 +45,22 @@ function App() {
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/dashboard/tdeu" element={<TDEUDashboardPage />} />
         <Route path="/dashboard/rib" element={<IFFAccessGuard><RIBDashboardPage /></IFFAccessGuard>} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/tournament-data" element={<TournamentDataPage />} />
-        <Route path="/ifl/match-control" element={<IFLMatchControlPage />} />
+        
+        {/* TDEU Layout Routes */}
+        <Route element={<TDEULayout />}>
+          <Route path="/dashboard/tdeu" element={<TDEUDashboardPage />} />
+          <Route path="/tournament-data" element={<TournamentDataPage />} />
+          <Route path="/ifl/match-control" element={<IFLMatchControlPage />} />
+          <Route path="/tdeu/ifl/top8" element={<IFLTop8ControlPage />} />
+          <Route path="/tdeu/ifl/top8/standings" element={<IFLTop8StandingsControlPage />} />
+          <Route path="/tag/match-control" element={<TagTeamControlPage />} />
+        </Route>
+
         <Route path="/ifl/match-overlay" element={<IFLMatchOverlayPage />} />
-        <Route path="/tdeu/ifl/top8" element={<IFLTop8ControlPage />} />
         <Route path="/tdeu/ifl/top8/overlay" element={<IFLTop8OverlayPage />} />
-        <Route path="/tdeu/ifl/top8/standings" element={<IFLTop8StandingsControlPage />} />
         <Route path="/tdeu/ifl/top8/standings/overlay" element={<IFLTop8StandingsOverlayPage />} />
-        <Route path="/tag/match-control" element={<TagTeamControlPage />} />
         <Route path="/tag/match-overlay" element={<TagTeamOverlayPage />} />
         {/* Run It Back routes - Protected by RIB Access Key */}
         <Route path="/rib/match-control" element={<IFFAccessGuard><RIBMatchControlPage /></IFFAccessGuard>} />
