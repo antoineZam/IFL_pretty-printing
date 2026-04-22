@@ -841,7 +841,7 @@ const LoveAndWarBracketPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <Link to={`/iff/love-and-war/tournaments?key=${key}`} className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
+                    <Link to="/iff/love-and-war/tournaments" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
                         <ChevronLeft size={18} />
                         <span className="text-sm">Back to Tournaments</span>
                     </Link>
@@ -864,7 +864,7 @@ const LoveAndWarBracketPage = () => {
                 </div>
                 <div className="flex gap-3">
                     <Link
-                        to={`/iff/love-and-war/tournament/${tournamentId}/rankings?key=${key}`}
+                        to={`/iff/love-and-war/tournament/${tournamentId}/rankings`}
                         className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
                     >
                         <Trophy size={18} />

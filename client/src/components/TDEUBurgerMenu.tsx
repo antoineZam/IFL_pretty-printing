@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
     Menu, X, Home, Users, Trophy, Tv,
     ChevronDown, ChevronRight, ExternalLink, Database, Gamepad2, Layers
@@ -22,8 +22,6 @@ const TDEUBurgerMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [expandedSections, setExpandedSections] = useState<string[]>(['ifl', 'tagteam', 'data']);
     const location = useLocation();
-    const [searchParams] = useSearchParams();
-    const key = searchParams.get('key') || localStorage.getItem('connectionKey');
 
     useEffect(() => {
         setIsOpen(false);
@@ -146,9 +144,7 @@ const TDEUBurgerMenu = () => {
                                     <div className="ml-4 border-l border-gray-800">
                                         {section.items.map((item) => {
                                             const active = isActive(item.path);
-                                            const linkPath = item.isOverlay
-                                                ? `${item.path}?key=${key}`
-                                                : item.path;
+                                            const linkPath = item.path;
 
                                             return item.isOverlay ? (
                                                 <Link

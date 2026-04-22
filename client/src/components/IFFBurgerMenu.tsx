@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
     Menu, X, Home, Settings, Monitor, Tv, Users, Trophy, 
     Heart, Swords, LayoutDashboard, UserCircle, Layers,
@@ -24,8 +24,6 @@ const IFFBurgerMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [expandedSections, setExpandedSections] = useState<string[]>(['main', 'rib', 'lnw']);
     const location = useLocation();
-    const [searchParams] = useSearchParams();
-    const key = searchParams.get('key') || localStorage.getItem('connectionKey');
 
     // Close menu on route change
     useEffect(() => {
@@ -168,9 +166,7 @@ const IFFBurgerMenu = () => {
                                 <div className="ml-4 border-l border-gray-800">
                                     {section.items.map((item) => {
                                         const active = isActive(item.path);
-                                        const linkPath = item.isOverlay 
-                                            ? item.path 
-                                            : `${item.path}?key=${key}`;
+                                        const linkPath = item.path;
                                         
                                         return item.isOverlay ? (
                                             <Link
@@ -210,7 +206,7 @@ const IFFBurgerMenu = () => {
                     {/* Back to Main Dashboard */}
                     <div className="mt-6 px-4">
                         <Link
-                            to={`/dashboard?key=${key}`}
+                            to="/dashboard"
                             className="flex items-center gap-3 px-4 py-3 bg-gray-900 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors border border-gray-800"
                         >
                             <Home size={18} />

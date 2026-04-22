@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Settings, Tv, ChevronLeft, Heart, Swords, Trophy, Gamepad2 } from 'lucide-react';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
@@ -14,7 +14,6 @@ interface NavItem {
 
 const LoveAndWarDashboardPage = () => {
     const [searchParams] = useSearchParams();
-    const [key, setKey] = useState<string | null>(null);
     const navigate = useNavigate();
     const { onMouseEnter, onTouchStart } = useRoutePreloader();
 
@@ -26,7 +25,6 @@ const LoveAndWarDashboardPage = () => {
             return;
         }
         
-        setKey(connectionKey);
     }, [searchParams, navigate]);
 
     const controlItems: NavItem[] = [
@@ -78,7 +76,7 @@ const LoveAndWarDashboardPage = () => {
             <div className="relative z-10 max-w-7xl mx-auto pl-16 pr-6 py-8">
                 {/* Header */}
                 <header className="mb-8">
-                    <Link to={`/dashboard/rib?key=${key}`} className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-4">
+                    <Link to="/dashboard/rib" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-4">
                         <ChevronLeft size={18} />
                         <span className="text-sm">Back to IFF Dashboard</span>
                     </Link>
@@ -119,7 +117,7 @@ const LoveAndWarDashboardPage = () => {
                         {tournamentItems.map((item) => (
                             <Link 
                                 key={item.path} 
-                                to={`${item.path}?key=${key}`}
+                                to={item.path}
                                 onMouseEnter={onMouseEnter(item.path)}
                                 onTouchStart={onTouchStart(item.path)}
                             >
@@ -150,11 +148,11 @@ const LoveAndWarDashboardPage = () => {
                             {controlItems.map((item) => (
                                 <Link 
                                     key={item.path} 
-                                    to={`${item.path}?key=${key}`}
-                                    onMouseEnter={onMouseEnter(item.path)}
-                                    onTouchStart={onTouchStart(item.path)}
-                                >
-                                    <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
+                                to={item.path}
+                                onMouseEnter={onMouseEnter(item.path)}
+                                onTouchStart={onTouchStart(item.path)}
+                            >
+                                <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
                                         <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
                                             {item.icon}
                                         </div>
@@ -181,7 +179,7 @@ const LoveAndWarDashboardPage = () => {
                                 item.external ? (
                                     <Link 
                                         key={item.path} 
-                                        to={`${item.path}?key=${key}`} 
+                                        to={item.path} 
                                         target="_blank"
                                         onMouseEnter={onMouseEnter(item.path)}
                                         onTouchStart={onTouchStart(item.path)}
@@ -206,7 +204,7 @@ const LoveAndWarDashboardPage = () => {
                                 ) : (
                                     <Link 
                                         key={item.path} 
-                                        to={`${item.path}?key=${key}`}
+                                        to={item.path}
                                         onMouseEnter={onMouseEnter(item.path)}
                                         onTouchStart={onTouchStart(item.path)}
                                     >

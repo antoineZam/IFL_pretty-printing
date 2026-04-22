@@ -1639,5 +1639,5 @@ app.get('*', (req, res) => {
 
 server.listen(port, () => {
   console.log(`\nServer running at http://localhost:${port}`);
-  console.log(`Login with key: ${CONNECTION_KEY}`);
+  console.log(`Connection key loaded — navigate to /auth to sign in.`);
 });

@@ -34,7 +34,6 @@ interface LeaderboardPlayer {
 
 const TDEUDashboardPage = () => {
     const [searchParams] = useSearchParams();
-    const [key, setKey] = useState<string | null>(null);
     const [tournamentStats, setTournamentStats] = useState<TournamentStat[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
@@ -50,7 +49,6 @@ const TDEUDashboardPage = () => {
             return;
         }
         
-        setKey(connectionKey);
         loadTournamentStats();
         loadLeaderboard();
     }, [searchParams, navigate]);
@@ -522,7 +520,7 @@ const TDEUDashboardPage = () => {
                             {overlayItems.map((item) => (
                                 <Link 
                                     key={item.path} 
-                                    to={`${item.path}?key=${key}`} 
+                                    to={item.path} 
                                     target="_blank"
                                     onMouseEnter={onMouseEnter(item.path)}
                                     onTouchStart={onTouchStart(item.path)}

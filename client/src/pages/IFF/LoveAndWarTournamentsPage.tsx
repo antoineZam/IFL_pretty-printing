@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Trophy, Calendar, Users, X, Target } from 'lucide-react';
 
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -21,9 +21,6 @@ interface TournamentListItem {
 
 
 const LoveAndWarTournamentsPage = () => {
-    const [searchParams] = useSearchParams();
-    const key = searchParams.get('key') || localStorage.getItem('connectionKey');
-
     const [tournaments, setTournaments] = useState<TournamentListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,7 +108,7 @@ const LoveAndWarTournamentsPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <Link to={`/iff/love-and-war?key=${key}`} className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
+                    <Link to="/iff/love-and-war" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
                         <ChevronLeft size={18} />
                         <span className="text-sm">Back to Love & War Dashboard</span>
                     </Link>
@@ -150,7 +147,7 @@ const LoveAndWarTournamentsPage = () => {
                 {tournaments.map((tournament) => (
                     <Link
                         key={tournament.id}
-                        to={`/iff/love-and-war/tournament/${tournament.id}/bracket?key=${key}`}
+                        to={`/iff/love-and-war/tournament/${tournament.id}/bracket`}
                         className="bg-gray-900 rounded-lg p-5 border border-gray-800 hover:border-red-500/50 transition-all group"
                     >
                         <div className="flex items-start justify-between mb-4">
