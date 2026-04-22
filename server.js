@@ -48,8 +48,8 @@ app.use(express.static(path.join(__dirname, 'client', 'dist')));
 app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source')));
 
 // Middleware to parse JSON bodies
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Define absolute paths for safety (still needed for static file serving)
 const SOURCE_DIR = path.join(__dirname, 'client', 'public', 'source');
@@ -108,9 +108,6 @@ async function initializeData() {
     ribStreamData = { matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0 };
   }
 }
-
-// Initialize data on startup
-initializeData();
 
 // Run It Back overlay visibility state
 let ribOverlayState = {
@@ -731,8 +728,8 @@ app.get('/api/db/tournament/:tournamentId/standings', async (req, res) => {
             WHERE m.tournament_id = ?
             GROUP BY u.user_id, u.username, u.sponsor, u.country
             ORDER BY wins DESC, losses ASC, total_matches DESC
-            LIMIT ${limit}
-        `, [tournamentId]);
+            LIMIT ?
+        `, [tournamentId, limit]);
         
         // Add placement numbers
         const standingsWithPlacement = standings.map((player, idx) => ({
@@ -1637,7 +1634,12 @@ app.get('*', (req, res) => {
 });
 
 
-server.listen(port, () => {
-  console.log(`\nServer running at http://localhost:${port}`);
-  console.log(`Login with key: ${CONNECTION_KEY}`);
-});
+async function startServer() {
+  await initializeData();
+  server.listen(port, () => {
+    console.log(`\nServer running at http://localhost:${port}`);
+    console.log(`Login with key: ${CONNECTION_KEY}`);
+  });
+}
+
+startServer();
