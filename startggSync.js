@@ -131,6 +131,73 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     let matchesSynced = 0;
     let matchesUpdated = 0;
 
+    // Fetch and sync participant data once for the whole tournament
+    try {
+      const participantsData = await startgg.getTournamentParticipants(slug);
+      
+      if (participantsData && participantsData.tournament && participantsData.tournament.events) {
+        for (const evt of participantsData.tournament.events) {
+          if (evt.entrants && evt.entrants.nodes) {
+            for (const entrant of evt.entrants.nodes) {
+              if (entrant.participants && entrant.participants.length > 0) {
+                for (const participant of entrant.participants) {
+                  const gamerTag = participant.gamerTag || (participant.player && participant.player.gamerTag);
+                  if (!gamerTag) continue;
+                  
+                  const sponsor = participant.prefix || (participant.player && participant.player.prefix) || null;
+                  
+                  let countryName = null;
+                  if (participant.user && participant.user.location && participant.user.location.country) {
+                    countryName = participant.user.location.country;
+                  } else if (participant.player && participant.player.user && participant.player.user.location && participant.player.user.location.country) {
+                    countryName = participant.player.user.location.country;
+                  }
+                  
+                  const countryCode = getCountryCode(countryName);
+                  const oldFormatName = sponsor ? `${sponsor} | ${gamerTag}` : null;
+                  
+                  let [userRows] = await pool.execute(
+                    `SELECT user_id, username, sponsor, country FROM users 
+                     WHERE username = ? 
+                     OR username = ?
+                     OR username LIKE ?`,
+                    [gamerTag, oldFormatName || gamerTag, `% | ${gamerTag}`]
+                  );
+
+                  if (userRows.length === 0) {
+                    await pool.execute(
+                      'INSERT INTO users (username, sponsor, country, main_character) VALUES (?, ?, ?, ?)',
+                      [gamerTag, sponsor, countryCode, null]
+                    );
+                    playersSynced++;
+                  } else {
+                    const existingUser = userRows[0];
+                    const needsUsernameFixed = existingUser.username.includes(' | ');
+                    const newSponsor = sponsor || existingUser.sponsor;
+                    const newCountry = countryCode || existingUser.country;
+                    
+                    const usernameNeedsFix = needsUsernameFixed;
+                    const sponsorChanged = sponsor && sponsor !== existingUser.sponsor;
+                    const countryChanged = countryCode && countryCode !== existingUser.country;
+                    
+                    if (usernameNeedsFix || sponsorChanged || countryChanged) {
+                      await pool.execute(
+                        'UPDATE users SET username = ?, sponsor = ?, country = ? WHERE user_id = ?',
+                        [gamerTag, newSponsor, newCountry, existingUser.user_id]
+                      );
+                      playersUpdated++;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (participantError) {
+      console.log(`  ⚠ Could not sync participants: ${participantError.message}`);
+    }
+
     // Process each event
     for (const event of events) {
       console.log(`  Processing event: ${event.name}`);
@@ -142,83 +209,6 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
       
       const totalSets = event.sets.pageInfo?.total || event.sets.nodes.length;
       console.log(`    Found ${event.sets.nodes.length} matches (${totalSets} total)`);
-
-      // Sync players from entrants with sponsor and country info
-      try {
-        const participantsData = await startgg.getTournamentParticipants(slug);
-        
-        if (participantsData && participantsData.tournament && participantsData.tournament.events) {
-          for (const evt of participantsData.tournament.events) {
-            if (evt.entrants && evt.entrants.nodes) {
-              for (const entrant of evt.entrants.nodes) {
-                if (entrant.participants && entrant.participants.length > 0) {
-                  for (const participant of entrant.participants) {
-                    const gamerTag = participant.gamerTag || (participant.player && participant.player.gamerTag);
-                    if (!gamerTag) continue;
-                    
-                    // Get sponsor prefix from participant or player
-                    const sponsor = participant.prefix || (participant.player && participant.player.prefix) || null;
-                    
-                    // Get country from user location (try participant.user first, then player.user)
-                    let countryName = null;
-                    if (participant.user && participant.user.location && participant.user.location.country) {
-                      countryName = participant.user.location.country;
-                    } else if (participant.player && participant.player.user && participant.player.user.location && participant.player.user.location.country) {
-                      countryName = participant.player.user.location.country;
-                    }
-                    
-                    // Convert country name to 2-letter code for flag display
-                    const countryCode = getCountryCode(countryName);
-                    
-                    // Get or create user - search by multiple possible formats to avoid duplicates
-                    // Check for: exact username, or old format "SPONSOR | username", or username ending with the gamerTag
-                    const oldFormatName = sponsor ? `${sponsor} | ${gamerTag}` : null;
-                    
-                    let [userRows] = await pool.execute(
-                      `SELECT user_id, username, sponsor, country FROM users 
-                       WHERE username = ? 
-                       OR username = ?
-                       OR username LIKE ?`,
-                      [gamerTag, oldFormatName || gamerTag, `% | ${gamerTag}`]
-                    );
-
-                    if (userRows.length === 0) {
-                      // Create new user with all available info
-                      await pool.execute(
-                        'INSERT INTO users (username, sponsor, country, main_character) VALUES (?, ?, ?, ?)',
-                        [gamerTag, sponsor, countryCode, null]
-                      );
-                      playersSynced++;
-                    } else {
-                      // Found existing user - update with latest data and fix username if it's in old format
-                      const existingUser = userRows[0];
-                      const needsUsernameFixed = existingUser.username.includes(' | ');
-                      const newSponsor = sponsor || existingUser.sponsor;
-                      const newCountry = countryCode || existingUser.country;
-                      
-                      // Check if anything needs updating
-                      const usernameNeedsFix = needsUsernameFixed;
-                      const sponsorChanged = sponsor && sponsor !== existingUser.sponsor;
-                      const countryChanged = countryCode && countryCode !== existingUser.country;
-                      
-                      if (usernameNeedsFix || sponsorChanged || countryChanged) {
-                        await pool.execute(
-                          'UPDATE users SET username = ?, sponsor = ?, country = ? WHERE user_id = ?',
-                          [gamerTag, newSponsor, newCountry, existingUser.user_id]
-                        );
-                        playersUpdated++;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      } catch (participantError) {
-        console.log(`    ⚠ Could not sync participants: ${participantError.message}`);
-        // Continue with matches anyway
-      }
 
       // Sync matches (sets) - use entrant names directly
       let processedSets = 0;

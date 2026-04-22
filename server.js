@@ -42,8 +42,8 @@ const io     = socketIo(server);
 
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
 app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source')));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 const SOURCE_DIR = path.join(__dirname, 'client', 'public', 'source');
 if (!fs.existsSync(SOURCE_DIR)) fs.mkdirSync(SOURCE_DIR, { recursive: true });
@@ -458,8 +458,8 @@ dbRouter.get('/tournament/:tournamentId/standings', asyncRoute(async (req, res) 
         WHERE m.tournament_id = ?
         GROUP BY u.user_id, u.username, u.sponsor, u.country
         ORDER BY wins DESC, losses ASC, total_matches DESC
-        LIMIT ${limit}
-    `, [tournamentId]);
+        LIMIT ?
+    `, [tournamentId, limit]);
     res.json({
         standings: rows.map((p, i) => ({
             user_id: p.user_id, username: p.username, sponsor: p.sponsor, country: p.country,
@@ -471,24 +471,24 @@ dbRouter.get('/tournament/:tournamentId/standings', asyncRoute(async (req, res) 
 
 dbRouter.get('/player/:playerId/rankings', asyncRoute(async (req, res) => {
     const { playerId } = req.params;
-    const [tournaments] = await pool.execute(`
-        SELECT DISTINCT t.tournament_id, t.name as tournament_name, t.start_date
+    const [rankings] = await pool.execute(`
+        SELECT t.tournament_id, t.name AS tournament_name, t.start_date,
+               COUNT(*) AS total_matches,
+               SUM(CASE WHEN m.winner_id = ? THEN 1 ELSE 0 END) AS wins
         FROM tournaments t
         JOIN matches m ON m.tournament_id = t.tournament_id
         WHERE m.player1_id = ? OR m.player2_id = ?
+        GROUP BY t.tournament_id, t.name, t.start_date
         ORDER BY t.start_date DESC
-    `, [playerId, playerId]);
-    const rankings = await Promise.all(tournaments.map(async t => {
-        const [[stats]] = await pool.execute(`
-            SELECT COUNT(*) as total_matches,
-                   SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as wins
-            FROM matches WHERE tournament_id = ? AND (player1_id = ? OR player2_id = ?)
-        `, [playerId, t.tournament_id, playerId, playerId]);
-        const wins  = parseInt(stats?.wins)          || 0;
-        const total = parseInt(stats?.total_matches) || 0;
-        return { ...t, wins, losses: total - wins, total_matches: total };
-    }));
-    res.json({ rankings });
+    `, [playerId, playerId, playerId]);
+    res.json({
+        rankings: rankings.map(r => ({
+            ...r,
+            wins: parseInt(r.wins) || 0,
+            losses: (parseInt(r.total_matches) || 0) - (parseInt(r.wins) || 0),
+            total_matches: parseInt(r.total_matches) || 0,
+        })),
+    });
 }));
 
 dbRouter.put('/player/:playerId', asyncRoute(async (req, res) => {

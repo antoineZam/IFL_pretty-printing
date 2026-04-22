@@ -232,6 +232,21 @@ export default function HolographicGlobe() {
         return geo;
     }, [dots]);
 
+    const edgeData = useMemo(() =>
+        EDGES.map((edge, i) => {
+            const distance = edge[0].position.distanceTo(edge[1].position);
+            const midPoint = new THREE.Vector3().addVectors(edge[0].position, edge[1].position).multiplyScalar(0.5);
+            midPoint.normalize().multiplyScalar(RADIUS + distance * 0.2);
+
+            const curve = new THREE.QuadraticBezierCurve3(
+                edge[0].position,
+                midPoint,
+                edge[1].position
+            );
+            return { curve, points: curve.getPoints(20), index: i };
+        }),
+    []);
+
     return (
         <group ref={groupRef}>
             {/* Holographic Sphere Surface */}
@@ -242,34 +257,18 @@ export default function HolographicGlobe() {
             <RandomizedWireframe />
 
             {/* Connecting Lines with Electric Signals */}
-            {EDGES.map((edge, i) => {
-                // Create curved line (arc) between points
-                const distance = edge[0].position.distanceTo(edge[1].position);
-                const midPoint = new THREE.Vector3().addVectors(edge[0].position, edge[1].position).multiplyScalar(0.5);
-                midPoint.normalize().multiplyScalar(RADIUS + distance * 0.2); // Push outward based on distance
-
-                const curve = new THREE.QuadraticBezierCurve3(
-                    edge[0].position,
-                    midPoint,
-                    edge[1].position
-                );
-                
-                const points = curve.getPoints(20);
-
-                return (
-                    <group key={i}>
-                        <Line
-                            points={points}
-                            color="#3b82f6"
-                            lineWidth={2}
-                            transparent
-                            opacity={0.4}
-                        />
-                        {/* Electric signal traveling along the line */}
-                        <ElectricSignal curve={curve} edgeIndex={i} />
-                    </group>
-                );
-            })}
+            {edgeData.map(({ curve, points, index }) => (
+                <group key={index}>
+                    <Line
+                        points={points}
+                        color="#3b82f6"
+                        lineWidth={2}
+                        transparent
+                        opacity={0.4}
+                    />
+                    <ElectricSignal curve={curve} edgeIndex={index} />
+                </group>
+            ))}
 
             {/* Nodes */}
             {NODES.map((node, i) => {
