@@ -46,7 +46,7 @@ export default function ReturnHomeButton() {
     return (
         <Link 
             to={dashboardUrl}
-            className="fixed top-5 right-5 z-[9999] flex items-center gap-2 px-4 py-2 bg-black/50 hover:bg-black/80 backdrop-blur-md border border-white/10 hover:border-white/30 rounded-lg text-white/70 hover:text-cyan-400 transition-all shadow-lg group"
+            className="fixed bottom-6 right-6 z-[9999] flex items-center gap-2 px-4 py-2 bg-black/50 hover:bg-black/80 backdrop-blur-md border border-white/10 hover:border-white/30 rounded-lg text-white/70 hover:text-cyan-400 transition-all shadow-lg group"
             title={`Return to ${label}`}
         >
             <Home size={18} className="group-hover:scale-110 transition-transform" />
