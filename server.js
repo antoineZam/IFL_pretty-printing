@@ -170,6 +170,30 @@ app.get('/api/rib-auth/required', (req, res) => {
     res.status(200).json({ required: !!IFF_ACCESS_KEY });
 });
 
+// --- AUTH MIDDLEWARE ---
+// All /api/* routes below this point require the master CONNECTION_KEY.
+// The three public endpoints above (/api/auth, /api/rib-auth, /api/rib-auth/required)
+// are already handled and their response ends the request chain before this middleware runs.
+
+function requireAuth(req, res, next) {
+    const key = req.headers['x-connection-key'] || '';
+    if (key === CONNECTION_KEY) return next();
+    return res.status(401).json({ error: 'Unauthorized' });
+}
+
+// Applies to /api/rib/* and /api/iff/* routes on top of requireAuth.
+// When IFF_ACCESS_KEY is not configured, this check is skipped (open access).
+function requireRibAuth(req, res, next) {
+    if (!IFF_ACCESS_KEY) return next();
+    const key = req.headers['x-iff-key'] || '';
+    if (key === IFF_ACCESS_KEY) return next();
+    return res.status(403).json({ error: 'Forbidden' });
+}
+
+app.use('/api', requireAuth);
+app.use('/api/rib', requireRibAuth);
+app.use('/api/iff', requireRibAuth);
+
 app.get('/api/history', async (req, res) => {
     try {
         const history = await dbHelpers.loadPlayerHistory();
@@ -818,51 +842,6 @@ app.get('/api/db/player/:playerId/rankings', async (req, res) => {
 });
 
 // Debug endpoint to check database state
-app.get('/api/debug/db-check', async (req, res) => {
-    try {
-        const pool = require('./db');
-        
-        // Get table structures
-        const [usersColumns] = await pool.execute('DESCRIBE users');
-        const [matchesColumns] = await pool.execute('DESCRIBE matches');
-        
-        // Check tables
-        const [users] = await pool.execute('SELECT COUNT(*) as count FROM users');
-        const [matches] = await pool.execute('SELECT COUNT(*) as count FROM matches');
-        const [tournaments] = await pool.execute('SELECT COUNT(*) as count FROM tournaments');
-        
-        // Get sample data
-        const [sampleUsers] = await pool.execute('SELECT * FROM users LIMIT 5');
-        const [sampleMatches] = await pool.execute('SELECT * FROM matches LIMIT 5');
-        
-        // Test the JOIN query
-        const [joinTest] = await pool.execute(`
-            SELECT m.*, p1.username as p1Name, p2.username as p2Name
-            FROM matches m
-            LEFT JOIN users p1 ON m.player1_id = p1.user_id
-            LEFT JOIN users p2 ON m.player2_id = p2.user_id
-            LIMIT 3
-        `);
-        
-        res.json({
-            tableStructures: {
-                users: usersColumns.map(c => ({ field: c.Field, type: c.Type })),
-                matches: matchesColumns.map(c => ({ field: c.Field, type: c.Type }))
-            },
-            counts: {
-                users: users[0].count,
-                matches: matches[0].count,
-                tournaments: tournaments[0].count
-            },
-            sampleUsers,
-            sampleMatches,
-            joinTest
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message, stack: error.stack });
-    }
-});
-
 // Get all players from database
 app.get('/api/startgg/players', async (req, res) => {
     try {
@@ -1038,32 +1017,6 @@ app.post('/api/db/players/cleanup', async (req, res) => {
         res.status(500).json({ error: error.message || 'Failed to cleanup player names' });
     }
 });
-
-// Get player match history from database
-app.get('/api/startgg/player/:playerId/matches', async (req, res) => {
-    try {
-        const { playerId } = req.params;
-        const pool = require('./db');
-        const [matches] = await pool.execute(
-            `SELECT m.*, 
-                    p1.username as p1Name, p1.country as p1Flag,
-                    p2.username as p2Name, p2.country as p2Flag,
-                    t.name as tournamentName
-             FROM matches m
-             LEFT JOIN users p1 ON m.player1_id = p1.user_id
-             LEFT JOIN users p2 ON m.player2_id = p2.user_id
-             LEFT JOIN tournaments t ON m.tournament_id = t.tournament_id
-             WHERE m.player1_id = ? OR m.player2_id = ?
-             ORDER BY m.match_time DESC`,
-            [playerId, playerId]
-        );
-        res.status(200).json({ matches });
-    } catch (error) {
-        console.error('Error fetching player matches:', error);
-        res.status(500).json({ error: error.message || 'Failed to fetch player matches' });
-    }
-});
-
 
 // --- IFF PLAYER API ROUTES ---
 
