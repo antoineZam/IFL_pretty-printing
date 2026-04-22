@@ -70,15 +70,24 @@ let ribMatchCards = null;
 let ribPlayerStats = null;
 let ribStreamData = null;
 
-// Load initial state from database
+// Load initial state from database — all reads run in parallel.
 async function initializeData() {
   try {
-    overlayData = await dbHelpers.loadIFLData();
-    tagTeamData = await dbHelpers.loadTagTeamData();
-    playerHistory = await dbHelpers.loadPlayerHistory();
-    ribMatchCards = await dbHelpers.loadRIBMatchCards();
-    ribPlayerStats = await dbHelpers.loadRIBPlayerStats();
-    ribStreamData = await dbHelpers.loadRIBStreamData();
+    [
+      overlayData,
+      tagTeamData,
+      playerHistory,
+      ribMatchCards,
+      ribPlayerStats,
+      ribStreamData,
+    ] = await Promise.all([
+      dbHelpers.loadIFLData(),
+      dbHelpers.loadTagTeamData(),
+      dbHelpers.loadPlayerHistory(),
+      dbHelpers.loadRIBMatchCards(),
+      dbHelpers.loadRIBPlayerStats(),
+      dbHelpers.loadRIBStreamData(),
+    ]);
     console.log('Data loaded from database successfully');
   } catch (error) {
     console.error('Error initializing data from database:', error);
@@ -109,8 +118,17 @@ async function initializeData() {
   }
 }
 
-// Initialize data on startup
-initializeData();
+// Initialize data then start listening — guarantees the in-memory cache
+// is populated before any HTTP request or socket connection can arrive.
+initializeData().then(() => {
+  server.listen(port, () => {
+    console.log(`\nServer running at http://localhost:${port}`);
+    console.log('Connection key loaded — navigate to /auth to sign in.');
+  });
+}).catch((err) => {
+  console.error('Fatal: could not initialize data from database:', err);
+  process.exit(1);
+});
 
 // Run It Back overlay visibility state
 let ribOverlayState = {
@@ -1473,40 +1491,21 @@ io.use((socket, next) => {
   else next(new Error('Invalid connection key'));
 });
 
-io.on('connection', async (socket) => {
+io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
-  // Send current state immediately on connection
-  // Load fresh data from database
-  try {
-    const currentOverlayData = await dbHelpers.loadIFLData();
-    const currentTagTeamData = await dbHelpers.loadTagTeamData();
-    const currentRibMatchCards = await dbHelpers.loadRIBMatchCards();
-    const currentRibPlayerStats = await dbHelpers.loadRIBPlayerStats();
-    const currentRibStreamData = await dbHelpers.loadRIBStreamData();
-    
-    socket.emit('data-update', currentOverlayData);
-    socket.emit('tag-team-data', currentTagTeamData);
-    socket.emit('rib-match-cards-update', currentRibMatchCards);
-    socket.emit('rib-player-stats-update', currentRibPlayerStats);
-    socket.emit('rib-stream-data-update', currentRibStreamData);
-    socket.emit('rib-overlay-state-update', ribOverlayState);
-    socket.emit('love-and-war-display-update', loveAndWarDisplayState);
-    socket.emit('lnw-match-data', lnwMatchData);
-    socket.emit('lnw-display-mode', lnwDisplayMode);
-  } catch (error) {
-    console.error('Error loading initial data for socket:', error);
-    // Send cached data as fallback
-    socket.emit('data-update', overlayData);
-    socket.emit('tag-team-data', tagTeamData);
-    socket.emit('rib-match-cards-update', ribMatchCards);
-    socket.emit('rib-player-stats-update', ribPlayerStats);
-    socket.emit('rib-stream-data-update', ribStreamData);
-    socket.emit('rib-overlay-state-update', ribOverlayState);
-    socket.emit('love-and-war-display-update', loveAndWarDisplayState);
-    socket.emit('lnw-match-data', lnwMatchData);
-    socket.emit('lnw-display-mode', lnwDisplayMode);
-  }
+  // Serve the in-memory cache immediately — no DB round-trip needed.
+  // The cache is always current because every write handler updates it
+  // before (or alongside) persisting to the database.
+  socket.emit('data-update', overlayData);
+  socket.emit('tag-team-data', tagTeamData);
+  socket.emit('rib-match-cards-update', ribMatchCards);
+  socket.emit('rib-player-stats-update', ribPlayerStats);
+  socket.emit('rib-stream-data-update', ribStreamData);
+  socket.emit('rib-overlay-state-update', ribOverlayState);
+  socket.emit('love-and-war-display-update', loveAndWarDisplayState);
+  socket.emit('lnw-match-data', lnwMatchData);
+  socket.emit('lnw-display-mode', lnwDisplayMode);
 
   // Handle 1v1 Updates
   socket.on('update-data', async (data) => {
@@ -1636,8 +1635,3 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
 });
 
-
-server.listen(port, () => {
-  console.log(`\nServer running at http://localhost:${port}`);
-  console.log(`Connection key loaded — navigate to /auth to sign in.`);
-});
