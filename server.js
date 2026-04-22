@@ -305,7 +305,17 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
     }
     const synced = results.filter(r => r.success).length;
     console.log(`[Sync] sync-all complete: ${synced}/${tournaments.length} succeeded.`);
-    res.json({ totalFound: tournaments.length, synced, failed: tournaments.length - synced, results });
+
+    const [cleaned] = await pool.execute(
+        `DELETE FROM users WHERE NOT EXISTS (
+            SELECT 1 FROM matches
+            WHERE users.user_id = matches.player1_id OR users.user_id = matches.player2_id
+        ) AND EXISTS (SELECT 1 FROM matches)`
+    );
+    const playersRemoved = cleaned.affectedRows || 0;
+    if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
+
+    res.json({ totalFound: tournaments.length, synced, failed: tournaments.length - synced, results, playersRemoved });
 }));
 
 startggRouter.get('/ifl/:number', asyncRoute(async (req, res) => {
@@ -362,7 +372,17 @@ startggRouter.post('/sync/tournament/:slug', asyncRoute(async (req, res) => {
     const { slug } = req.params;
     console.log(`[Sync] Starting tournament sync: ${slug}`);
     const result = await startggSync.syncTournamentFromStartGG(slug, req.body.eventSlug || null);
-    res.json({ success: true, message: 'Tournament synced successfully', ...result });
+
+    const [cleaned] = await pool.execute(
+        `DELETE FROM users WHERE NOT EXISTS (
+            SELECT 1 FROM matches
+            WHERE users.user_id = matches.player1_id OR users.user_id = matches.player2_id
+        ) AND EXISTS (SELECT 1 FROM matches)`
+    );
+    const playersRemoved = cleaned.affectedRows || 0;
+    if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
+
+    res.json({ success: true, message: 'Tournament synced successfully', ...result, playersRemoved });
 }));
 
 startggRouter.post('/sync/player/:slug', asyncRoute(async (req, res) => {
@@ -514,6 +534,20 @@ dbRouter.put('/player/:playerId', asyncRoute(async (req, res) => {
         io.emit('history-update', playerHistory);
     } catch (e) { console.error('Error broadcasting player history:', e); }
     res.json({ success: true, player });
+}));
+
+dbRouter.delete('/player/:playerId', asyncRoute(async (req, res) => {
+    const { playerId } = req.params;
+    await pool.execute('DELETE FROM matches WHERE player1_id = ? OR player2_id = ?', [playerId, playerId]);
+    const [result] = await pool.execute('DELETE FROM users WHERE user_id = ?', [playerId]);
+    if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Player not found' });
+    }
+    try {
+        playerHistory = await dbHelpers.loadPlayerHistory();
+        io.emit('history-update', playerHistory);
+    } catch (e) { console.error('Error broadcasting player history:', e); }
+    res.json({ success: true });
 }));
 
 // Only available outside production — destructive operation.

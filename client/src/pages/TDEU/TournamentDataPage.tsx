@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Download, Database, Trophy, Users, Swords, RefreshCw, Calendar, CheckCircle, XCircle, Edit2, X, Save } from 'lucide-react';
+import { Search, Download, Database, Trophy, Users, Swords, RefreshCw, Calendar, CheckCircle, XCircle, Edit2, X, Save, Trash2 } from 'lucide-react';
 import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 interface Tournament {
@@ -207,7 +207,8 @@ const TournamentDataPage = () => {
             if (data.success) {
                 const playerUpdatedMsg = data.playersUpdated ? ` (${data.playersUpdated} updated)` : '';
                 const matchUpdatedMsg = data.matchesUpdated ? `, ${data.matchesUpdated} updated` : '';
-                setSyncResult({ success: true, message: `${data.playersSynced} players${playerUpdatedMsg}, ${data.matchesSynced} matches added${matchUpdatedMsg}` });
+                const cleanedMsg = data.playersRemoved ? `, ${data.playersRemoved} orphan players removed` : '';
+                setSyncResult({ success: true, message: `${data.playersSynced} players${playerUpdatedMsg}, ${data.matchesSynced} matches added${matchUpdatedMsg}${cleanedMsg}` });
                 loadTournaments();
             } else {
                 setSyncResult({ success: false, message: data.error || 'Sync failed' });
@@ -283,6 +284,24 @@ const TournamentDataPage = () => {
             console.error('Error saving player:', error);
         } finally {
             setSavingPlayer(false);
+        }
+    };
+
+    const deletePlayer = async (player: Player) => {
+        if (!confirm(`Delete player "${player.sponsor ? player.sponsor + ' ' : ''}${player.username}"? This will also remove all their match records.`)) return;
+        try {
+            const res = await fetch(`/api/db/player/${player.user_id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                setPlayers(prev => prev.filter(p => p.user_id !== player.user_id));
+                if (selectedPlayer?.user_id === player.user_id) {
+                    setSelectedPlayer(null);
+                    setPlayerMatches([]);
+                    setPlayerRankings([]);
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting player:', error);
         }
     };
 
@@ -609,6 +628,9 @@ const TournamentDataPage = () => {
                                                 if (totalUpdated > 0) {
                                                     message += ` ${totalUpdated} matches updated.`;
                                                 }
+                                                if (data.playersRemoved > 0) {
+                                                    message += ` ${data.playersRemoved} orphan players removed.`;
+                                                }
                                                 setSyncResult({ success: data.failed === 0, message });
                                                 loadTournaments();
                                             } catch (error) {
@@ -806,6 +828,14 @@ const TournamentDataPage = () => {
                                                         title="Edit player"
                                                     >
                                                         <Edit2 size={14} />
+                                                    </button>
+                                                    {/* Delete Button */}
+                                                    <button
+                                                        onClick={() => deletePlayer(player)}
+                                                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-gray-600 hover:text-red-400 transition-colors shrink-0"
+                                                        title="Delete player"
+                                                    >
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 </div>
                                             )
