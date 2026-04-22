@@ -339,52 +339,6 @@ app.get('/api/startgg/ifl/tournaments', async (req, res) => {
     }
 });
 
-// Test fetching a specific slug directly
-app.get('/api/startgg/test/:slug', async (req, res) => {
-    try {
-        const { slug } = req.params;
-        console.log(`Testing slug: ${slug}`);
-        const data = await startgg.getTournamentBySlug(slug);
-        res.status(200).json(data);
-    } catch (error) {
-        console.error('Error testing slug:', error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Test endpoint - search for a tournament by full slug (no DB needed)
-app.get('/api/startgg/search-slug/:slug', async (req, res) => {
-    try {
-        const slug = req.params.slug;
-        console.log(`\nSearching for tournament slug: ${slug}`);
-        
-        // Try with and without tournament/ prefix
-        const slugsToTry = [
-            slug,
-            `tournament/${slug}`,
-            slug.replace('tournament/', '')
-        ];
-        
-        for (const s of slugsToTry) {
-            try {
-                console.log(`  Trying: ${s}`);
-                const data = await startgg.getTournamentBySlug(s);
-                if (data && data.tournament) {
-                    console.log(`  ✓ Found: ${data.tournament.name}`);
-                    return res.json(data);
-                }
-            } catch (e) {
-                console.log(`  ✗ Not found: ${e.message}`);
-            }
-        }
-        
-        res.status(404).json({ error: 'Tournament not found with any slug variation' });
-    } catch (error) {
-        console.error('Error:', error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // Get specific IFL tournament by number (e.g., iron-fist-league-1, iron-fist-league-2-finals)
 app.get('/api/startgg/ifl/:number', async (req, res) => {
     try {
@@ -589,26 +543,18 @@ app.get('/api/startgg/player/:slug', async (req, res) => {
 
 // Sync tournament from start.gg to database
 app.post('/api/startgg/sync/tournament/:slug', async (req, res) => {
-    console.log('[API /sync/tournament] Received request');
-    console.log('[API /sync/tournament] Slug param:', req.params.slug);
-    console.log('[API /sync/tournament] Full URL:', req.originalUrl);
-    console.log('[API /sync/tournament] Body:', req.body);
-    
     try {
         const { slug } = req.params;
         const { eventSlug } = req.body;
-        console.log('[API /sync/tournament] Starting sync for slug:', slug);
-        
+        console.log(`[Sync] Starting tournament sync: ${slug}`);
         const result = await startggSync.syncTournamentFromStartGG(slug, eventSlug || null);
-        console.log('[API /sync/tournament] Sync completed successfully:', result);
-        
         res.status(200).json({
             success: true,
             message: 'Tournament synced successfully',
             ...result
         });
     } catch (error) {
-        console.error('[API /sync/tournament] Error syncing tournament:', error);
+        console.error('[Sync] Error syncing tournament:', error);
         res.status(500).json({ error: error.message || 'Failed to sync tournament' });
     }
 });
@@ -931,7 +877,11 @@ app.put('/api/db/player/:playerId', async (req, res) => {
 });
 
 // Cleanup player names - extract sponsors from "Sponsor | PlayerName" format and merge duplicates
+// This route is intentionally disabled in production to prevent accidental data loss.
 app.post('/api/db/players/cleanup', async (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: 'This operation is not available in production.' });
+    }
     try {
         const pool = require('./db');
         
