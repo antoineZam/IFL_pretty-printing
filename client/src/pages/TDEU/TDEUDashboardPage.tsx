@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, memo } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ExternalLink, Database, Monitor, Users, Gamepad2, Trophy, Tv, ChevronLeft, TrendingUp } from 'lucide-react';
 import { getCountryCode } from '../../utils/countries';
@@ -32,9 +32,203 @@ interface LeaderboardPlayer {
     points: number;
 }
 
+// ---------------------------------------------------------------------------
+// Smooth monotone cubic bezier through a set of points (no overshoot).
+// Each segment uses horizontal control points at the mid-X so the curve
+// stays flat at the endpoints — ideal for a time-series chart.
+// ---------------------------------------------------------------------------
+interface ChartPoint { x: number; y: number; data: TournamentStat }
+
+function smoothPath(pts: ChartPoint[]): string {
+    if (pts.length < 2) return '';
+    const d: string[] = [`M ${pts[0].x} ${pts[0].y}`];
+    for (let i = 1; i < pts.length; i++) {
+        const cpX = (pts[i - 1].x + pts[i].x) / 2;
+        d.push(`C ${cpX} ${pts[i - 1].y} ${cpX} ${pts[i].y} ${pts[i].x} ${pts[i].y}`);
+    }
+    return d.join(' ');
+}
+
+function getWeekLabel(tournament: TournamentStat): string {
+    if (tournament.week_number) return String(tournament.week_number);
+    const m =
+        tournament.name.match(/\[Week\s*(\d+)\]/i) ||
+        tournament.name.match(/Week\s*(\d+)/i) ||
+        tournament.name.match(/#(\d+)/);
+    return m ? m[1] : '';
+}
+
+const PADDING = { top: 24, right: 20, bottom: 30, left: 36 } as const;
+const W = 500;
+const H = 200;
+const CW = W - PADDING.left - PADDING.right;
+const CH = H - PADDING.top - PADDING.bottom;
+
+const LineChart = memo(function LineChart({ data }: { data: TournamentStat[] }) {
+    const chartData = useMemo(() => data.slice(-12), [data]);
+
+    const { points, maxValue, minValue } = useMemo(() => {
+        const max = Math.max(...chartData.map(t => t.participant_count), 1);
+        const min = Math.min(...chartData.map(t => t.participant_count));
+        const span = Math.max(chartData.length - 1, 1);
+        const pts: ChartPoint[] = chartData.map((t, i) => ({
+            x: PADDING.left + (i / span) * CW,
+            y: PADDING.top + CH - ((t.participant_count - min) / (max - min || 1)) * CH,
+            data: t,
+        }));
+        return { points: pts, maxValue: max, minValue: min };
+    }, [chartData]);
+
+    const linePath = useMemo(() => smoothPath(points), [points]);
+
+    const areaPath = useMemo(() => {
+        if (points.length < 2) return '';
+        const base = PADDING.top + CH;
+        return `${linePath} L ${points[points.length - 1].x} ${base} L ${points[0].x} ${base} Z`;
+    }, [linePath, points]);
+
+    const xLabelSet = useMemo(() => {
+        const step = Math.ceil(chartData.length / 6);
+        const s = new Set<number>();
+        for (let i = 0; i < chartData.length; i += step) s.add(i);
+        s.add(chartData.length - 1);
+        return s;
+    }, [chartData]);
+
+    const last = points[points.length - 1];
+    const lastValue = chartData[chartData.length - 1]?.participant_count;
+    const yMid = Math.round((maxValue + minValue) / 2);
+
+    return (
+        <div className="relative">
+            <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
+                <defs>
+                    <linearGradient id="tcLine" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#06b6d4" />
+                        <stop offset="100%" stopColor="#3b82f6" />
+                    </linearGradient>
+                    <linearGradient id="tcArea" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.20" />
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+                    </linearGradient>
+                    <filter id="tcGlow" x="-40%" y="-40%" width="180%" height="180%">
+                        <feGaussianBlur stdDeviation="2.5" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                    {/* clip so the curve never bleeds outside the chart box */}
+                    <clipPath id="tcClip">
+                        <rect x={PADDING.left} y={PADDING.top} width={CW} height={CH} />
+                    </clipPath>
+                </defs>
+
+                {/* grid lines */}
+                {[0, 0.5, 1].map((r, i) => (
+                    <line
+                        key={i}
+                        x1={PADDING.left} y1={PADDING.top + CH * r}
+                        x2={W - PADDING.right} y2={PADDING.top + CH * r}
+                        stroke="rgba(255,255,255,0.05)"
+                        strokeDasharray="3,5"
+                    />
+                ))}
+
+                {/* Y-axis labels */}
+                {[maxValue, yMid, minValue].map((v, i) => (
+                    <text
+                        key={i}
+                        x={PADDING.left - 6}
+                        y={PADDING.top + (i / 2) * CH + 4}
+                        fill="#4b5563" fontSize="9" textAnchor="end"
+                    >
+                        {v}
+                    </text>
+                ))}
+
+                {/* X-axis labels */}
+                {chartData.map((t, i) => {
+                    if (!xLabelSet.has(i)) return null;
+                    const x = PADDING.left + (i / Math.max(chartData.length - 1, 1)) * CW;
+                    const label = getWeekLabel(t);
+                    return label ? (
+                        <text key={t.tournament_id} x={x} y={H - 6}
+                            fill="#4b5563" fontSize="9" textAnchor="middle">
+                            W{label}
+                        </text>
+                    ) : null;
+                })}
+
+                {/* area fill */}
+                {points.length > 1 && (
+                    <path d={areaPath} fill="url(#tcArea)" clipPath="url(#tcClip)" />
+                )}
+
+                {/* glow copy of line */}
+                {points.length > 1 && (
+                    <path d={linePath} fill="none"
+                        stroke="url(#tcLine)" strokeWidth="5"
+                        strokeLinecap="round" strokeLinejoin="round"
+                        filter="url(#tcGlow)" opacity="0.45"
+                        clipPath="url(#tcClip)"
+                    />
+                )}
+
+                {/* main line */}
+                {points.length > 1 && (
+                    <path d={linePath} fill="none"
+                        stroke="url(#tcLine)" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round"
+                        clipPath="url(#tcClip)"
+                    />
+                )}
+
+                {/* data points */}
+                {points.map((p, i) => {
+                    const isLast = i === points.length - 1;
+                    return (
+                        <g key={p.data.tournament_id}>
+                            {isLast && (
+                                <circle cx={p.x} cy={p.y} r="9"
+                                    fill="#06b6d4" opacity="0.12" />
+                            )}
+                            <circle cx={p.x} cy={p.y}
+                                r={isLast ? 4 : 2.5}
+                                fill={isLast ? '#06b6d4' : '#0c4a5a'}
+                                stroke={isLast ? '#67e8f9' : '#06b6d4'}
+                                strokeWidth={isLast ? 1.5 : 1}
+                            />
+                        </g>
+                    );
+                })}
+
+                {/* latest-value tooltip */}
+                {last && lastValue != null && (
+                    <g>
+                        <rect
+                            x={last.x - 16} y={last.y - 26}
+                            width="32" height="16" rx="4"
+                            fill="#0e7490" stroke="#06b6d4" strokeWidth="0.5"
+                            opacity="0.92"
+                        />
+                        <text
+                            x={last.x} y={last.y - 14}
+                            fill="#e0f2fe" fontSize="9" fontWeight="600" textAnchor="middle"
+                        >
+                            {lastValue}
+                        </text>
+                    </g>
+                )}
+            </svg>
+        </div>
+    );
+});
+
+// ---------------------------------------------------------------------------
+
 const TDEUDashboardPage = () => {
     const [searchParams] = useSearchParams();
-    const [key, setKey] = useState<string | null>(null);
     const [tournamentStats, setTournamentStats] = useState<TournamentStat[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
@@ -50,7 +244,6 @@ const TDEUDashboardPage = () => {
             return;
         }
         
-        setKey(connectionKey);
         loadTournamentStats();
         loadLeaderboard();
     }, [searchParams, navigate]);
@@ -130,191 +323,10 @@ const TDEUDashboardPage = () => {
         },
     ];
 
-    // Line Chart Component
-    const LineChart = ({ data }: { data: TournamentStat[] }) => {
-        const chartData = data.slice(-12);
-        const maxValue = Math.max(...chartData.map(t => t.participant_count), 1);
-        const minValue = Math.min(...chartData.map(t => t.participant_count));
-        
-        const padding = { top: 20, right: 15, bottom: 30, left: 35 };
-        const width = 400;
-        const height = 200;
-        const chartWidth = width - padding.left - padding.right;
-        const chartHeight = height - padding.top - padding.bottom;
-
-        const points = chartData.map((tournament, idx) => {
-            const x = padding.left + (idx / (chartData.length - 1 || 1)) * chartWidth;
-            const y = padding.top + chartHeight - ((tournament.participant_count - minValue) / (maxValue - minValue || 1)) * chartHeight;
-            return { x, y, data: tournament };
-        });
-
-        const linePath = points.map((p, idx) => 
-            `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
-        ).join(' ');
-
-        const areaPath = `${linePath} L ${points[points.length - 1]?.x || 0} ${padding.top + chartHeight} L ${padding.left} ${padding.top + chartHeight} Z`;
-
-        const getLabel = (tournament: TournamentStat) => {
-            // Use week_number from API if available, otherwise try to extract from name
-            if (tournament.week_number) {
-                return tournament.week_number.toString();
-            }
-            const match = tournament.name.match(/\[Week\s*(\d+)\]/i) || 
-                         tournament.name.match(/Week\s*(\d+)/i) ||
-                         tournament.name.match(/#(\d+)/);
-            return match ? match[1] : '';
-        };
-
-        const yLabels = [maxValue, Math.round((maxValue + minValue) / 2), minValue];
-
-        return (
-            <div className="relative">
-                <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-                    <defs>
-                        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#06b6d4" />
-                            <stop offset="50%" stopColor="#3b82f6" />
-                            <stop offset="100%" stopColor="#8b5cf6" />
-                        </linearGradient>
-                        <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                        </linearGradient>
-                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                        <filter id="pointGlow" x="-100%" y="-100%" width="300%" height="300%">
-                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-
-                    {[0, 0.5, 1].map((ratio, idx) => (
-                        <line
-                            key={idx}
-                            x1={padding.left}
-                            y1={padding.top + chartHeight * ratio}
-                            x2={width - padding.right}
-                            y2={padding.top + chartHeight * ratio}
-                            stroke="rgba(255,255,255,0.05)"
-                            strokeDasharray="4,4"
-                        />
-                    ))}
-
-                    {yLabels.map((label, idx) => (
-                        <text
-                            key={idx}
-                            x={padding.left - 8}
-                            y={padding.top + (idx / 2) * chartHeight + 4}
-                            fill="#4b5563"
-                            fontSize="10"
-                            textAnchor="end"
-                        >
-                            {label}
-                        </text>
-                    ))}
-
-                    {chartData.filter((_, i) => i % Math.ceil(chartData.length / 6) === 0 || i === chartData.length - 1).map((tournament) => {
-                        const originalIdx = chartData.indexOf(tournament);
-                        const x = padding.left + (originalIdx / (chartData.length - 1 || 1)) * chartWidth;
-                        const label = getLabel(tournament);
-                        return label ? (
-                            <text
-                                key={tournament.tournament_id}
-                                x={x}
-                                y={height - 8}
-                                fill="#4b5563"
-                                fontSize="9"
-                                textAnchor="middle"
-                            >
-                                #{label}
-                            </text>
-                        ) : null;
-                    })}
-
-                    {points.length > 1 && (
-                        <path d={areaPath} fill="url(#areaGradient)" />
-                    )}
-
-                    {points.length > 1 && (
-                        <>
-                            <path
-                                d={linePath}
-                                fill="none"
-                                stroke="url(#lineGradient)"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                filter="url(#glow)"
-                            />
-                            <path
-                                d={linePath}
-                                fill="none"
-                                stroke="url(#lineGradient)"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </>
-                    )}
-
-                    {points.map((point, idx) => (
-                        <g key={point.data.tournament_id}>
-                            <circle
-                                cx={point.x}
-                                cy={point.y}
-                                r={idx === points.length - 1 ? 6 : 4}
-                                fill={idx === points.length - 1 ? "#3b82f6" : "#1e3a5f"}
-                                filter="url(#pointGlow)"
-                                opacity={idx === points.length - 1 ? 0.6 : 0.3}
-                            />
-                            <circle
-                                cx={point.x}
-                                cy={point.y}
-                                r={idx === points.length - 1 ? 4 : 3}
-                                fill={idx === points.length - 1 ? "#60a5fa" : "#3b82f6"}
-                                stroke={idx === points.length - 1 ? "#93c5fd" : "#1e40af"}
-                                strokeWidth="1.5"
-                            />
-                        </g>
-                    ))}
-
-                    {points.length > 0 && (
-                        <g>
-                            <rect
-                                x={points[points.length - 1].x - 14}
-                                y={points[points.length - 1].y - 24}
-                                width="28"
-                                height="16"
-                                rx="4"
-                                fill="#3b82f6"
-                                opacity="0.9"
-                            />
-                            <text
-                                x={points[points.length - 1].x}
-                                y={points[points.length - 1].y - 12}
-                                fill="white"
-                                fontSize="10"
-                                fontWeight="600"
-                                textAnchor="middle"
-                            >
-                                {chartData[chartData.length - 1]?.participant_count}
-                            </text>
-                        </g>
-                    )}
-                </svg>
-            </div>
-        );
-    };
-
-    const maxParticipants = Math.max(...tournamentStats.map(t => t.participant_count), 0);
+    const maxParticipants = useMemo(
+        () => Math.max(...tournamentStats.map(t => t.participant_count), 0),
+        [tournamentStats]
+    );
 
     return (
         <div className="min-h-screen bg-transparent">
@@ -522,7 +534,7 @@ const TDEUDashboardPage = () => {
                             {overlayItems.map((item) => (
                                 <Link 
                                     key={item.path} 
-                                    to={`${item.path}?key=${key}`} 
+                                    to={item.path} 
                                     target="_blank"
                                     onMouseEnter={onMouseEnter(item.path)}
                                     onTouchStart={onTouchStart(item.path)}

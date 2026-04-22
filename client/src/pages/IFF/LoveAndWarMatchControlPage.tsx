@@ -283,7 +283,7 @@ const LoveAndWarMatchControlPage = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <Link to={`/iff/love-and-war?key=${key}`} className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
+                        <Link to="/iff/love-and-war" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
                             <ChevronLeft size={18} />
                             <span className="text-sm">Back to Love & War</span>
                         </Link>
@@ -293,7 +293,7 @@ const LoveAndWarMatchControlPage = () => {
                         <p className="text-gray-500 mt-1">Control the stream overlay for Love & War matches</p>
                     </div>
                     <Link
-                        to={`/iff/love-and-war/unified-overlay?key=${key}`}
+                        to="/iff/love-and-war/unified-overlay"
                         target="_blank"
                         className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 hover:bg-gray-700 border border-gray-700 rounded-xl transition-all hover:border-red-500/50"
                     >

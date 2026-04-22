@@ -14,7 +14,6 @@ interface NavItem {
 
 const RIBDashboardPage = () => {
     const [searchParams] = useSearchParams();
-    const [key, setKey] = useState<string | null>(null);
     const [ribUnlocked, setRibUnlocked] = useState(false);
     const [ribKeyRequired, setRibKeyRequired] = useState(true);
     const navigate = useNavigate();
@@ -28,7 +27,6 @@ const RIBDashboardPage = () => {
             return;
         }
         
-        setKey(connectionKey);
         checkRibAccess();
     }, [searchParams, navigate]);
 
@@ -200,7 +198,7 @@ const RIBDashboardPage = () => {
                                     item.external ? (
                                         <Link 
                                             key={item.path} 
-                                            to={`${item.path}?key=${key}`} 
+                                            to={item.path} 
                                             target="_blank"
                                             onMouseEnter={onMouseEnter(item.path)}
                                             onTouchStart={onTouchStart(item.path)}
@@ -249,7 +247,7 @@ const RIBDashboardPage = () => {
                                 {overlayItems.map((item) => (
                                     <Link 
                                         key={item.path} 
-                                        to={`${item.path}?key=${key}`} 
+                                        to={item.path} 
                                         target="_blank"
                                         onMouseEnter={onMouseEnter(item.path)}
                                         onTouchStart={onTouchStart(item.path)}
@@ -281,7 +279,7 @@ const RIBDashboardPage = () => {
                                 item.external ? (
                                     <Link 
                                         key={item.path} 
-                                        to={`${item.path}?key=${key}`} 
+                                        to={item.path} 
                                         target="_blank"
                                         onMouseEnter={onMouseEnter(item.path)}
                                         onTouchStart={onTouchStart(item.path)}
@@ -300,7 +298,7 @@ const RIBDashboardPage = () => {
                                 ) : (
                                     <Link 
                                         key={item.path} 
-                                        to={`${item.path}?key=${key}`}
+                                        to={item.path}
                                         onMouseEnter={onMouseEnter(item.path)}
                                         onTouchStart={onTouchStart(item.path)}
                                     >
@@ -326,7 +324,7 @@ const RIBDashboardPage = () => {
                             <div className="w-1 h-4 bg-pink-500 rounded-full" />
                             Love & War Tournament
                         </h3>
-                        <Link to={`/iff/love-and-war?key=${key}`}>
+                        <Link to="/iff/love-and-war">
                             <div className="flex items-center gap-4 p-6 rounded-xl border border-pink-500/30 bg-gradient-to-br from-pink-500/10 to-red-500/5 hover:border-pink-400 hover:from-pink-500/15 hover:to-red-500/10 transition-all group">
                                 <div className="p-3 rounded-lg bg-pink-500/20 text-pink-400">
                                     <Heart size={28} />

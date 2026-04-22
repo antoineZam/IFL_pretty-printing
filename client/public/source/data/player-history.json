@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Player 1",
+    "team": "Team 1",
+    "flag": "DZ"
+  },
+  {
+    "name": "Player 2",
+    "team": "Team 2",
+    "flag": ""
+  }
+]

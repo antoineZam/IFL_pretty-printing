@@ -1,0 +1,25 @@
+{
+  "players": [
+    {
+      "name": "Kuro Loaf",
+      "character": "jin",
+      "division": "Master League (the goat)",
+      "iff8Ranking": "#01 Master (Just that good)",
+      "iff8Record": "6 Wins 1 Loss",
+      "iff8RecordDetails": "19 Games, 29 Points",
+      "iffHistory": "nah he cappin'",
+      "rank": "God of Destruction XV",
+      "prowess": 900001,
+      "rankedMatches": {
+        "wins": 192,
+        "loses": 161,
+        "wlRate": "54.4%"
+      },
+      "playerMatches": {
+        "wins": 978,
+        "loses": 186,
+        "wlRate": "84.0%"
+      }
+    }
+  ]
+}

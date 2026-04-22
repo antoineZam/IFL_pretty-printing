@@ -30,4 +30,3 @@ npm start
 
 # Cleanup on exit
 trap "kill $CLIENT_PID 2>/dev/null" EXIT
-image.png

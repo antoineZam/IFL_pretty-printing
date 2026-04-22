@@ -395,7 +395,7 @@ const IFLTop8ControlPage = () => {
                     <p className="text-sm text-gray-500">Fetch and display tournament standings</p>
                 </div>
                 <Link
-                    to={`/tdeu/ifl/top8/overlay?key=${key}${selectedEvent ? `&event=${encodeURIComponent(selectedEvent.slug)}` : ''}`}
+                    to={`/tdeu/ifl/top8/overlay${selectedEvent ? `?event=${encodeURIComponent(selectedEvent.slug)}` : ''}`}
                     target="_blank"
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
                 >
@@ -753,8 +753,8 @@ const IFLTop8ControlPage = () => {
                                             Copy
                                         </button>
                                         <Link
-                                            to={`/tdeu/ifl/top8/standings/overlay?key=${key}`}
-                                            target="_blank"
+                            to="/tdeu/ifl/top8/standings/overlay"
+                            target="_blank"
                                             className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm flex items-center gap-1"
                                         >
                                             <Eye size={14} />

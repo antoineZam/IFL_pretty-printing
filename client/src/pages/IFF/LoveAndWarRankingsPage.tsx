@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Trophy, Medal, Crown, Save, Check } from 'lucide-react';
 
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -30,8 +30,6 @@ interface TeamRanking {
 
 const LoveAndWarRankingsPage = () => {
     const { id: tournamentId } = useParams();
-    const [searchParams] = useSearchParams();
-    const key = searchParams.get('key') || localStorage.getItem('connectionKey');
 
     const [tournament, setTournament] = useState<Tournament | null>(null);
     const [rankings, setRankings] = useState<TeamRanking[]>([]);
@@ -149,7 +147,7 @@ const LoveAndWarRankingsPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <Link to={`/iff/love-and-war/tournament/${tournamentId}/bracket?key=${key}`} className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
+                    <Link to={`/iff/love-and-war/tournament/${tournamentId}/bracket`} className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
                         <ChevronLeft size={18} />
                         <span className="text-sm">Back to Bracket</span>
                     </Link>

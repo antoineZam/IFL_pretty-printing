@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Edit3, Trash2, Users, Eye, X } from 'lucide-react';
 
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -26,9 +26,6 @@ interface LoveAndWarTeam {
 }
 
 const LoveAndWarControlPage = () => {
-    const [searchParams] = useSearchParams();
-    const key = searchParams.get('key') || localStorage.getItem('connectionKey');
-
     const [teams, setTeams] = useState<LoveAndWarTeam[]>([]);
     const [players, setPlayers] = useState<PlayerInfo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -155,7 +152,7 @@ const LoveAndWarControlPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <Link to={`/iff/love-and-war?key=${key}`} className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
+                    <Link to="/iff/love-and-war" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-2">
                         <ChevronLeft size={18} />
                         <span className="text-sm">Back to Love & War Dashboard</span>
                     </Link>
@@ -228,7 +225,7 @@ const LoveAndWarControlPage = () => {
                         {/* Actions */}
                         <div className="flex gap-2">
                             <Link
-                                to={`/iff/love-and-war/overlay?key=${key}&teamId=${team.id}`}
+                                to={`/iff/love-and-war/overlay?teamId=${team.id}`}
                                 target="_blank"
                                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded transition-colors text-sm"
                             >
