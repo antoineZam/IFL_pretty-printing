@@ -316,8 +316,8 @@ export default function IFFStarfield() {
               : '0 0 16px 5px rgba(253,230,138,1), 0 0 38px 14px rgba(251,146,60,0.6), 0 0 72px 24px rgba(239,68,68,0.25)'
             : 'none';
           const ringColor = star.archived
-            ? 'rgba(148,163,184,0.35)'
-            : 'rgba(253,230,138,0.5)';
+            ? 'rgba(148,163,184,0.15)'
+            : 'rgba(253,230,138,0.2)';
 
           return (
             <div
