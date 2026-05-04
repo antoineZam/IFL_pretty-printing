@@ -4,6 +4,7 @@ import IFFAccessGuard from './components/IFFAccessGuard';
 import TDEULayout from './components/TDEULayout';
 import ReturnHomeButton from './components/ReturnHomeButton';
 import AmbientParticles from './components/AmbientParticles';
+import IFFStarfield from './components/IFFStarfield';
 
 // Eager load only critical pages for initial render
 import AuthPage from './pages/AuthPage';
@@ -59,6 +60,7 @@ function App() {
   return (
     <BrowserRouter>
       <AmbientParticles />
+      <IFFStarfield />
       <ReturnHomeButton />
       <Suspense fallback={<PageLoader />}>
         <Routes>
