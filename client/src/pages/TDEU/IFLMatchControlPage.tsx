@@ -13,10 +13,12 @@ interface PlayerData {
     p1Team: string;
     p1Name: string;
     p1Rank: number | null;
+    p1Loser: boolean;
     p2Flag: string;
     p2Team: string;
     p2Name: string;
     p2Rank: number | null;
+    p2Loser: boolean;
     p1Score: number;
     p2Score: number;
     round: string;
@@ -40,8 +42,8 @@ const IFLMatchControlPage = () => {
     const [searchParams] = useSearchParams();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [data, setData] = useState<PlayerData>({
-        p1Flag: '', p1Team: '', p1Name: '', p1Rank: null,
-        p2Flag: '', p2Team: '', p2Name: '', p2Rank: null,
+        p1Flag: '', p1Team: '', p1Name: '', p1Rank: null, p1Loser: false,
+        p2Flag: '', p2Team: '', p2Name: '', p2Rank: null, p2Loser: false,
         p1Score: 0, p2Score: 0, round: '', eventNumber: '',
     });
     const [playerHistory, setPlayerHistory] = useState<PlayerHistoryItem[]>([]);
@@ -208,7 +210,7 @@ const IFLMatchControlPage = () => {
 
     const resetScores = () => {
         if (!data) return;
-        const updatedData = { ...data, p1Score: 0, p2Score: 0 };
+        const updatedData = { ...data, p1Score: 0, p2Score: 0, p1Loser: false, p2Loser: false };
         setData(updatedData);
         sendUpdate(updatedData);
     };
@@ -221,11 +223,13 @@ const IFLMatchControlPage = () => {
             p1Team: data.p2Team,
             p1Name: data.p2Name,
             p1Rank: data.p2Rank,
+            p1Loser: data.p2Loser,
             p1Score: data.p2Score,
             p2Flag: data.p1Flag,
             p2Team: data.p1Team,
             p2Name: data.p1Name,
             p2Rank: data.p1Rank,
+            p2Loser: data.p1Loser,
             p2Score: data.p1Score,
         };
         setData(updatedData);
@@ -311,6 +315,19 @@ const IFLMatchControlPage = () => {
                                     />
                                 </div>
                             </div>
+                            <button
+                                onClick={() => {
+                                    const updatedData = { ...data, p1Loser: !data.p1Loser };
+                                    setData(updatedData);
+                                }}
+                                className={`w-full py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
+                                    data.p1Loser
+                                        ? 'bg-red-500/30 border border-red-500/60 text-red-400'
+                                        : 'bg-gray-900/70 border border-white/10 text-gray-500 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                                }`}
+                            >
+                                {data.p1Loser ? '(L) Loser — Active' : 'Mark as Loser (L)'}
+                            </button>
                         </div>
                     </GlassCard>
 
@@ -409,6 +426,19 @@ const IFLMatchControlPage = () => {
                                 </div>
                                 <CyberInput id="p2Team" label="Team / Tag" value={data.p2Team} onChange={handleInputChange} style={{textAlign: 'right'}} />
                             </div>
+                            <button
+                                onClick={() => {
+                                    const updatedData = { ...data, p2Loser: !data.p2Loser };
+                                    setData(updatedData);
+                                }}
+                                className={`w-full py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
+                                    data.p2Loser
+                                        ? 'bg-red-500/30 border border-red-500/60 text-red-400'
+                                        : 'bg-gray-900/70 border border-white/10 text-gray-500 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                                }`}
+                            >
+                                {data.p2Loser ? '(L) Loser — Active' : 'Mark as Loser (L)'}
+                            </button>
                         </div>
                     </GlassCard>
 

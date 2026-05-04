@@ -8,10 +8,12 @@ interface PlayerData {
     p1Team: string;
     p1Name: string;
     p1Rank: number | null;
+    p1Loser: boolean;
     p2Flag: string;
     p2Team: string;
     p2Name: string;
     p2Rank: number | null;
+    p2Loser: boolean;
     p1Score: number;
     p2Score: number;
     round: string;
@@ -144,7 +146,7 @@ const IFLMatchOverlayPage = () => {
                         <span className="font-archivo-extra-condensed-light uppercase opacity-50" style={{ fontSize: '82%' }}>{data.p1Team}</span>
                     )}
                     {data.p1Team && <span className="mx-[5px] opacity-50"></span>}
-                    <span className="font-archivo-semi-condensed-bold">{data.p1Name}</span>
+                    <span className="font-archivo-semi-condensed-bold">{data.p1Loser ? `(L) ${data.p1Name}` : data.p1Name}</span>
                 </div>
                 {/* Player 1 Rank - Fixed position, 21% smaller than player name, same color as team */}
                 <div className="absolute top-[26px] left-[555px] text-[22px] text-white opacity-50 text-shadow flex items-baseline">
@@ -175,7 +177,7 @@ const IFLMatchOverlayPage = () => {
                 </div>
                 {/* Player 2 Info */}
                 <div className="absolute top-[22px] right-[240px] text-[28px] flex items-baseline justify-end text-shadow">
-                    <span className="font-archivo-semi-condensed-bold">{data.p2Name}</span>
+                    <span className="font-archivo-semi-condensed-bold">{data.p2Loser ? `(L) ${data.p2Name}` : data.p2Name}</span>
                     {data.p2Team && <span className="mx-[5px] opacity-50"></span>}
                     {data.p2Team && (
                         <span className="font-archivo-extra-condensed-light uppercase opacity-50" style={{ fontSize: '82%' }}>{data.p2Team}</span>

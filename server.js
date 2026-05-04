@@ -42,8 +42,8 @@ const io     = socketIo(server);
 
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
 app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source')));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 const SOURCE_DIR = path.join(__dirname, 'client', 'public', 'source');
 if (!fs.existsSync(SOURCE_DIR)) fs.mkdirSync(SOURCE_DIR, { recursive: true });
@@ -93,8 +93,8 @@ async function initializeData() {
     } catch (err) {
         console.error('Error initializing data from database:', err);
         overlayData = {
-            p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null,
-            p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null,
+            p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null, p1Loser: false,
+            p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null, p2Loser: false,
             p1Score: 0, p2Score: 0, round: 'Winners Round 1', eventNumber: '1',
         };
         tagTeamData = {
@@ -305,7 +305,17 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
     }
     const synced = results.filter(r => r.success).length;
     console.log(`[Sync] sync-all complete: ${synced}/${tournaments.length} succeeded.`);
-    res.json({ totalFound: tournaments.length, synced, failed: tournaments.length - synced, results });
+
+    const [cleaned] = await pool.execute(
+        `DELETE FROM users WHERE NOT EXISTS (
+            SELECT 1 FROM matches
+            WHERE users.user_id = matches.player1_id OR users.user_id = matches.player2_id
+        ) AND EXISTS (SELECT 1 FROM matches)`
+    );
+    const playersRemoved = cleaned.affectedRows || 0;
+    if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
+
+    res.json({ totalFound: tournaments.length, synced, failed: tournaments.length - synced, results, playersRemoved });
 }));
 
 startggRouter.get('/ifl/:number', asyncRoute(async (req, res) => {
@@ -362,7 +372,17 @@ startggRouter.post('/sync/tournament/:slug', asyncRoute(async (req, res) => {
     const { slug } = req.params;
     console.log(`[Sync] Starting tournament sync: ${slug}`);
     const result = await startggSync.syncTournamentFromStartGG(slug, req.body.eventSlug || null);
-    res.json({ success: true, message: 'Tournament synced successfully', ...result });
+
+    const [cleaned] = await pool.execute(
+        `DELETE FROM users WHERE NOT EXISTS (
+            SELECT 1 FROM matches
+            WHERE users.user_id = matches.player1_id OR users.user_id = matches.player2_id
+        ) AND EXISTS (SELECT 1 FROM matches)`
+    );
+    const playersRemoved = cleaned.affectedRows || 0;
+    if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
+
+    res.json({ success: true, message: 'Tournament synced successfully', ...result, playersRemoved });
 }));
 
 startggRouter.post('/sync/player/:slug', asyncRoute(async (req, res) => {
@@ -458,8 +478,8 @@ dbRouter.get('/tournament/:tournamentId/standings', asyncRoute(async (req, res) 
         WHERE m.tournament_id = ?
         GROUP BY u.user_id, u.username, u.sponsor, u.country
         ORDER BY wins DESC, losses ASC, total_matches DESC
-        LIMIT ${limit}
-    `, [tournamentId]);
+        LIMIT ?
+    `, [tournamentId, limit]);
     res.json({
         standings: rows.map((p, i) => ({
             user_id: p.user_id, username: p.username, sponsor: p.sponsor, country: p.country,
@@ -471,24 +491,24 @@ dbRouter.get('/tournament/:tournamentId/standings', asyncRoute(async (req, res) 
 
 dbRouter.get('/player/:playerId/rankings', asyncRoute(async (req, res) => {
     const { playerId } = req.params;
-    const [tournaments] = await pool.execute(`
-        SELECT DISTINCT t.tournament_id, t.name as tournament_name, t.start_date
+    const [rankings] = await pool.execute(`
+        SELECT t.tournament_id, t.name AS tournament_name, t.start_date,
+               COUNT(*) AS total_matches,
+               SUM(CASE WHEN m.winner_id = ? THEN 1 ELSE 0 END) AS wins
         FROM tournaments t
         JOIN matches m ON m.tournament_id = t.tournament_id
         WHERE m.player1_id = ? OR m.player2_id = ?
+        GROUP BY t.tournament_id, t.name, t.start_date
         ORDER BY t.start_date DESC
-    `, [playerId, playerId]);
-    const rankings = await Promise.all(tournaments.map(async t => {
-        const [[stats]] = await pool.execute(`
-            SELECT COUNT(*) as total_matches,
-                   SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as wins
-            FROM matches WHERE tournament_id = ? AND (player1_id = ? OR player2_id = ?)
-        `, [playerId, t.tournament_id, playerId, playerId]);
-        const wins  = parseInt(stats?.wins)          || 0;
-        const total = parseInt(stats?.total_matches) || 0;
-        return { ...t, wins, losses: total - wins, total_matches: total };
-    }));
-    res.json({ rankings });
+    `, [playerId, playerId, playerId]);
+    res.json({
+        rankings: rankings.map(r => ({
+            ...r,
+            wins: parseInt(r.wins) || 0,
+            losses: (parseInt(r.total_matches) || 0) - (parseInt(r.wins) || 0),
+            total_matches: parseInt(r.total_matches) || 0,
+        })),
+    });
 }));
 
 dbRouter.put('/player/:playerId', asyncRoute(async (req, res) => {
@@ -514,6 +534,20 @@ dbRouter.put('/player/:playerId', asyncRoute(async (req, res) => {
         io.emit('history-update', playerHistory);
     } catch (e) { console.error('Error broadcasting player history:', e); }
     res.json({ success: true, player });
+}));
+
+dbRouter.delete('/player/:playerId', asyncRoute(async (req, res) => {
+    const { playerId } = req.params;
+    await pool.execute('DELETE FROM matches WHERE player1_id = ? OR player2_id = ?', [playerId, playerId]);
+    const [result] = await pool.execute('DELETE FROM users WHERE user_id = ?', [playerId]);
+    if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Player not found' });
+    }
+    try {
+        playerHistory = await dbHelpers.loadPlayerHistory();
+        io.emit('history-update', playerHistory);
+    } catch (e) { console.error('Error broadcasting player history:', e); }
+    res.json({ success: true });
 }));
 
 // Only available outside production — destructive operation.
