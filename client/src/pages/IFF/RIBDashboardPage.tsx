@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database, Heart } from 'lucide-react';
+import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database, Heart, Archive } from 'lucide-react';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 import { useRoutePreloader } from '../../utils/routePreloader';
 
@@ -187,82 +187,63 @@ const RIBDashboardPage = () => {
                 ) : (
                     <>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Main Controls */}
+                        {/* Main Controls — Archived */}
                         <div>
-                            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                                <div className="w-1 h-4 bg-red-500 rounded-full" />
+                            <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+                                <div className="w-1 h-4 bg-gray-700 rounded-full" />
                                 Main Controls
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-gray-800 text-gray-500 border border-gray-700 ml-1">
+                                    <Archive size={9} /> Archived
+                                </span>
                             </h3>
                             <div className="space-y-3">
                                 {controlItems.map((item) => (
-                                    item.external ? (
-                                        <Link 
-                                            key={item.path} 
-                                            to={item.path} 
-                                            target="_blank"
-                                            onMouseEnter={onMouseEnter(item.path)}
-                                            onTouchStart={onTouchStart(item.path)}
-                                        >
-                                            <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
-                                                <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
-                                                    {item.icon}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-semibold text-white">{item.name}</h3>
-                                                    <p className="text-gray-400 text-sm">{item.description}</p>
-                                                </div>
-                                                <ExternalLink size={16} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                        </Link>
-                                    ) : (
-                                        <Link 
-                                            key={item.path} 
-                                            to={item.path}
-                                            onMouseEnter={onMouseEnter(item.path)}
-                                            onTouchStart={onTouchStart(item.path)}
-                                        >
-                                            <div className="flex items-center gap-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10 transition-all group">
-                                                <div className="p-2.5 rounded-lg bg-red-500/20 text-red-400">
-                                                    {item.icon}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-semibold text-white">{item.name}</h3>
-                                                    <p className="text-gray-400 text-sm">{item.description}</p>
-                                                </div>
-                                                <ChevronLeft size={18} className="text-red-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                        </Link>
-                                    )
+                                    <div
+                                        key={item.path}
+                                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-800 bg-gray-900/40 cursor-not-allowed opacity-50"
+                                        title="This section is archived"
+                                    >
+                                        <div className="p-2.5 rounded-lg bg-gray-800 text-gray-600">
+                                            {item.icon}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-gray-500 line-through decoration-gray-600">{item.name}</h3>
+                                            <p className="text-gray-600 text-sm">{item.description}</p>
+                                        </div>
+                                        {item.external
+                                            ? <ExternalLink size={16} className="text-gray-700" />
+                                            : <ChevronLeft size={18} className="text-gray-700 rotate-180" />
+                                        }
+                                    </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Overlays */}
+                        {/* Overlays — Archived */}
                         <div>
-                            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                                <div className="w-1 h-4 bg-orange-500 rounded-full" />
+                            <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+                                <div className="w-1 h-4 bg-gray-700 rounded-full" />
                                 Stream Overlays
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-gray-800 text-gray-500 border border-gray-700 ml-1">
+                                    <Archive size={9} /> Archived
+                                </span>
                             </h3>
                             <div className="space-y-3">
                                 {overlayItems.map((item) => (
-                                    <Link 
-                                        key={item.path} 
-                                        to={item.path} 
-                                        target="_blank"
-                                        onMouseEnter={onMouseEnter(item.path)}
-                                        onTouchStart={onTouchStart(item.path)}
+                                    <div
+                                        key={item.path}
+                                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-800 bg-gray-900/40 cursor-not-allowed opacity-50"
+                                        title="This section is archived"
                                     >
-                                        <div className="flex items-center gap-4 p-4 rounded-xl border border-orange-500/20 bg-orange-500/5 hover:border-orange-400 hover:bg-orange-500/10 transition-all group">
-                                            <div className="p-2.5 rounded-lg bg-orange-500/20 text-orange-400">
-                                                {item.icon}
-                                            </div>
-                                            <div className="flex-1">
-                                                <h3 className="font-semibold text-white">{item.name}</h3>
-                                                <p className="text-gray-400 text-sm">{item.description}</p>
-                                            </div>
-                                            <ExternalLink size={16} className="text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <div className="p-2.5 rounded-lg bg-gray-800 text-gray-600">
+                                            {item.icon}
                                         </div>
-                                    </Link>
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-gray-500 line-through decoration-gray-600">{item.name}</h3>
+                                            <p className="text-gray-600 text-sm">{item.description}</p>
+                                        </div>
+                                        <ExternalLink size={16} className="text-gray-700" />
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -318,24 +299,28 @@ const RIBDashboardPage = () => {
                         </div>
                     </div>
 
-                    {/* Love & War Section */}
+                    {/* Love & War Section — Archived */}
                     <div className="mt-8">
-                        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                            <div className="w-1 h-4 bg-pink-500 rounded-full" />
+                        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
+                            <div className="w-1 h-4 bg-gray-700 rounded-full" />
                             Love & War Tournament
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-gray-800 text-gray-500 border border-gray-700 ml-1">
+                                <Archive size={9} /> Archived
+                            </span>
                         </h3>
-                        <Link to="/iff/love-and-war">
-                            <div className="flex items-center gap-4 p-6 rounded-xl border border-pink-500/30 bg-gradient-to-br from-pink-500/10 to-red-500/5 hover:border-pink-400 hover:from-pink-500/15 hover:to-red-500/10 transition-all group">
-                                <div className="p-3 rounded-lg bg-pink-500/20 text-pink-400">
-                                    <Heart size={28} />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-white text-lg mb-1">Love & War Dashboard</h3>
-                                    <p className="text-gray-400 text-sm">Manage 2v2 team tournaments, display team stats, and control live overlays</p>
-                                </div>
-                                <ChevronLeft size={20} className="text-pink-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div
+                            className="flex items-center gap-4 p-6 rounded-xl border border-gray-800 bg-gray-900/40 cursor-not-allowed opacity-50"
+                            title="This section is archived"
+                        >
+                            <div className="p-3 rounded-lg bg-gray-800 text-gray-600">
+                                <Heart size={28} />
                             </div>
-                        </Link>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-gray-500 text-lg mb-1 line-through decoration-gray-600">Love & War Dashboard</h3>
+                                <p className="text-gray-600 text-sm">Manage 2v2 team tournaments, display team stats, and control live overlays</p>
+                            </div>
+                            <ChevronLeft size={20} className="text-gray-700 rotate-180" />
+                        </div>
                     </div>
                     </>
                 )}

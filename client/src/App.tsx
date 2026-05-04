@@ -11,7 +11,6 @@ import DashboardPage from './pages/DashboardPage';
 
 // Lazy load all other pages for code splitting
 const TDEUDashboardPage = lazy(() => import('./pages/TDEU/TDEUDashboardPage'));
-const RIBDashboardPage = lazy(() => import('./pages/IFF/RIBDashboardPage'));
 const TournamentDataPage = lazy(() => import('./pages/TDEU/TournamentDataPage'));
 const IFLMatchControlPage = lazy(() => import('./pages/TDEU/IFLMatchControlPage'));
 const IFLMatchOverlayPage = lazy(() => import('./pages/TDEU/IFLMatchOverlayPage'));
@@ -23,6 +22,7 @@ const TagTeamControlPage = lazy(() => import('./pages/TDEU/TagTeamControlPage'))
 const TagTeamOverlayPage = lazy(() => import('./pages/TDEU/TagTeamOverlayPage'));
 
 // Run It Back pages
+const RIBDashboardPage = lazy(() => import('./pages/IFF/RIBDashboardPage'));
 const RIBMatchControlPage = lazy(() => import('./pages/IFF/RIBMatchControlPage'));
 const RIBMatchCardsEditorPage = lazy(() => import('./pages/IFF/RIBMatchCardsEditorPage'));
 const RIBSingleMatchOverlay = lazy(() => import('./pages/IFF/RIBSingleMatchOverlay'));
@@ -81,7 +81,7 @@ function App() {
           <Route path="/tdeu/ifl/top8/overlay" element={<IFLTop8OverlayPage />} />
           <Route path="/tdeu/ifl/top8/standings/overlay" element={<IFLTop8StandingsOverlayPage />} />
           <Route path="/tag/match-overlay" element={<TagTeamOverlayPage />} />
-          {/* Run It Back routes - Protected by RIB Access Key */}
+          {/* Run It Back routes */}
           <Route path="/rib/match-control" element={<IFFAccessGuard><RIBMatchControlPage /></IFFAccessGuard>} />
           <Route path="/rib/match-cards-editor" element={<IFFAccessGuard><RIBMatchCardsEditorPage /></IFFAccessGuard>} />
           <Route path="/rib/unified-overlay" element={<RIBUnifiedOverlay />} />
@@ -92,7 +92,7 @@ function App() {
           {/* IFF EWGF Player routes */}
           <Route path="/iff/player-import" element={<IFFAccessGuard><IFFPlayerImportPage /></IFFAccessGuard>} />
           <Route path="/iff/player-stats/:polarisId" element={<IFFPlayerRadarOverlay />} />
-          {/* Love & War routes - Protected by IFF Access Key */}
+          {/* Love & War routes */}
           <Route path="/iff/love-and-war" element={<IFFAccessGuard><LoveAndWarDashboardPage /></IFFAccessGuard>} />
           <Route path="/iff/love-and-war/control" element={<IFFAccessGuard><LoveAndWarControlPage /></IFFAccessGuard>} />
           <Route path="/iff/love-and-war/overlay" element={<LoveAndWarTeamStatsOverlay />} />
