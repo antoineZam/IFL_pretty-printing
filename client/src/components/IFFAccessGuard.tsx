@@ -76,7 +76,7 @@ export default function IFLAccessGuard({ children }: IFLAccessGuardProps) {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
+            <div className="min-h-screen bg-transparent flex items-center justify-center">
                 <div className="text-white">Loading...</div>
             </div>
         );
@@ -87,7 +87,7 @@ export default function IFLAccessGuard({ children }: IFLAccessGuardProps) {
     }
 
     return (
-        <div className="min-h-screen bg-black relative">
+        <div className="min-h-screen bg-transparent relative">
             {/* Blurred background preview */}
             <div className="absolute inset-0 overflow-hidden">
                 <div className="w-full h-full filter blur-lg opacity-30 pointer-events-none">
@@ -102,9 +102,9 @@ export default function IFLAccessGuard({ children }: IFLAccessGuardProps) {
                         <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center mb-4">
                             <Lock size={32} className="text-red-500" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white">Run It Back</h2>
+                        <h2 className="text-2xl font-bold text-white">IFF Security Clearance</h2>
                         <p className="text-gray-400 text-center mt-2">
-                            This section requires additional authorization
+                            This section requires authorization
                         </p>
                     </div>
 
@@ -117,7 +117,7 @@ export default function IFLAccessGuard({ children }: IFLAccessGuardProps) {
                                     type="password"
                                     value={accessKey}
                                     onChange={(e) => setAccessKey(e.target.value)}
-                                    placeholder="Enter RIB access key"
+                                    placeholder="Enter IFF access key"
                                     className="w-full bg-gray-800 border border-gray-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
                                     autoFocus
                                 />
