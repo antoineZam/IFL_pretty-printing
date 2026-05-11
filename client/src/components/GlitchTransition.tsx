@@ -77,7 +77,7 @@ export default function GlitchTransition() {
                 }}
             />
             
-            {/* Organic noise overlay (uses the filter from IFFStarfield if loaded, otherwise fallback to css static) */}
+            {/* Organic noise overlay (uses the filter from IFFCyberBackground if loaded, otherwise fallback to css static) */}
             <div 
                 className="absolute inset-0 opacity-40 mix-blend-overlay"
                 style={{ 

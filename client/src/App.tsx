@@ -4,7 +4,7 @@ import IFFAccessGuard from './components/IFFAccessGuard';
 import TDEULayout from './components/TDEULayout';
 import ReturnHomeButton from './components/ReturnHomeButton';
 import GlitchTransition from './components/GlitchTransition';
-import IFFCyberBackground from './components/IFFStarfield';
+import IFFCyberBackground from './components/IFFCyberBackground';
 
 // Eager load only critical pages for initial render
 import AuthPage from './pages/AuthPage';
