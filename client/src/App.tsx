@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import IFFAccessGuard from './components/IFFAccessGuard';
 import TDEULayout from './components/TDEULayout';
 import ReturnHomeButton from './components/ReturnHomeButton';
-import AmbientParticles from './components/AmbientParticles';
-import IFFStarfield from './components/IFFStarfield';
+import GlitchTransition from './components/GlitchTransition';
+import IFFCyberBackground from './components/IFFStarfield';
 
 // Eager load only critical pages for initial render
 import AuthPage from './pages/AuthPage';
@@ -47,26 +47,41 @@ const LoveAndWarMatchControlPage = lazy(() => import('./pages/IFF/LoveAndWarMatc
 const LoveAndWarMatchOverlay = lazy(() => import('./pages/IFF/LoveAndWarMatchOverlay'));
 const LoveAndWarUnifiedOverlay = lazy(() => import('./pages/IFF/LoveAndWarUnifiedOverlay'));
 
-const PageLoader = () => (
-  <div className="w-full h-screen flex items-center justify-center bg-transparent">
-    <div className="text-center">
-      <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-white/20 border-t-white/60 mb-4"></div>
-      <p className="text-white/40 text-lg font-semibold tracking-wider">Loading...</p>
+const PageLoader = () => {
+  return (
+    <div className="w-full h-screen flex items-center justify-center bg-transparent relative z-[9999] overflow-hidden">
+        <style>
+            {`
+                @keyframes loader-glitch {
+                    0% { transform: translate(0) }
+                    20% { transform: translate(-5px, 2px) }
+                    40% { transform: translate(-5px, -2px) }
+                    60% { transform: translate(5px, 2px) }
+                    80% { transform: translate(5px, -2px) }
+                    100% { transform: translate(0) }
+                }
+            `}
+        </style>
+        <div className="text-center">
+            <h2 className="text-3xl font-mono font-bold uppercase tracking-[0.5em] text-white mix-blend-difference" style={{ animation: 'loader-glitch 0.2s infinite' }}>
+                DECRYPTING...
+            </h2>
+        </div>
     </div>
-  </div>
-);
+  );
+};
 
 function App() {
   return (
     <BrowserRouter>
-      <AmbientParticles />
-      <IFFStarfield />
+      <GlitchTransition />
+      <IFFCyberBackground />
       <ReturnHomeButton />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/dashboard/rib" element={<IFFAccessGuard><RIBDashboardPage /></IFFAccessGuard>} />
+          <Route path="/dashboard/iff" element={<IFFAccessGuard><RIBDashboardPage /></IFFAccessGuard>} />
           <Route path="/auth" element={<AuthPage />} />
           
           {/* TDEU Layout Routes */}
@@ -84,13 +99,13 @@ function App() {
           <Route path="/tdeu/ifl/top8/standings/overlay" element={<IFLTop8StandingsOverlayPage />} />
           <Route path="/tag/match-overlay" element={<TagTeamOverlayPage />} />
           {/* Run It Back routes */}
-          <Route path="/rib/match-control" element={<IFFAccessGuard><RIBMatchControlPage /></IFFAccessGuard>} />
-          <Route path="/rib/match-cards-editor" element={<IFFAccessGuard><RIBMatchCardsEditorPage /></IFFAccessGuard>} />
-          <Route path="/rib/unified-overlay" element={<RIBUnifiedOverlay />} />
-          <Route path="/rib/single-match-overlay" element={<RIBSingleMatchOverlay />} />
-          <Route path="/rib/player-stats-overlay" element={<RIBPlayerStatsOverlay />} />
-          <Route path="/rib/part-one-overlay" element={<RIBPartOneOverlay />} />
-          <Route path="/rib/stream-overlay" element={<RIBStreamOverlay />} />
+          <Route path="/iff/match-control" element={<IFFAccessGuard><RIBMatchControlPage /></IFFAccessGuard>} />
+          <Route path="/iff/match-cards-editor" element={<IFFAccessGuard><RIBMatchCardsEditorPage /></IFFAccessGuard>} />
+          <Route path="/iff/unified-overlay" element={<RIBUnifiedOverlay />} />
+          <Route path="/iff/single-match-overlay" element={<RIBSingleMatchOverlay />} />
+          <Route path="/iff/player-stats-overlay" element={<RIBPlayerStatsOverlay />} />
+          <Route path="/iff/part-one-overlay" element={<RIBPartOneOverlay />} />
+          <Route path="/iff/stream-overlay" element={<RIBStreamOverlay />} />
           {/* IFF EWGF Player routes */}
           <Route path="/iff/player-import" element={<IFFAccessGuard><IFFPlayerImportPage /></IFFAccessGuard>} />
           <Route path="/iff/player-stats/:polarisId" element={<IFFPlayerRadarOverlay />} />

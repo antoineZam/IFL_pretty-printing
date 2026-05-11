@@ -201,7 +201,7 @@ export default function RIBMatchCardsEditorPage() {
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => navigate('/rib/match-control')}
+                        onClick={() => navigate('/iff/match-control')}
                         className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
                     >
                         <ArrowLeft size={20} />

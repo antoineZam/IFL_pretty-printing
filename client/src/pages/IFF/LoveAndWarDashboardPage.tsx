@@ -76,7 +76,7 @@ const LoveAndWarDashboardPage = () => {
             <div className="relative z-10 max-w-7xl mx-auto pl-16 pr-6 py-8">
                 {/* Header */}
                 <header className="mb-8">
-                    <Link to="/dashboard/rib" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-4">
+                    <Link to="/dashboard/iff" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-4">
                         <ChevronLeft size={18} />
                         <span className="text-sm">Back to IFF Dashboard</span>
                     </Link>

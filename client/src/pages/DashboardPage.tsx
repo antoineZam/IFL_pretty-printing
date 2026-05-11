@@ -21,7 +21,7 @@ const DashboardPage = () => {
 
     return (
         <div className="min-h-screen relative overflow-hidden">
-            {/* Ambient depth layers - particles show through from AmbientParticles in App */}
+            {/* Ambient depth layers */}
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <div className="absolute inset-0" style={{
                     background: 'radial-gradient(ellipse at 50% 60%, rgba(218,165,32,0.06) 0%, transparent 55%)',
@@ -77,10 +77,10 @@ const DashboardPage = () => {
 
                         {/* RIB Dashboard Link */}
                         <Link 
-                            to="/dashboard/rib" 
+                            to="/dashboard/iff" 
                             onClick={() => setMenuOpen(false)}
-                            onMouseEnter={onMouseEnter('/dashboard/rib')}
-                            onTouchStart={onTouchStart('/dashboard/rib')}
+                            onMouseEnter={onMouseEnter('/dashboard/iff')}
+                            onTouchStart={onTouchStart('/dashboard/iff')}
                             className="block"
                         >
                             <div className="p-5 rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 to-orange-500/5 hover:border-red-400 hover:from-red-500/20 hover:to-orange-500/10 transition-all group">
@@ -174,7 +174,7 @@ const DashboardPage = () => {
                     </Link>
 
                     <Link
-                        to="/dashboard/rib"
+                        to="/dashboard/iff"
                         className="group relative px-8 py-4 rounded-2xl bg-gradient-to-r from-red-500 to-orange-600 text-white font-semibold text-lg shadow-xl shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-300 hover:scale-105"
                     >
                         <span className="flex items-center gap-3">

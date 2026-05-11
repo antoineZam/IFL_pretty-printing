@@ -228,37 +228,71 @@ export default function IFFPlayerImportPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+        <div className="min-h-screen bg-transparent">
             <IFFBurgerMenu />
             
-            {/* Background pattern */}
-            <div className="fixed inset-0 opacity-[0.02] pointer-events-none">
+            <style>
+                {`
+                    @keyframes cyber-glitch-hover {
+                        0% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                        20% { clip-path: polygon(0 15%, 100% 15%, 100% 85%, 0 85%); }
+                        40% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                        60% { clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%); }
+                        80% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                        100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                    }
+                    .cyber-card {
+                        position: relative;
+                    }
+                    .cyber-card::before {
+                        content: '';
+                        position: absolute;
+                        top: 0; left: 0; right: 0; bottom: 0;
+                        background: #10b981;
+                        opacity: 0;
+                        z-index: -1;
+                        transition: opacity 0.2s ease;
+                    }
+                    .cyber-card:hover::before {
+                        opacity: 0.1;
+                        animation: cyber-glitch-hover 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+                    }
+                    .cyber-card:hover {
+                        box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+                        border-color: rgba(16, 185, 129, 0.8);
+                        transform: translateX(4px);
+                    }
+                `}
+            </style>
+
+            {/* Subtle background pattern */}
+            <div className="fixed inset-0 opacity-[0.05] pointer-events-none">
                 <div className="absolute inset-0" style={{
-                    backgroundImage: `radial-gradient(circle at 70% 30%, rgba(239, 68, 68, 0.4) 0%, transparent 50%),
-                                      radial-gradient(circle at 30% 70%, rgba(249, 115, 22, 0.3) 0%, transparent 40%)`
+                    backgroundImage: `radial-gradient(circle at 70% 30%, rgba(16, 185, 129, 0.4) 0%, transparent 50%),
+                                      radial-gradient(circle at 30% 70%, rgba(52, 211, 153, 0.3) 0%, transparent 40%)`
                 }} />
             </div>
 
             <div className="relative z-10 max-w-7xl mx-auto pl-16 pr-6 py-8">
                 {/* Header */}
                 <header className="mb-8">
-                    <Link to="/dashboard/rib" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-4">
+                    <Link to="/dashboard/iff" className="inline-flex items-center gap-2 text-gray-400 hover:text-[#10b981] transition-colors mb-4">
                         <ChevronLeft size={18} />
                         <span className="text-sm">Back to IFF Dashboard</span>
                     </Link>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                                <Database size={24} className="text-white" />
+                            <div className="w-12 h-12 rounded-none border border-[#10b981]/50 bg-gradient-to-br from-[#064e3b] to-[#022c22] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                <Database size={24} className="text-[#10b981]" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-white tracking-tight">IFF Player Stats</h1>
-                                <p className="text-orange-400/70 text-sm">Manage player data for Run It Back</p>
+                                <h1 className="text-2xl font-bold text-white tracking-widest uppercase font-mono">IFF Player Stats</h1>
+                                <p className="text-[#34d399]/70 text-sm uppercase tracking-widest font-mono">Manage player data for Run It Back</p>
                             </div>
                         </div>
                         <button
                             onClick={handleAddNew}
-                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-medium transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#10b981]/10 hover:bg-[#10b981]/20 border border-[#10b981]/50 text-[#10b981] hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] rounded-none font-medium transition-all uppercase tracking-widest text-sm font-mono cyber-card"
                         >
                             <UserPlus size={18} />
                             Add Player
@@ -281,7 +315,7 @@ export default function IFFPlayerImportPage() {
                 {/* Edit Modal */}
                 {editingPlayer && (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 max-w-3xl w-full my-8 max-h-[90vh] overflow-y-auto relative">
+                        <div className="bg-[#020617] rounded-none p-6 border border-[#10b981]/30 max-w-3xl w-full my-8 max-h-[90vh] overflow-y-auto relative font-mono shadow-[0_0_20px_rgba(16,185,129,0.1)]">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                                     {isAddingNew ? <UserPlus size={20} /> : <Edit3 size={20} />}
@@ -296,20 +330,20 @@ export default function IFFPlayerImportPage() {
                                 {/* Basic Info */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm text-gray-400 mb-1">Player Name *</label>
+                                        <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">Player Name *</label>
                                         <input
                                             type="text"
                                             value={editingPlayer.name || ''}
                                             onChange={(e) => updateField('name', e.target.value)}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                            className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-gray-400 mb-1">Character</label>
+                                        <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">Character</label>
                                         <select
                                             value={editingPlayer.character_name || ''}
                                             onChange={(e) => updateField('character_name', e.target.value)}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                            className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                         >
                                             {Object.entries(characters).map(([value, label]) => (
                                                 <option key={value} value={value}>{label}</option>
@@ -320,93 +354,93 @@ export default function IFFPlayerImportPage() {
 
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm text-gray-400 mb-1">Division</label>
+                                        <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">Division</label>
                                         <input
                                             type="text"
                                             value={editingPlayer.division || ''}
                                             onChange={(e) => updateField('division', e.target.value)}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                            className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-gray-400 mb-1">Rank</label>
+                                        <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">Rank</label>
                                         <input
                                             type="text"
                                             value={editingPlayer.rank_name || ''}
                                             onChange={(e) => updateField('rank_name', e.target.value)}
                                             placeholder="e.g., Tekken God Supreme"
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                            className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-gray-400 mb-1">Prowess</label>
+                                        <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">Prowess</label>
                                         <input
                                             type="number"
                                             inputMode="numeric"
                                             value={editingPlayer.prowess || 0}
                                             onChange={(e) => updateField('prowess', parseInt(e.target.value) || 0)}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                            className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                         />
                                     </div>
                                 </div>
 
                                 {/* IFF8 Stats */}
                                 <div className="pt-4 border-t border-gray-700">
-                                    <h3 className="text-lg font-medium mb-4 text-red-400">IFF8 Statistics</h3>
+                                    <h3 className="text-sm font-bold mb-4 text-[#10b981] font-mono tracking-widest uppercase">IFF8 Statistics</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm text-gray-400 mb-1">IFF8 Ranking</label>
+                                            <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">IFF8 Ranking</label>
                                             <input
                                                 type="text"
                                                 value={editingPlayer.iff8_ranking || ''}
                                                 onChange={(e) => updateField('iff8_ranking', e.target.value)}
                                                 placeholder="e.g., #1, Top 8"
-                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                                className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm text-gray-400 mb-1">IFF8 Record</label>
+                                            <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">IFF8 Record</label>
                                             <input
                                                 type="text"
                                                 value={editingPlayer.iff8_record || ''}
                                                 onChange={(e) => updateField('iff8_record', e.target.value)}
                                                 placeholder="e.g., 5-2"
-                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                                className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                             />
                                         </div>
                                     </div>
                                     <div className="mt-4">
-                                        <label className="block text-sm text-gray-400 mb-1">IFF8 Record Details</label>
+                                        <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">IFF8 Record Details</label>
                                         <input
                                             type="text"
                                             value={editingPlayer.iff8_record_details || ''}
                                             onChange={(e) => updateField('iff8_record_details', e.target.value)}
                                             placeholder="e.g., Beat PlayerA 3-1, Lost to PlayerB 2-3"
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                            className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                         />
                                     </div>
                                     <div className="mt-4">
-                                        <label className="block text-sm text-gray-400 mb-1">IFF History</label>
+                                        <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">IFF History</label>
                                         <textarea
                                             value={editingPlayer.iff_history || ''}
                                             onChange={(e) => updateField('iff_history', e.target.value)}
                                             placeholder="Historical tournament performance..."
                                             rows={2}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                                            className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Match Stats */}
                                 <div className="pt-4 border-t border-gray-700">
-                                    <h3 className="text-lg font-medium mb-4 text-blue-400">Match Statistics</h3>
+                                    <h3 className="text-sm font-bold mb-4 text-[#10b981] font-mono tracking-widest uppercase">Match Statistics</h3>
                                     <div className="grid grid-cols-2 gap-6">
                                         {/* Ranked Matches */}
-                                        <div className="bg-gray-800 rounded-lg p-4">
+                                        <div className="bg-[#10b981]/5 border border-[#10b981]/20 rounded-none p-4 cyber-card">
                                             <h4 className="text-sm font-medium text-gray-300 mb-3">Ranked Matches</h4>
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-2">
-                                                    <label className="text-sm text-gray-400 w-12">Wins</label>
+                                                    <label className="text-xs text-[#34d399]/70 w-12 font-mono tracking-widest uppercase">Wins</label>
                                                     <input
                                                         type="text"
                                                         inputMode="numeric"
@@ -421,11 +455,11 @@ export default function IFFPlayerImportPage() {
                                                                 ranked_wl_rate: calcWLRate(wins, losses)
                                                             });
                                                         }}
-                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-green-500 cursor-text"
+                                                        className="flex-1 bg-[#020617]/80 border border-[#10b981]/30 rounded-none px-2 py-1 text-[#34d399] focus:outline-none focus:border-[#10b981] font-mono text-sm cursor-text"
                                                     />
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <label className="text-sm text-gray-400 w-12">Losses</label>
+                                                    <label className="text-xs text-[#34d399]/70 w-12 font-mono tracking-widest uppercase">Losses</label>
                                                     <input
                                                         type="text"
                                                         inputMode="numeric"
@@ -440,7 +474,7 @@ export default function IFFPlayerImportPage() {
                                                                 ranked_wl_rate: calcWLRate(wins, losses)
                                                             });
                                                         }}
-                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-red-500 cursor-text"
+                                                        className="flex-1 bg-[#020617]/80 border border-[#10b981]/30 rounded-none px-2 py-1 text-[#34d399] focus:outline-none focus:border-[#10b981] font-mono text-sm cursor-text"
                                                     />
                                                 </div>
                                                 <div className="text-sm text-gray-400">
@@ -450,11 +484,11 @@ export default function IFFPlayerImportPage() {
                                         </div>
 
                                         {/* Player Matches */}
-                                        <div className="bg-gray-800 rounded-lg p-4">
+                                        <div className="bg-[#10b981]/5 border border-[#10b981]/20 rounded-none p-4 cyber-card">
                                             <h4 className="text-sm font-medium text-gray-300 mb-3">Player Matches</h4>
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-2">
-                                                    <label className="text-sm text-gray-400 w-12">Wins</label>
+                                                    <label className="text-xs text-[#34d399]/70 w-12 font-mono tracking-widest uppercase">Wins</label>
                                                     <input
                                                         type="text"
                                                         inputMode="numeric"
@@ -469,11 +503,11 @@ export default function IFFPlayerImportPage() {
                                                                 player_wl_rate: calcWLRate(wins, losses)
                                                             });
                                                         }}
-                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-green-500 cursor-text"
+                                                        className="flex-1 bg-[#020617]/80 border border-[#10b981]/30 rounded-none px-2 py-1 text-[#34d399] focus:outline-none focus:border-[#10b981] font-mono text-sm cursor-text"
                                                     />
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <label className="text-sm text-gray-400 w-12">Losses</label>
+                                                    <label className="text-xs text-[#34d399]/70 w-12 font-mono tracking-widest uppercase">Losses</label>
                                                     <input
                                                         type="text"
                                                         inputMode="numeric"
@@ -488,7 +522,7 @@ export default function IFFPlayerImportPage() {
                                                                 player_wl_rate: calcWLRate(wins, losses)
                                                             });
                                                         }}
-                                                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-red-500 cursor-text"
+                                                        className="flex-1 bg-[#020617]/80 border border-[#10b981]/30 rounded-none px-2 py-1 text-[#34d399] focus:outline-none focus:border-[#10b981] font-mono text-sm cursor-text"
                                                     />
                                                 </div>
                                                 <div className="text-sm text-gray-400">
@@ -501,7 +535,7 @@ export default function IFFPlayerImportPage() {
 
                                 {/* Radar Chart Ratings */}
                                 <div className="pt-4 border-t border-gray-700">
-                                    <h3 className="text-lg font-medium mb-4 text-purple-400">Radar Chart Ratings (0-100)</h3>
+                                    <h3 className="text-sm font-bold mb-4 text-[#10b981] font-mono tracking-widest uppercase">Radar Chart Ratings (0-100)</h3>
                                     <div className="grid grid-cols-3 gap-4">
                                         {[
                                             { key: 'offense_rating', label: 'Offense', color: 'red' },
@@ -512,7 +546,7 @@ export default function IFFPlayerImportPage() {
                                             { key: 'experience_rating', label: 'Experience', color: 'cyan' }
                                         ].map((stat) => (
                                             <div key={stat.key}>
-                                                <label className="block text-sm text-gray-400 mb-1">{stat.label}</label>
+                                                <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">{stat.label}</label>
                                                 <input
                                                     type="number"
                                                     inputMode="numeric"
@@ -531,14 +565,14 @@ export default function IFFPlayerImportPage() {
                                 <div className="pt-4 flex gap-4">
                                     <button
                                         onClick={() => setEditingPlayer(null)}
-                                        className="flex-1 flex items-center justify-center gap-2 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                                        className="flex-1 flex items-center justify-center gap-2 p-3 bg-[#10b981]/10 border border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/20 rounded-none transition-all font-mono uppercase tracking-widest text-sm cyber-card hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleSave}
                                         disabled={saving}
-                                        className="flex-1 flex items-center justify-center gap-2 p-3 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 rounded-lg transition-colors"
+                                        className="flex-1 flex items-center justify-center gap-2 p-3 bg-[#10b981]/20 border border-[#10b981] text-[#10b981] hover:bg-[#10b981]/30 disabled:bg-[#020617] disabled:border-[#10b981]/30 disabled:text-[#10b981]/30 rounded-none transition-all font-mono uppercase tracking-widest text-sm cyber-card hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                                     >
                                         {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                         {isAddingNew ? 'Add Player' : 'Save Changes'}
@@ -550,39 +584,39 @@ export default function IFFPlayerImportPage() {
                 )}
 
                 {/* Players List */}
-                <div className="rounded-2xl bg-gray-900/50 border border-gray-800 overflow-hidden">
-                    <div className="p-6 border-b border-gray-800 flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <Users size={20} />
+                <div className="rounded-none bg-[#020617]/80 backdrop-blur-sm border border-[#10b981]/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)] overflow-hidden">
+                    <div className="p-6 border-b border-[#10b981]/30 flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2 font-mono uppercase tracking-widest">
+                            <Users size={20} className="text-[#10b981]" />
                             Players ({players.length})
                         </h2>
                         <button
                             onClick={fetchPlayers}
                             disabled={loading}
-                            className="p-2 text-gray-400 hover:text-white transition-colors"
+                            className="p-2 text-[#34d399]/70 hover:text-[#10b981] transition-colors"
                         >
                             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                         </button>
                     </div>
 
                     {loading && players.length === 0 ? (
-                        <div className="p-12 text-center text-gray-500">
-                            <Loader2 size={32} className="animate-spin mx-auto mb-4" />
-                            Loading players...
+                        <div className="p-12 text-center text-[#34d399]/50 font-mono tracking-widest uppercase text-sm">
+                            <Loader2 size={32} className="animate-spin mx-auto mb-4 text-[#10b981]" />
+                            Scanning database...
                         </div>
                     ) : players.length === 0 ? (
-                        <div className="p-12 text-center text-gray-500">
-                            <Users size={48} className="mx-auto mb-4 opacity-50" />
-                            <p>No players yet</p>
-                            <p className="text-sm mt-2">Click "Add Player" to create your first player</p>
+                        <div className="p-12 text-center text-[#34d399]/50 font-mono tracking-widest uppercase">
+                            <Users size={48} className="mx-auto mb-4 opacity-50 text-[#10b981]" />
+                            <p>No records found</p>
+                            <p className="text-xs mt-2 opacity-70">Initialize a new player profile</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-gray-800">
+                        <div className="divide-y divide-[#10b981]/20">
                             {players.map((player) => (
-                                <div key={player.id} className="p-4 hover:bg-gray-800/50 transition-colors">
+                                <div key={player.id} className="p-4 hover:bg-[#10b981]/5 transition-colors">
                                     <div className="flex items-center gap-4">
                                         {/* Character Icon */}
-                                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/10 flex items-center justify-center overflow-hidden">
+                                        <div className="w-14 h-14 rounded-none bg-[#10b981]/10 border border-[#10b981]/30 flex items-center justify-center overflow-hidden cyber-card">
                                             {player.character_name ? (
                                                 <img
                                                     src={`/source/overlay/characters/P1_icon/${player.character_name.toLowerCase()}.png`}
@@ -593,14 +627,14 @@ export default function IFFPlayerImportPage() {
                                                     }}
                                                 />
                                             ) : (
-                                                <Users size={24} className="text-orange-400" />
+                                                <Users size={24} className="text-[#10b981]" />
                                             )}
                                         </div>
 
                                         {/* Player Info */}
                                         <div className="flex-1">
-                                            <h3 className="text-lg font-semibold text-white">{player.name}</h3>
-                                            <div className="flex items-center gap-4 text-sm text-gray-400">
+                                            <h3 className="text-lg font-bold text-white tracking-widest uppercase font-mono">{player.name}</h3>
+                                            <div className="flex items-center gap-4 text-xs text-[#34d399]/70 font-mono">
                                                 {player.rank_name && <span>{player.rank_name}</span>}
                                                 {player.character_name && (
                                                     <>
@@ -611,19 +645,19 @@ export default function IFFPlayerImportPage() {
                                                 {player.iff8_ranking && (
                                                     <>
                                                         <span>•</span>
-                                                        <span className="text-orange-400">IFF8: {player.iff8_ranking}</span>
+                                                        <span className="text-[#10b981]">IFF8: {player.iff8_ranking}</span>
                                                     </>
                                                 )}
                                             </div>
                                         </div>
 
                                         {/* Stats */}
-                                        <div className="text-right">
-                                            <div className="text-sm text-gray-400">
-                                                Ranked: {player.ranked_wins}W - {player.ranked_losses}L
+                                        <div className="text-right font-mono">
+                                            <div className="text-xs text-[#34d399]/70">
+                                                Ranked: <span className="text-[#10b981]">{player.ranked_wins}W</span> - <span className="text-[#ef4444]">{player.ranked_losses}L</span>
                                             </div>
-                                            <div className="text-sm text-gray-400">
-                                                Player: {player.player_wins}W - {player.player_losses}L
+                                            <div className="text-xs text-[#34d399]/70">
+                                                Player: <span className="text-[#10b981]">{player.player_wins}W</span> - <span className="text-[#ef4444]">{player.player_losses}L</span>
                                             </div>
                                         </div>
 
@@ -631,21 +665,21 @@ export default function IFFPlayerImportPage() {
                                         <div className="flex items-center gap-2">
                                             <Link
                                                 to={`/iff/player-stats/${player.id}`}
-                                                className="p-2 text-gray-400 hover:text-orange-400 transition-colors"
+                                                className="p-2 text-[#34d399]/50 hover:text-[#10b981] transition-colors"
                                                 title="View Overlay"
                                             >
                                                 <Eye size={18} />
                                             </Link>
                                             <button
                                                 onClick={() => handleEdit(player)}
-                                                className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
+                                                className="p-2 text-[#34d399]/50 hover:text-[#3b82f6] transition-colors"
                                                 title="Edit"
                                             >
                                                 <Edit3 size={18} />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(player.id)}
-                                                className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                                                className="p-2 text-[#34d399]/50 hover:text-[#ef4444] transition-colors"
                                                 title="Delete"
                                             >
                                                 <Trash2 size={18} />

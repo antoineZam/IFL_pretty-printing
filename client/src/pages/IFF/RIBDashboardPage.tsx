@@ -62,13 +62,13 @@ const RIBDashboardPage = () => {
         {
             name: "RIB Control Panel",
             description: "Master control for Run It Back matches",
-            path: "/rib/match-control",
+            path: "/iff/match-control",
             icon: <Settings size={20} />,
         },
         {
             name: "RIB Unified Overlay",
             description: "Combined overlay for OBS",
-            path: "/rib/unified-overlay",
+            path: "/iff/unified-overlay",
             icon: <Monitor size={20} />,
             external: true
         },
@@ -78,28 +78,28 @@ const RIBDashboardPage = () => {
         {
             name: "Single Match Overlay",
             description: "Individual match display",
-            path: "/rib/single-match-overlay",
+            path: "/iff/single-match-overlay",
             icon: <Tv size={20} />,
             external: true
         },
         {
             name: "Player Stats Overlay",
             description: "Player statistics display",
-            path: "/rib/player-stats-overlay",
+            path: "/iff/player-stats-overlay",
             icon: <Tv size={20} />,
             external: true
         },
         {
             name: "Part One Overlay",
             description: "Part one display",
-            path: "/rib/part-one-overlay",
+            path: "/iff/part-one-overlay",
             icon: <Tv size={20} />,
             external: true
         },
         {
             name: "Stream Overlay",
             description: "Main stream display",
-            path: "/rib/stream-overlay",
+            path: "/iff/stream-overlay",
             icon: <Tv size={20} />,
             external: true
         },
@@ -117,34 +117,68 @@ const RIBDashboardPage = () => {
     const isLocked = ribKeyRequired && !ribUnlocked;
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
+        <div className="min-h-screen bg-transparent">
             <IFFBurgerMenu />
             
+            <style>
+                {`
+                    @keyframes cyber-glitch-hover {
+                        0% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                        20% { clip-path: polygon(0 15%, 100% 15%, 100% 85%, 0 85%); }
+                        40% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                        60% { clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%); }
+                        80% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                        100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                    }
+                    .cyber-card {
+                        position: relative;
+                    }
+                    .cyber-card::before {
+                        content: '';
+                        position: absolute;
+                        top: 0; left: 0; right: 0; bottom: 0;
+                        background: #10b981;
+                        opacity: 0;
+                        z-index: -1;
+                        transition: opacity 0.2s ease;
+                    }
+                    .cyber-card:hover::before {
+                        opacity: 0.1;
+                        animation: cyber-glitch-hover 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+                    }
+                    .cyber-card:hover {
+                        box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+                        border-color: rgba(16, 185, 129, 0.8);
+                        transform: translateX(4px);
+                    }
+                `}
+            </style>
+
             {/* Subtle background pattern */}
-            <div className="fixed inset-0 opacity-[0.02] pointer-events-none">
+            <div className="fixed inset-0 opacity-[0.05] pointer-events-none">
                 <div className="absolute inset-0" style={{
-                    backgroundImage: `radial-gradient(circle at 70% 30%, rgba(239, 68, 68, 0.4) 0%, transparent 50%),
-                                      radial-gradient(circle at 30% 70%, rgba(249, 115, 22, 0.3) 0%, transparent 40%)`
+                    backgroundImage: `radial-gradient(circle at 70% 30%, rgba(16, 185, 129, 0.4) 0%, transparent 50%),
+                                      radial-gradient(circle at 30% 70%, rgba(52, 211, 153, 0.3) 0%, transparent 40%)`
                 }} />
             </div>
 
             <div className="relative z-10 max-w-7xl mx-auto pl-16 pr-6 py-8">
                 {/* Header */}
                 <header className="mb-8">
-                    <Link to="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors mb-4">
+                    <Link to="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-[#10b981] transition-colors mb-4">
                         <ChevronLeft size={18} />
                         <span className="text-sm">Back to Home</span>
                     </Link>
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-                            <Flame size={24} className="text-white" />
+                        <div className="w-12 h-12 rounded-none border border-[#10b981]/50 bg-gradient-to-br from-[#064e3b] to-[#022c22] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                            <Flame size={24} className="text-[#10b981]" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-white tracking-tight">IFF Dashboard</h1>
-                            <p className="text-red-400/70 text-sm">Run It Back Tournament Series</p>
+                            <h1 className="text-2xl font-bold text-white tracking-widest uppercase font-mono">IFF Protocol</h1>
+                            <p className="text-[#34d399]/70 text-sm uppercase tracking-widest font-mono">Interactive Fight Framework</p>
                         </div>
                         {isLocked && (
-                            <span className="ml-auto px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                            <span className="ml-auto px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 rounded-none text-xs tracking-widest uppercase font-mono text-[#ef4444] flex items-center gap-2">
                                 <Lock size={14} /> Access Locked
                             </span>
                         )}
@@ -152,33 +186,33 @@ const RIBDashboardPage = () => {
                 </header>
 
                 {/* Hero Section */}
-                <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-red-500/10 via-orange-500/5 to-transparent border border-red-500/20">
+                <div className="mb-8 p-6 rounded-none bg-[#020617]/80 backdrop-blur-sm border border-[#10b981]/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]">
                     <div className="flex items-center gap-6">
-                        <div className="p-4 rounded-xl bg-red-500/20">
-                            <Swords size={32} className="text-red-400" />
+                        <div className="p-4 rounded-none bg-[#10b981]/10 border border-[#10b981]/20">
+                            <Swords size={32} className="text-[#10b981]" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white mb-1">Run It Back</h2>
-                            <p className="text-gray-400 max-w-lg">
+                            <h2 className="text-xl font-bold text-white mb-1 uppercase tracking-widest font-mono">IRON FIST FEDERATION</h2>
+                            <p className="text-[#a7f3d0]/60 max-w-lg font-mono text-sm">
                                 The ultimate competitive Tekken series featuring top players battling for glory. 
                                 High-stakes matches with professional production quality.
                             </p>
                         </div>
                     </div>
                 </div>
-
+                        
                 {isLocked ? (
-                    <div className="text-center py-16">
-                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 mb-6">
-                            <Lock size={32} className="text-red-400" />
+                    <div className="text-center py-16 font-mono">
+                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-none bg-[#ef4444]/10 border border-[#ef4444]/30 mb-6">
+                            <Lock size={32} className="text-[#ef4444]" />
                         </div>
-                        <h3 className="text-xl font-semibold text-white mb-2">Access Required</h3>
-                        <p className="text-gray-400 mb-6 max-w-md mx-auto">
-                            You need the RIB access key to use these controls. Please enter the key from the main dashboard.
+                        <h3 className="text-xl font-semibold text-white mb-2 uppercase tracking-widest">Access Required</h3>
+                        <p className="text-gray-400 mb-6 max-w-md mx-auto text-sm">
+                            You need the IFF access key to use these controls. Please enter the key from the main dashboard.
                         </p>
                         <Link 
                             to="/dashboard"
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-all"
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-none bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] hover:bg-[#10b981]/20 transition-all uppercase tracking-widest text-sm"
                         >
                             <ChevronLeft size={18} />
                             Return to Dashboard
@@ -189,10 +223,10 @@ const RIBDashboardPage = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Main Controls — Archived */}
                         <div>
-                            <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                                <div className="w-1 h-4 bg-gray-700 rounded-full" />
+                            <h3 className="text-[10px] font-bold text-[#10b981]/50 uppercase tracking-widest mb-3 px-1 flex items-center gap-2 font-mono">
+                                <div className="w-1 h-4 bg-[#10b981]/30 rounded-none" />
                                 Main Controls
-                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-gray-800 text-gray-500 border border-gray-700 ml-1">
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-widest bg-[#020617] text-[#10b981]/50 border border-[#10b981]/30 ml-1">
                                     <Archive size={9} /> Archived
                                 </span>
                             </h3>
@@ -200,19 +234,19 @@ const RIBDashboardPage = () => {
                                 {controlItems.map((item) => (
                                     <div
                                         key={item.path}
-                                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-800 bg-gray-900/40 cursor-not-allowed opacity-50"
+                                        className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/20 bg-[#020617]/40 cursor-not-allowed opacity-50"
                                         title="This section is archived"
                                     >
-                                        <div className="p-2.5 rounded-lg bg-gray-800 text-gray-600">
+                                        <div className="p-2.5 rounded-none bg-[#10b981]/5 text-[#10b981]/50 border border-[#10b981]/10">
                                             {item.icon}
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="font-semibold text-gray-500 line-through decoration-gray-600">{item.name}</h3>
-                                            <p className="text-gray-600 text-sm">{item.description}</p>
+                                            <h3 className="font-semibold text-[#10b981]/50 line-through decoration-[#10b981]/50 tracking-widest uppercase font-mono text-sm">{item.name}</h3>
+                                            <p className="text-[#10b981]/30 text-xs font-mono">{item.description}</p>
                                         </div>
                                         {item.external
-                                            ? <ExternalLink size={16} className="text-gray-700" />
-                                            : <ChevronLeft size={18} className="text-gray-700 rotate-180" />
+                                            ? <ExternalLink size={16} className="text-[#10b981]/40" />
+                                            : <ChevronLeft size={18} className="text-[#10b981]/40 rotate-180" />
                                         }
                                     </div>
                                 ))}
@@ -221,10 +255,10 @@ const RIBDashboardPage = () => {
 
                         {/* Overlays — Archived */}
                         <div>
-                            <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                                <div className="w-1 h-4 bg-gray-700 rounded-full" />
+                            <h3 className="text-[10px] font-bold text-[#10b981]/50 uppercase tracking-widest mb-3 px-1 flex items-center gap-2 font-mono">
+                                <div className="w-1 h-4 bg-[#10b981]/30 rounded-none" />
                                 Stream Overlays
-                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-gray-800 text-gray-500 border border-gray-700 ml-1">
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-widest bg-[#020617] text-[#10b981]/50 border border-[#10b981]/30 ml-1">
                                     <Archive size={9} /> Archived
                                 </span>
                             </h3>
@@ -232,17 +266,17 @@ const RIBDashboardPage = () => {
                                 {overlayItems.map((item) => (
                                     <div
                                         key={item.path}
-                                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-800 bg-gray-900/40 cursor-not-allowed opacity-50"
+                                        className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/20 bg-[#020617]/40 cursor-not-allowed opacity-50"
                                         title="This section is archived"
                                     >
-                                        <div className="p-2.5 rounded-lg bg-gray-800 text-gray-600">
+                                        <div className="p-2.5 rounded-none bg-[#10b981]/5 text-[#10b981]/50 border border-[#10b981]/10">
                                             {item.icon}
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="font-semibold text-gray-500 line-through decoration-gray-600">{item.name}</h3>
-                                            <p className="text-gray-600 text-sm">{item.description}</p>
+                                            <h3 className="font-semibold text-[#10b981]/50 line-through decoration-[#10b981]/50 tracking-widest uppercase font-mono text-sm">{item.name}</h3>
+                                            <p className="text-[#10b981]/30 text-xs font-mono">{item.description}</p>
                                         </div>
-                                        <ExternalLink size={16} className="text-gray-700" />
+                                        <ExternalLink size={16} className="text-[#10b981]/40" />
                                     </div>
                                 ))}
                             </div>
@@ -251,8 +285,8 @@ const RIBDashboardPage = () => {
 
                     {/* EWGF Player Data Section */}
                     <div className="mt-8">
-                        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                            <div className="w-1 h-4 bg-cyan-500 rounded-full" />
+                        <h3 className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest mb-3 px-1 flex items-center gap-2 font-mono">
+                            <div className="w-1 h-4 bg-[#10b981] rounded-none shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
                             IFF Player Data
                         </h3>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -265,15 +299,15 @@ const RIBDashboardPage = () => {
                                         onMouseEnter={onMouseEnter(item.path)}
                                         onTouchStart={onTouchStart(item.path)}
                                     >
-                                        <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all group">
-                                            <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
+                                        <div className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/20 bg-[#020617]/60 hover:bg-[#020617]/90 transition-all group cyber-card">
+                                            <div className="p-2.5 rounded-none bg-[#10b981]/10 text-[#10b981] group-hover:bg-[#10b981]/20 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all">
                                                 {item.icon}
                                             </div>
                                             <div className="flex-1">
-                                                <h3 className="font-semibold text-white">{item.name}</h3>
-                                                <p className="text-gray-400 text-sm">{item.description}</p>
+                                                <h3 className="font-semibold text-white tracking-widest uppercase font-mono text-sm">{item.name}</h3>
+                                                <p className="text-[#a7f3d0]/50 text-xs font-mono">{item.description}</p>
                                             </div>
-                                            <ExternalLink size={16} className="text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <ExternalLink size={16} className="text-[#10b981] opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                     </Link>
                                 ) : (
@@ -283,15 +317,15 @@ const RIBDashboardPage = () => {
                                         onMouseEnter={onMouseEnter(item.path)}
                                         onTouchStart={onTouchStart(item.path)}
                                     >
-                                        <div className="flex items-center gap-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all group">
-                                            <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
+                                        <div className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/20 bg-[#020617]/60 hover:bg-[#020617]/90 transition-all group cyber-card">
+                                            <div className="p-2.5 rounded-none bg-[#10b981]/10 text-[#10b981] group-hover:bg-[#10b981]/20 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all">
                                                 {item.icon}
                                             </div>
                                             <div className="flex-1">
-                                                <h3 className="font-semibold text-white">{item.name}</h3>
-                                                <p className="text-gray-400 text-sm">{item.description}</p>
+                                                <h3 className="font-semibold text-white tracking-widest uppercase font-mono text-sm">{item.name}</h3>
+                                                <p className="text-[#a7f3d0]/50 text-xs font-mono">{item.description}</p>
                                             </div>
-                                            <ChevronLeft size={18} className="text-cyan-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <ChevronLeft size={18} className="text-[#10b981] rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                     </Link>
                                 )
@@ -301,25 +335,25 @@ const RIBDashboardPage = () => {
 
                     {/* Love & War Section — Archived */}
                     <div className="mt-8">
-                        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                            <div className="w-1 h-4 bg-gray-700 rounded-full" />
+                        <h3 className="text-[10px] font-bold text-[#10b981]/50 uppercase tracking-widest mb-3 px-1 flex items-center gap-2 font-mono">
+                            <div className="w-1 h-4 bg-[#10b981]/30 rounded-none" />
                             Love & War Tournament
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-gray-800 text-gray-500 border border-gray-700 ml-1">
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-widest bg-[#020617] text-[#10b981]/50 border border-[#10b981]/30 ml-1">
                                 <Archive size={9} /> Archived
                             </span>
                         </h3>
                         <div
-                            className="flex items-center gap-4 p-6 rounded-xl border border-gray-800 bg-gray-900/40 cursor-not-allowed opacity-50"
+                            className="flex items-center gap-4 p-6 rounded-none border border-[#10b981]/20 bg-[#020617]/40 cursor-not-allowed opacity-50"
                             title="This section is archived"
                         >
-                            <div className="p-3 rounded-lg bg-gray-800 text-gray-600">
+                            <div className="p-3 rounded-none bg-[#10b981]/5 text-[#10b981]/50 border border-[#10b981]/10">
                                 <Heart size={28} />
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-bold text-gray-500 text-lg mb-1 line-through decoration-gray-600">Love & War Dashboard</h3>
-                                <p className="text-gray-600 text-sm">Manage 2v2 team tournaments, display team stats, and control live overlays</p>
+                                <h3 className="font-bold text-[#10b981]/50 text-lg mb-1 line-through decoration-[#10b981]/50 tracking-widest uppercase font-mono text-sm">Love & War Dashboard</h3>
+                                <p className="text-[#10b981]/30 text-xs font-mono">Manage 2v2 team tournaments, display team stats, and control live overlays</p>
                             </div>
-                            <ChevronLeft size={20} className="text-gray-700 rotate-180" />
+                            <ChevronLeft size={20} className="text-[#10b981]/40 rotate-180" />
                         </div>
                     </div>
                     </>

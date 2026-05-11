@@ -13,7 +13,7 @@ export default function ReturnHomeButton() {
         path === '/' ||
         path === '/dashboard' ||
         path === '/dashboard/tdeu' ||
-        path === '/dashboard/rib' ||
+        path === '/dashboard/iff' ||
         path === '/iff/love-and-war'
     ) {
         return null;
@@ -27,11 +27,6 @@ export default function ReturnHomeButton() {
         dashboardUrl = '/dashboard/tdeu';
         label = 'TDEU Dashboard';
     } 
-    // Run It Back Routes
-    else if (path.includes('/rib/')) {
-        dashboardUrl = '/dashboard/rib';
-        label = 'RIB Dashboard';
-    }
     // Love & War Routes
     else if (path.includes('/love-and-war')) {
         dashboardUrl = '/iff/love-and-war';
@@ -39,8 +34,8 @@ export default function ReturnHomeButton() {
     }
     // General IFF Routes
     else if (path.includes('/iff/')) {
-        dashboardUrl = '/dashboard/rib'; // Default IFF to RIB
-        label = 'RIB Dashboard';
+        dashboardUrl = '/dashboard/iff'; // Default IFF dashboard
+        label = 'IFF Dashboard';
     }
 
     return (

@@ -60,7 +60,7 @@ const IFFBurgerMenu = () => {
             icon: <LayoutDashboard size={18} />,
             defaultOpen: true,
             items: [
-                { name: 'IFF Dashboard', path: '/dashboard/rib', icon: <Home size={16} /> },
+                { name: 'IFF Dashboard', path: '/dashboard/iff', icon: <Home size={16} /> },
                 { name: 'Player Management', path: '/iff/player-import', icon: <UserCircle size={16} /> },
             ]
         },
@@ -69,13 +69,13 @@ const IFFBurgerMenu = () => {
             icon: <Swords size={18} />,
             defaultOpen: true,
             items: [
-                { name: 'Match Control', path: '/rib/match-control', icon: <Settings size={16} /> },
-                { name: 'Match Cards Editor', path: '/rib/match-cards-editor', icon: <Settings size={16} /> },
-                { name: 'Unified Overlay', path: '/rib/unified-overlay', icon: <Tv size={16} />, isOverlay: true },
-                { name: 'Single Match Overlay', path: '/rib/single-match-overlay', icon: <Tv size={16} />, isOverlay: true },
-                { name: 'Player Stats Overlay', path: '/rib/player-stats-overlay', icon: <Tv size={16} />, isOverlay: true },
-                { name: 'Part One Overlay', path: '/rib/part-one-overlay', icon: <Tv size={16} />, isOverlay: true },
-                { name: 'Stream Overlay', path: '/rib/stream-overlay', icon: <Tv size={16} />, isOverlay: true },
+                { name: 'Match Control', path: '/iff/match-control', icon: <Settings size={16} /> },
+                { name: 'Match Cards Editor', path: '/iff/match-cards-editor', icon: <Settings size={16} /> },
+                { name: 'Unified Overlay', path: '/iff/unified-overlay', icon: <Tv size={16} />, isOverlay: true },
+                { name: 'Single Match Overlay', path: '/iff/single-match-overlay', icon: <Tv size={16} />, isOverlay: true },
+                { name: 'Player Stats Overlay', path: '/iff/player-stats-overlay', icon: <Tv size={16} />, isOverlay: true },
+                { name: 'Part One Overlay', path: '/iff/part-one-overlay', icon: <Tv size={16} />, isOverlay: true },
+                { name: 'Stream Overlay', path: '/iff/stream-overlay', icon: <Tv size={16} />, isOverlay: true },
             ]
         },
         {
