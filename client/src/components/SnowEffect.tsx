@@ -56,4 +56,3 @@ export const SnowEffect = memo(() => {
 SnowEffect.displayName = 'SnowEffect';
 
 export default SnowEffect;
-

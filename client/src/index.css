@@ -1,11 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @import './styles/cyber.css';
 @import './styles/glitch.css';
 @import './styles/animations.css';
 @import './styles/snow.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @keyframes loader-glitch {
     0% { transform: translate(0) }
