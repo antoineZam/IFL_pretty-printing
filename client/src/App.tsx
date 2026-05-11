@@ -50,18 +50,6 @@ const LoveAndWarUnifiedOverlay = lazy(() => import('./pages/IFF/LoveAndWarUnifie
 const PageLoader = () => {
   return (
     <div className="w-full h-screen flex items-center justify-center bg-transparent relative z-[9999] overflow-hidden">
-        <style>
-            {`
-                @keyframes loader-glitch {
-                    0% { transform: translate(0) }
-                    20% { transform: translate(-5px, 2px) }
-                    40% { transform: translate(-5px, -2px) }
-                    60% { transform: translate(5px, 2px) }
-                    80% { transform: translate(5px, -2px) }
-                    100% { transform: translate(0) }
-                }
-            `}
-        </style>
         <div className="text-center">
             <h2 className="text-3xl font-mono font-bold uppercase tracking-[0.5em] text-white mix-blend-difference" style={{ animation: 'loader-glitch 0.2s infinite' }}>
                 DECRYPTING...

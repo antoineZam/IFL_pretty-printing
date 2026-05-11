@@ -3,9 +3,20 @@
 @tailwind utilities;
 
 @import './styles/cyber.css';
+@import './styles/glitch.css';
+@import './styles/animations.css';
+@import './styles/snow.css';
+
+@keyframes loader-glitch {
+    0% { transform: translate(0) }
+    20% { transform: translate(-5px, 2px) }
+    40% { transform: translate(-5px, -2px) }
+    60% { transform: translate(5px, 2px) }
+    80% { transform: translate(5px, -2px) }
+    100% { transform: translate(0) }
+}
 
 /* 
-  By defining the fonts here with corrected paths, they will be available application-wide.
   The URLs now point to the correct location within the 'public' directory.
 */
 

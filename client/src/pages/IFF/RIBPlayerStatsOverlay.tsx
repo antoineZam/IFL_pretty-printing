@@ -282,41 +282,6 @@ export default function RIBPlayerStatsOverlay({ forceShow = false, externalData,
                 </div>
             </div>
 
-            {/* Animations */}
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes slideUpBlur {
-                    from { 
-                        transform: scaleY(1.4) scaleX(1.3) translateY(100px); 
-                        opacity: 0; 
-                    }
-                    to { 
-                        transform: scaleY(1.4) scaleX(1.3) translateY(0); 
-                        opacity: 0.3; 
-                    }
-                }
-                @keyframes slideUpSharp {
-                    from { 
-                        transform: scaleY(1.4) scaleX(1.3) translateY(100px); 
-                        opacity: 0; 
-                    }
-                    to { 
-                        transform: scaleY(1.4) scaleX(1.3) translateY(0); 
-                        opacity: 1; 
-                    }
-                }
-                @keyframes slideInLeft {
-                    from { transform: translateX(-100px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes slideInRight {
-                    from { transform: translateX(100px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-            `}</style>
         </div>
     );
 }

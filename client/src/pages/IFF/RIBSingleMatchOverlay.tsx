@@ -561,34 +561,6 @@ export default function RIBSingleMatchOverlay({ forceShow = false, externalData,
                 </div>
             )}
 
-            {/* Animations */}
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes slideInLeft {
-                    from { transform: translateX(-150px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes slideInRight {
-                    from { transform: translateX(150px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes victoryPulse {
-                    0% { transform: scale(0.8); opacity: 0; }
-                    50% { transform: scale(1.05); }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-                @keyframes victoryTextGlow {
-                    0%, 100% { text-shadow: 0 0 40px rgba(255,255,255,0.3), 0 0 80px rgba(255,255,255,0.2); }
-                    50% { text-shadow: 0 0 60px rgba(255,255,255,0.5), 0 0 120px rgba(255,255,255,0.3); }
-                }
-                @keyframes slideUp {
-                    from { transform: translateY(50px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-            `}</style>
         </div>
     );
 }

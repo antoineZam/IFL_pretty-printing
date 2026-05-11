@@ -366,43 +366,6 @@ const LoveAndWarTeamStatsOverlay = ({ teamId: propTeamId, embedded = false }: Pr
                 </div>
             </div>
 
-            {/* Animations */}
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes slideDown {
-                    from {
-                        opacity: 0;
-                        transform: translate(-50%, -50px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translate(-50%, 0);
-                    }
-                }
-                @keyframes slideInLeft {
-                    from {
-                        opacity: 0;
-                        transform: translateX(-100px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-                @keyframes slideInRight {
-                    from {
-                        opacity: 0;
-                        transform: translateX(100px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-            `}</style>
         </div>
     );
 };

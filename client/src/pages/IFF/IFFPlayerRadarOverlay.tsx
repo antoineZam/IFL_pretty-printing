@@ -482,33 +482,6 @@ export default function IFFPlayerRadarOverlay() {
                 </div>
             </div>
 
-            {/* Animations */}
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes slideInLeft {
-                    from { transform: translateX(-40px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes slideInRight {
-                    from { transform: translateX(40px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes slideUp {
-                    from { transform: translateY(20px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-                @keyframes scaleIn {
-                    from { transform: scale(0.85); opacity: 0; }
-                    to { transform: scale(1); opacity: 1; }
-                }
-                @keyframes expandWidth {
-                    from { width: 0; }
-                    to { width: 100%; }
-                }
-            `}</style>
         </div>
     );
 }

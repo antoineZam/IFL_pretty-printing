@@ -162,21 +162,6 @@ export default function RIBStreamOverlay({ forceShow = false, externalData, exte
                 <span className="text-[#c45c4c] text-[40px] font-bold">{streamData.p2Score}</span>
             </div>
 
-            {/* Animations */}
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes slideInLeft {
-                    from { transform: translateX(-20px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes slideInRight {
-                    from { transform: translateX(20px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-            `}</style>
         </div>
     );
 }

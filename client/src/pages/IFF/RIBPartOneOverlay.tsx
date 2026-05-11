@@ -325,23 +325,6 @@ export default function RIBPartOneOverlay({ forceShow = false, externalData, ext
                 );
             })}
 
-            {/* Animations */}
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes slideUpFade {
-                    from { 
-                        transform: translateY(80px); 
-                        opacity: 0; 
-                    }
-                    to { 
-                        transform: translateY(0); 
-                        opacity: 1; 
-                    }
-                }
-            `}</style>
         </div>
     );
 }

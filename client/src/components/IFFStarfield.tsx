@@ -200,46 +200,6 @@ export default function IFFCyberBackground() {
         animation: isVisible ? 'crt-flicker 0.15s infinite' : 'none',
       }}
     >
-      <style>
-        {`
-          @keyframes crt-flicker {
-            0% { opacity: 0.95; }
-            50% { opacity: 1; filter: url(#organic-tear); }
-            100% { opacity: 0.98; filter: none; }
-          }
-          @keyframes organic-glitch {
-            0% { opacity: 0; filter: none; }
-            5% { opacity: 0.35; filter: url(#organic-tear); }
-            10% { opacity: 0; filter: none; }
-            100% { opacity: 0; }
-          }
-          @keyframes cyber-glitch {
-            0% { opacity: 0; transform: scaleX(1) translate(0, 0); }
-            5% { opacity: 0.4; transform: scaleX(1.5) translate(${Math.random() * 10 - 5}px, ${Math.random() * 4 - 2}px); }
-            10% { opacity: 0; transform: scaleX(1) translate(0, 0); }
-            100% { opacity: 0; }
-          }
-          @keyframes cyber-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-          }
-          @keyframes label-flicker {
-            0% { opacity: 0; }
-            10% { opacity: 1; text-shadow: 2px 0 #ef4444, -2px 0 #3b82f6; }
-            15% { opacity: 0; }
-            20% { opacity: 1; text-shadow: none; }
-            100% { opacity: 1; }
-          }
-          @keyframes node-jitter {
-            0% { transform: translate(-50%, -50%) rotate(45deg); filter: none; }
-            2% { transform: translate(calc(-50% + 4px), calc(-50% - 2px)) rotate(45deg); filter: url(#organic-tear); }
-            4% { transform: translate(calc(-50% - 3px), calc(-50% + 5px)) rotate(45deg); filter: none; }
-            6% { transform: translate(-50%, -50%) rotate(45deg); }
-            100% { transform: translate(-50%, -50%) rotate(45deg); }
-          }
-        `}
-      </style>
 
       {/* SVG Filters for organic digital tearing */}
       <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
@@ -282,7 +242,9 @@ export default function IFFCyberBackground() {
                 animation: (art.type === 'block' || art.type === 'spore') 
                   ? `organic-glitch ${art.dur}s infinite ${art.delay}s`
                   : `cyber-glitch ${art.dur}s infinite ${art.delay}s`,
-              }}
+                '--glitch-tx': `${Math.random() * 10 - 5}px`,
+                '--glitch-ty': `${Math.random() * 4 - 2}px`
+              } as React.CSSProperties}
             />
           );
         })}

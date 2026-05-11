@@ -23,52 +23,6 @@ const snowflakes = Array.from({ length: 400 }, (_, i) => ({
 export const SnowEffect = memo(() => {
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <style>{`
-                @keyframes blizzard {
-                    0% {
-                        transform: translateY(-50px) translateX(-100px);
-                        opacity: 0;
-                    }
-                    5% {
-                        opacity: var(--opacity);
-                    }
-                    95% {
-                        opacity: var(--opacity);
-                    }
-                    100% {
-                        transform: translateY(1150px) translateX(var(--drift));
-                        opacity: 0;
-                    }
-                }
-                
-                @keyframes windGust {
-                    0%, 100% {
-                        transform: translateX(0) scaleX(1);
-                    }
-                    50% {
-                        transform: translateX(20px) scaleX(1.2);
-                    }
-                }
-                
-                .blizzard-particle {
-                    position: absolute;
-                    top: -50px;
-                    background: radial-gradient(ellipse, 
-                        rgba(255, 255, 255, 1) 0%, 
-                        rgba(255, 255, 255, 0.6) 40%, 
-                        rgba(255, 255, 255, 0) 70%
-                    );
-                    border-radius: 50%;
-                    animation: blizzard linear infinite;
-                }
-                
-                .blizzard-inner {
-                    width: 100%;
-                    height: 100%;
-                    animation: windGust ease-in-out infinite;
-                }
-                
-            `}</style>
             
             {/* Snow particles */}
             {snowflakes.map((flake) => (
