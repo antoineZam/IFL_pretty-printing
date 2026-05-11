@@ -48,16 +48,34 @@ export default function GlitchTransition() {
                 style={{ animation: 'transition-scanline 0.3s linear forwards' }}
             />
             
-            {/* System Status Text */}
+            {/* Glitching Pixels */}
             <div 
-                className="absolute font-mono text-4xl font-bold uppercase tracking-[0.5em] mix-blend-difference"
+                className="absolute mix-blend-difference"
                 style={{ 
-                    color: glitchColor3,
-                    animation: 'transition-text-flicker 0.4s steps(5, end) forwards' 
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: glitchColor3,
+                    animation: 'transition-pixel-jump 0.4s steps(1, end) forwards' 
                 }}
-            >
-                SYS_INIT
-            </div>
+            />
+            <div 
+                className="absolute mix-blend-exclusion"
+                style={{ 
+                    width: '60px',
+                    height: '20px',
+                    backgroundColor: glitchColor1,
+                    animation: 'transition-pixel-jump 0.5s steps(1, end) reverse forwards' 
+                }}
+            />
+            <div 
+                className="absolute mix-blend-color-dodge"
+                style={{ 
+                    width: '15px',
+                    height: '80px',
+                    backgroundColor: glitchColor2,
+                    animation: 'transition-pixel-jump 0.3s steps(1, end) forwards 0.1s' 
+                }}
+            />
             
             {/* Organic noise overlay (uses the filter from IFFStarfield if loaded, otherwise fallback to css static) */}
             <div 

@@ -31,8 +31,16 @@
     100% { transform: translateY(100vh); }
 }
 
-@keyframes transition-text-flicker {
-    0%, 100% { opacity: 0; }
-    10%, 30%, 50%, 70%, 90% { opacity: 1; transform: scale(1.1) skewX(-15deg); }
-    20%, 40%, 60%, 80% { opacity: 0.3; transform: scale(0.9) skewX(10deg); }
+@keyframes transition-pixel-jump {
+    0% { transform: translate(0, 0) scale(1); opacity: 0; }
+    10% { transform: translate(35vw, -25vh) scale(2, 0.5); opacity: 1; }
+    20% { transform: translate(-35vw, 35vh) scale(0.5, 2); opacity: 0.8; }
+    30% { transform: translate(15vw, 15vh) scale(3, 1); opacity: 1; }
+    40% { transform: translate(-40vw, -15vh) scale(1); opacity: 0.5; }
+    50% { transform: translate(10vw, -35vh) scale(1, 3); opacity: 1; }
+    60% { transform: translate(-25vw, 10vh) scale(2, 2); opacity: 0.9; }
+    70% { transform: translate(30vw, 30vh) scale(0.5, 0.5); opacity: 0.2; }
+    80% { transform: translate(-15vw, -10vh) scale(4, 0.2); opacity: 1; }
+    90% { transform: translate(25vw, -20vh) scale(1); opacity: 0.4; }
+    100% { transform: translate(0, 0) scale(1); opacity: 0; }
 }

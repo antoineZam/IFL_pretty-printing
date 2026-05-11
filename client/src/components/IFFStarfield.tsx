@@ -1,37 +1,31 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-
-const SPACE_W = 5000;
-const SPACE_H = 4000;
 
 interface PageStar {
   id: string;
   path: string;
   label: string;
-  x: number;
-  y: number;
-  archived?: boolean;
 }
 
 // Nodes for the cyber map
 const PAGE_STARS: PageStar[] = [
   // IFF Hub
-  { id: 'iff-dashboard',   path: '/dashboard/iff',                       label: 'IFF Hub',         x: 2500, y: 2000 },
-  { id: 'player-import',   path: '/iff/player-import',                   label: 'Player Data',     x: 3200, y: 1500 },
+  { id: 'iff-dashboard',   path: '/dashboard/iff',                       label: 'IFF Hub' },
+  { id: 'player-import',   path: '/iff/player-import',                   label: 'Player Data' },
   // Run It Back (Archived events)
-  { id: 'iff-control',     path: '/iff/match-control',                   label: 'Match Protocol',  x: 1600, y: 1400, archived: true },
-  { id: 'iff-cards',       path: '/iff/match-cards-editor',              label: 'Cards Editor',    x: 1350, y: 1200, archived: true },
-  { id: 'iff-unified',     path: '/iff/unified-overlay',                 label: 'Unified Sys',     x: 1200, y: 1650, archived: true },
-  { id: 'iff-single',      path: '/iff/single-match-overlay',            label: 'Single Match',    x: 1720, y: 1760, archived: true },
-  { id: 'iff-stats',       path: '/iff/player-stats-overlay',            label: 'Stats Engine',    x: 1090, y: 1860, archived: true },
-  { id: 'iff-part1',       path: '/iff/part-one-overlay',                label: 'Part One',        x: 1360, y: 2060, archived: true },
-  { id: 'iff-stream',      path: '/iff/stream-overlay',                  label: 'Stream Uplink',   x: 1560, y: 2260, archived: true },
+  { id: 'iff-control',     path: '/iff/match-control',                   label: 'Match Protocol' },
+  { id: 'iff-cards',       path: '/iff/match-cards-editor',              label: 'Cards Editor' },
+  { id: 'iff-unified',     path: '/iff/unified-overlay',                 label: 'Unified Sys' },
+  { id: 'iff-single',      path: '/iff/single-match-overlay',            label: 'Single Match' },
+  { id: 'iff-stats',       path: '/iff/player-stats-overlay',            label: 'Stats Engine' },
+  { id: 'iff-part1',       path: '/iff/part-one-overlay',                label: 'Part One' },
+  { id: 'iff-stream',      path: '/iff/stream-overlay',                  label: 'Stream Uplink' },
   // Love & War (Archived events)
-  { id: 'lnw',             path: '/iff/love-and-war',                    label: 'Love & War',      x: 3360, y: 2860, archived: true },
-  { id: 'lnw-control',     path: '/iff/love-and-war/control',            label: 'Team Mgmt',       x: 3660, y: 2660, archived: true },
-  { id: 'lnw-display',     path: '/iff/love-and-war/display',            label: 'Display Core',    x: 3200, y: 3110, archived: true },
-  { id: 'lnw-tournaments', path: '/iff/love-and-war/tournaments',        label: 'Tourneys',        x: 3610, y: 3310, archived: true },
-  { id: 'lnw-overlay',     path: '/iff/love-and-war/overlay',            label: 'Team Stats',      x: 3050, y: 3010, archived: true },
+  { id: 'lnw',             path: '/iff/love-and-war',                    label: 'Love & War' },
+  { id: 'lnw-control',     path: '/iff/love-and-war/control',            label: 'Team Mgmt' },
+  { id: 'lnw-display',     path: '/iff/love-and-war/display',            label: 'Display Core' },
+  { id: 'lnw-tournaments', path: '/iff/love-and-war/tournaments',        label: 'Tourneys' },
+  { id: 'lnw-overlay',     path: '/iff/love-and-war/overlay',            label: 'Team Stats' },
 ];
 
 // Overlay routes rendered in OBS — no UI decoration
@@ -90,11 +84,6 @@ const ARTIFACT_COUNT = 800;
 
 export default function IFFCyberBackground() {
   const { pathname } = useLocation();
-  const cameraRef = useRef<HTMLDivElement>(null);
-  const activeStarIdRef = useRef<string | undefined>(undefined);
-  const animRef = useRef<Animation | null>(null);
-  const isFirstRef = useRef(true);
-
   const isVisible = isIFFPage(pathname);
   const activeStar = findActiveStar(pathname);
 
@@ -106,8 +95,8 @@ export default function IFFCyberBackground() {
       const type = typeRand < 0.4 ? 'line' : typeRand < 0.7 ? 'dot' : typeRand < 0.85 ? 'block' : 'spore';
       return {
         id: i,
-        x: rng() * SPACE_W,
-        y: rng() * SPACE_H,
+        x: rng() * 100, // percentage VW
+        y: rng() * 100, // percentage VH
         w: type === 'line' ? 20 + rng() * 100 : type === 'dot' ? 2 : type === 'spore' ? 40 + rng() * 150 : 10 + rng() * 30,
         h: type === 'line' ? 1 + rng() * 3 : type === 'dot' ? 2 : type === 'spore' ? 40 + rng() * 150 : 10 + rng() * 30,
         depth: rng(),
@@ -116,71 +105,6 @@ export default function IFFCyberBackground() {
         type
       };
     });
-  }, []);
-
-  function cameraTranslate(star: PageStar | undefined): { tx: number; ty: number } {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const x = star?.x ?? SPACE_W / 2;
-    const y = star?.y ?? SPACE_H / 2;
-    return { tx: vw / 2 - x, ty: vh / 2 - y };
-  }
-
-  useEffect(() => {
-    const el = cameraRef.current;
-    if (!el) return;
-
-    const prevStar = PAGE_STARS.find(s => s.id === activeStarIdRef.current);
-    activeStarIdRef.current = activeStar?.id;
-
-    const { tx, ty } = cameraTranslate(activeStar);
-
-    if (isFirstRef.current || !prevStar || !isVisible) {
-      isFirstRef.current = false;
-      el.style.transform = `translate(${tx}px, ${ty}px)`;
-      return;
-    }
-
-    const { tx: oldTx, ty: oldTy } = cameraTranslate(prevStar);
-
-    animRef.current?.cancel();
-    animRef.current = null;
-
-    // Glitch-snap animation instead of smooth curve
-    // It creates an electric, jittery translation over a shorter time
-    const anim = el.animate(
-      [
-        { transform: `translate(${oldTx}px, ${oldTy}px)` },
-        { transform: `translate(${oldTx + (tx - oldTx)*0.3}px, ${oldTy + (ty - oldTy)*0.2}px)`, offset: 0.2 },
-        { transform: `translate(${oldTx + (tx - oldTx)*0.4 + 50}px, ${oldTy + (ty - oldTy)*0.5 - 20}px)`, offset: 0.4 },
-        { transform: `translate(${oldTx + (tx - oldTx)*0.8 - 40}px, ${oldTy + (ty - oldTy)*0.9 + 30}px)`, offset: 0.7 },
-        { transform: `translate(${tx}px, ${ty}px)` },
-      ],
-      { duration: 600, easing: 'steps(5, end)', fill: 'forwards' }
-    );
-
-    animRef.current = anim;
-    anim.finished
-      .then(() => {
-        el.style.transform = `translate(${tx}px, ${ty}px)`;
-        anim.cancel();
-        animRef.current = null;
-      })
-      .catch(() => {});
-  }, [activeStar?.id, isVisible]);
-
-  useEffect(() => {
-    function onResize() {
-      const el = cameraRef.current;
-      if (!el) return;
-      const currentStar = PAGE_STARS.find(s => s.id === activeStarIdRef.current);
-      const { tx, ty } = cameraTranslate(currentStar);
-      animRef.current?.cancel();
-      animRef.current = null;
-      el.style.transform = `translate(${tx}px, ${ty}px)`;
-    }
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   return (
@@ -215,15 +139,7 @@ export default function IFFCyberBackground() {
         backgroundSize: '100% 4px',
         zIndex: 10
       }} />
-      <div
-        ref={cameraRef}
-        style={{
-          position: 'absolute',
-          width: SPACE_W,
-          height: SPACE_H,
-          willChange: 'transform',
-        }}
-      >
+      <div className="absolute inset-0">
         {/* Background Glitch Artifacts */}
         {artifacts.map(art => {
           return (
@@ -231,8 +147,8 @@ export default function IFFCyberBackground() {
               key={art.id}
               style={{
                 position: 'absolute',
-                left: art.x,
-                top: art.y,
+                left: `${art.x}%`,
+                top: `${art.y}%`,
                 width: art.w,
                 height: art.h,
                 background: art.type === 'line' ? '#10b981' : art.type === 'dot' ? '#34d399' : art.type === 'spore' ? 'radial-gradient(circle, rgba(16,185,129,0.3) 0%, transparent 60%)' : '#047857',
@@ -249,84 +165,45 @@ export default function IFFCyberBackground() {
           );
         })}
 
-        {/* Node Points */}
-        {PAGE_STARS.map(star => {
-          const active = star.id === activeStar?.id;
-
-          const dotSize  = active ? 10 : star.archived ? 6 : 8;
-          const dotColor = active
-            ? star.archived ? '#34d399' : '#10b981' // Bright green
-            : star.archived ? '#064e3b' : '#059669'; // Dimmer green
-          
-          const glow = active
-            ? '0 0 10px 2px rgba(16,185,129,0.8), 0 0 20px 5px rgba(52,211,153,0.4)'
-            : '0 0 5px rgba(16,185,129,0.3)';
-
-          return (
+        {/* Active Page Glitching Pixel Name */}
+        {activeStar && (
+          <div
+            style={{
+              position: 'absolute',
+              transform: 'translate(-50%, -50%)',
+              animation: 'page-name-jump 50s infinite steps(1, end)',
+            }}
+          >
+            {/* The Glitched Pixel */}
             <div
-              key={star.id}
               style={{
-                position: 'absolute',
-                left: star.x,
-                top: star.y,
-                transform: 'translate(-50%, -50%)',
+                width: 10,
+                height: 10,
+                background: '#10b981',
+                boxShadow: '0 0 10px 2px rgba(16,185,129,0.8), 0 0 20px 5px rgba(52,211,153,0.4)',
+                margin: '0 auto',
+                animation: 'node-jitter 3s infinite',
+              }}
+            />
+            {/* Route label underneath */}
+            <div
+              style={{
+                marginTop: 15,
+                color: '#6ee7b7',
+                fontSize: 11,
+                fontFamily: 'monospace',
+                fontWeight: 'bold',
+                letterSpacing: '0.2em',
+                whiteSpace: 'nowrap',
+                textTransform: 'uppercase',
+                textAlign: 'center',
+                animation: 'label-flicker 2s infinite',
               }}
             >
-              {/* Expanding pulse ring — active node */}
-              {active && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    width: 30,
-                    height: 30,
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    borderRadius: '2px', // Square/digital feel
-                    border: `1px solid rgba(16, 185, 129, 0.5)`,
-                    animation: 'cyber-pulse 2s infinite',
-                  }}
-                />
-              )}
-
-              {/* Node core (square instead of circle) */}
-              <div
-                style={{
-                  width: dotSize,
-                  height: dotSize,
-                  background: dotColor,
-                  boxShadow: glow,
-                  transform: 'rotate(45deg)', // Diamond shape
-                  transition: 'all 0.3s ease',
-                  animation: active ? 'node-jitter 3s infinite' : 'none',
-                }}
-              />
-
-              {/* Route label — visible only on active star */}
-              {active && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginTop: 15,
-                    color: star.archived ? '#a7f3d0' : '#6ee7b7',
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.2em',
-                    whiteSpace: 'nowrap',
-                    textTransform: 'uppercase',
-                    animation: 'label-flicker 0.4s ease-out forwards',
-                  }}
-                >
-                  [{star.label}]
-                </div>
-              )}
+              [{activeStar.label}]
             </div>
-          );
-        })}
+          </div>
+        )}
       </div>
     </div>
   );
