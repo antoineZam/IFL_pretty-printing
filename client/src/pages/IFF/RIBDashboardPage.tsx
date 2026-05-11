@@ -120,39 +120,6 @@ const RIBDashboardPage = () => {
         <div className="min-h-screen bg-transparent">
             <IFFBurgerMenu />
             
-            <style>
-                {`
-                    @keyframes cyber-glitch-hover {
-                        0% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-                        20% { clip-path: polygon(0 15%, 100% 15%, 100% 85%, 0 85%); }
-                        40% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-                        60% { clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%); }
-                        80% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-                        100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-                    }
-                    .cyber-card {
-                        position: relative;
-                    }
-                    .cyber-card::before {
-                        content: '';
-                        position: absolute;
-                        top: 0; left: 0; right: 0; bottom: 0;
-                        background: #10b981;
-                        opacity: 0;
-                        z-index: -1;
-                        transition: opacity 0.2s ease;
-                    }
-                    .cyber-card:hover::before {
-                        opacity: 0.1;
-                        animation: cyber-glitch-hover 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
-                    }
-                    .cyber-card:hover {
-                        box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-                        border-color: rgba(16, 185, 129, 0.8);
-                        transform: translateX(4px);
-                    }
-                `}
-            </style>
 
             {/* Subtle background pattern */}
             <div className="fixed inset-0 opacity-[0.05] pointer-events-none">
