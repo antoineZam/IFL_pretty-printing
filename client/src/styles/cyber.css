@@ -95,3 +95,25 @@
     6% { transform: translate(0); filter: none; }
     100% { transform: translate(0); }
 }
+
+.archived-glitch h3, .archived-glitch p {
+    animation: archived-label-glitch 4s infinite;
+}
+
+@keyframes intense-click-glitch {
+    0% { transform: translate(0); filter: none; text-shadow: none; }
+    10% { transform: translate(-4px, 2px); text-shadow: 2px 0 rgba(239,68,68,0.8), -2px 0 rgba(16,185,129,0.8); filter: url(#organic-tear); }
+    20% { transform: translate(4px, -2px); text-shadow: -2px 0 rgba(239,68,68,0.8), 2px 0 rgba(16,185,129,0.8); filter: none; }
+    30% { transform: translate(-2px, 4px); text-shadow: 2px 0 rgba(239,68,68,0.8), -2px 0 rgba(16,185,129,0.8); filter: url(#organic-tear); }
+    40% { transform: translate(2px, -4px); text-shadow: -2px 0 rgba(239,68,68,0.8), 2px 0 rgba(16,185,129,0.8); filter: none; }
+    50% { transform: translate(-3px, -3px); text-shadow: 2px 0 rgba(239,68,68,0.8), -2px 0 rgba(16,185,129,0.8); filter: url(#organic-tear); }
+    60% { transform: translate(3px, 3px); text-shadow: -2px 0 rgba(239,68,68,0.8), 2px 0 rgba(16,185,129,0.8); filter: none; }
+    70% { transform: translate(-1px, 2px); text-shadow: 2px 0 rgba(239,68,68,0.8), -2px 0 rgba(16,185,129,0.8); filter: url(#organic-tear); }
+    80% { transform: translate(2px, -1px); text-shadow: -2px 0 rgba(239,68,68,0.8), 2px 0 rgba(16,185,129,0.8); filter: none; }
+    90% { transform: translate(-2px, 1px); text-shadow: 2px 0 rgba(239,68,68,0.8), -2px 0 rgba(16,185,129,0.8); filter: url(#organic-tear); }
+    100% { transform: translate(0); filter: none; text-shadow: none; }
+}
+
+.click-glitch h3, .click-glitch p, .click-glitch div {
+    animation: intense-click-glitch 0.4s cubic-bezier(.25, .46, .45, .94) both !important;
+}

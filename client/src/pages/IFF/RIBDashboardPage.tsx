@@ -16,8 +16,17 @@ const RIBDashboardPage = () => {
     const [searchParams] = useSearchParams();
     const [ribUnlocked, setRibUnlocked] = useState(false);
     const [ribKeyRequired, setRibKeyRequired] = useState(true);
+    const [glitchingItem, setGlitchingItem] = useState<string | null>(null);
     const navigate = useNavigate();
     const { onMouseEnter, onTouchStart } = useRoutePreloader();
+
+    const handleArchivedClick = (e: React.MouseEvent, path: string) => {
+        e.preventDefault();
+        setGlitchingItem(path);
+        setTimeout(() => {
+            setGlitchingItem(null);
+        }, 400);
+    };
 
     useEffect(() => {
         const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
@@ -167,7 +176,7 @@ const RIBDashboardPage = () => {
                         </div>
                     </div>
                 </div>
-                        
+
                 {isLocked ? (
                     <div className="text-center py-16 font-mono">
                         <div className="inline-flex items-center justify-center w-20 h-20 rounded-none bg-[#ef4444]/10 border border-[#ef4444]/30 mb-6">
@@ -199,23 +208,29 @@ const RIBDashboardPage = () => {
                             </h3>
                             <div className="space-y-3">
                                 {controlItems.map((item) => (
-                                    <div
-                                        key={item.path}
-                                        className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/20 bg-[#020617]/40 cursor-not-allowed opacity-50"
-                                        title="This section is archived"
+                                    <Link 
+                                        key={item.path} 
+                                        to={item.path}
+                                        onClick={(e) => handleArchivedClick(e, item.path)}
+                                        target={item.external ? "_blank" : undefined}
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                        className={`block mb-3 last:mb-0 ${glitchingItem === item.path ? 'click-glitch' : ''}`}
                                     >
-                                        <div className="p-2.5 rounded-none bg-[#10b981]/5 text-[#10b981]/50 border border-[#10b981]/10">
-                                            {item.icon}
+                                        <div className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/20 bg-[#020617]/50 hover:bg-[#020617]/80 transition-all group cyber-card opacity-[0.85] archived-glitch">
+                                            <div className="p-2.5 rounded-none bg-[#10b981]/10 text-[#10b981]/70 group-hover:bg-[#10b981]/20 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.4)] transition-all">
+                                                {item.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-[#10b981]/90 tracking-widest uppercase font-mono text-sm">{item.name}</h3>
+                                                <p className="text-[#10b981]/60 text-xs font-mono">{item.description}</p>
+                                            </div>
+                                            {item.external
+                                                ? <ExternalLink size={16} className="text-[#10b981]/60 group-hover:text-[#10b981] transition-colors" />
+                                                : <ChevronLeft size={18} className="text-[#10b981]/60 group-hover:text-[#10b981] rotate-180 transition-colors" />
+                                            }
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-[#10b981]/50 line-through decoration-[#10b981]/50 tracking-widest uppercase font-mono text-sm">{item.name}</h3>
-                                            <p className="text-[#10b981]/30 text-xs font-mono">{item.description}</p>
-                                        </div>
-                                        {item.external
-                                            ? <ExternalLink size={16} className="text-[#10b981]/40" />
-                                            : <ChevronLeft size={18} className="text-[#10b981]/40 rotate-180" />
-                                        }
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </div>
@@ -231,20 +246,29 @@ const RIBDashboardPage = () => {
                             </h3>
                             <div className="space-y-3">
                                 {overlayItems.map((item) => (
-                                    <div
-                                        key={item.path}
-                                        className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/20 bg-[#020617]/40 cursor-not-allowed opacity-50"
-                                        title="This section is archived"
+                                    <Link 
+                                        key={item.path} 
+                                        to={item.path}
+                                        onClick={(e) => handleArchivedClick(e, item.path)}
+                                        target={item.external ? "_blank" : undefined}
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                        className={`block mb-3 last:mb-0 ${glitchingItem === item.path ? 'click-glitch' : ''}`}
                                     >
-                                        <div className="p-2.5 rounded-none bg-[#10b981]/5 text-[#10b981]/50 border border-[#10b981]/10">
-                                            {item.icon}
+                                        <div className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/20 bg-[#020617]/50 hover:bg-[#020617]/80 transition-all group cyber-card opacity-[0.85] archived-glitch">
+                                            <div className="p-2.5 rounded-none bg-[#10b981]/10 text-[#10b981]/70 group-hover:bg-[#10b981]/20 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.4)] transition-all">
+                                                {item.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-[#10b981]/90 tracking-widest uppercase font-mono text-sm">{item.name}</h3>
+                                                <p className="text-[#10b981]/60 text-xs font-mono">{item.description}</p>
+                                            </div>
+                                            {item.external
+                                                ? <ExternalLink size={16} className="text-[#10b981]/60 group-hover:text-[#10b981] transition-colors" />
+                                                : <ChevronLeft size={18} className="text-[#10b981]/60 group-hover:text-[#10b981] rotate-180 transition-colors" />
+                                            }
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-[#10b981]/50 line-through decoration-[#10b981]/50 tracking-widest uppercase font-mono text-sm">{item.name}</h3>
-                                            <p className="text-[#10b981]/30 text-xs font-mono">{item.description}</p>
-                                        </div>
-                                        <ExternalLink size={16} className="text-[#10b981]/40" />
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </div>
@@ -309,19 +333,24 @@ const RIBDashboardPage = () => {
                                 <Archive size={9} /> Archived
                             </span>
                         </h3>
-                        <div
-                            className="flex items-center gap-4 p-6 rounded-none border border-[#10b981]/20 bg-[#020617]/40 cursor-not-allowed opacity-50"
-                            title="This section is archived"
+                        <Link 
+                            to="/iff/love-and-war"
+                            onClick={(e) => handleArchivedClick(e, "/iff/love-and-war")}
+                            onMouseEnter={onMouseEnter("/iff/love-and-war")}
+                            onTouchStart={onTouchStart("/iff/love-and-war")}
+                            className={`block ${glitchingItem === "/iff/love-and-war" ? 'click-glitch' : ''}`}
                         >
-                            <div className="p-3 rounded-none bg-[#10b981]/5 text-[#10b981]/50 border border-[#10b981]/10">
-                                <Heart size={28} />
+                            <div className="flex items-center gap-4 p-6 rounded-none border border-[#10b981]/20 bg-[#020617]/50 hover:bg-[#020617]/80 transition-all group cyber-card opacity-[0.85] archived-glitch">
+                                <div className="p-3 rounded-none bg-[#10b981]/10 text-[#10b981]/70 group-hover:bg-[#10b981]/20 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.4)] transition-all">
+                                    <Heart size={28} />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-[#10b981]/90 text-lg mb-1 tracking-widest uppercase font-mono text-sm">Love & War Dashboard</h3>
+                                    <p className="text-[#10b981]/60 text-xs font-mono">Manage 2v2 team tournaments, display team stats, and control live overlays</p>
+                                </div>
+                                <ChevronLeft size={20} className="text-[#10b981]/60 group-hover:text-[#10b981] rotate-180 transition-colors" />
                             </div>
-                            <div className="flex-1">
-                                <h3 className="font-bold text-[#10b981]/50 text-lg mb-1 line-through decoration-[#10b981]/50 tracking-widest uppercase font-mono text-sm">Love & War Dashboard</h3>
-                                <p className="text-[#10b981]/30 text-xs font-mono">Manage 2v2 team tournaments, display team stats, and control live overlays</p>
-                            </div>
-                            <ChevronLeft size={20} className="text-[#10b981]/40 rotate-180" />
-                        </div>
+                        </Link>
                     </div>
                     </>
                 )}
