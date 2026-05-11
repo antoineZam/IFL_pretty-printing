@@ -78,7 +78,7 @@ interface CyberArtifact {
   depth: number;
   delay: number;
   dur: number;
-  type: 'line' | 'block' | 'dot' | 'spore';
+  type: 'line' | 'block' | 'dot' | 'spore' | 'v-rect';
 }
 
 const ARTIFACT_COUNT = 800;
@@ -93,16 +93,47 @@ export default function IFFCyberBackground() {
     const rng = mulberry32(0xc0ffee42);
     return Array.from({ length: ARTIFACT_COUNT }, (_, i) => {
       const typeRand = rng();
-      const type = typeRand < 0.4 ? 'line' : typeRand < 0.7 ? 'dot' : typeRand < 0.85 ? 'block' : 'spore';
+      let type: 'line' | 'block' | 'dot' | 'spore' | 'v-rect';
+      if (typeRand < 0.3) type = 'line';
+      else if (typeRand < 0.5) type = 'dot';
+      else if (typeRand < 0.75) type = 'block';
+      else if (typeRand < 0.83) type = 'v-rect'; // Reduced amount
+      else type = 'spore';
+      
+      let w, h;
+      if (type === 'line') {
+          w = 20 + rng() * 100;
+          h = 1 + rng() * 3;
+      } else if (type === 'dot') {
+          w = 2;
+          h = 2;
+      } else if (type === 'spore') {
+          w = h = 40 + rng() * 150;
+      } else if (type === 'v-rect') {
+          w = 40 + rng() * 120; // Increased width
+          h = 60 + rng() * 300;
+      } else {
+          w = 10 + rng() * 30;
+          h = 10 + rng() * 30;
+      }
+      
+      let delay = rng() * 35;
+      let dur = 6 + rng() * 15;
+      
+      if (type === 'v-rect') {
+          delay = rng() * 85; // Reduced appearance rate again (even longer wait between cycles)
+          dur = 10 + rng() * 20;
+      }
+
       return {
         id: i,
         x: rng() * 100, // percentage VW
         y: rng() * 100, // percentage VH
-        w: type === 'line' ? 20 + rng() * 100 : type === 'dot' ? 2 : type === 'spore' ? 40 + rng() * 150 : 10 + rng() * 30,
-        h: type === 'line' ? 1 + rng() * 3 : type === 'dot' ? 2 : type === 'spore' ? 40 + rng() * 150 : 10 + rng() * 30,
+        w,
+        h,
         depth: rng(),
-        delay: rng() * 5,
-        dur: 0.2 + rng() * 4,
+        delay,
+        dur,
         type
       };
     });
@@ -156,7 +187,7 @@ export default function IFFCyberBackground() {
                 borderRadius: art.type === 'spore' ? '50%' : '0',
                 opacity: 0,
                 mixBlendMode: 'screen',
-                animation: (art.type === 'block' || art.type === 'spore') 
+                animation: (art.type === 'block' || art.type === 'spore' || art.type === 'v-rect') 
                   ? `organic-glitch ${art.dur}s infinite ${art.delay}s`
                   : `cyber-glitch ${art.dur}s infinite ${art.delay}s`,
                 '--glitch-tx': `${Math.random() * 10 - 5}px`,
