@@ -9,6 +9,10 @@ export default function GlitchTransition() {
         // Exclude overlay pages from the glitch transition to not mess up broadcasts
         if (location.pathname.includes('overlay')) return;
 
+        // Exclude TDEU pages to keep their smooth holographic transitions
+        const isTDEU = location.pathname.includes('/tdeu') || location.pathname.includes('/ifl/') || location.pathname.includes('/tag/');
+        if (isTDEU) return;
+
         setIsTransitioning(true);
         const timer = setTimeout(() => {
             setIsTransitioning(false);

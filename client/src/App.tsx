@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import IFFAccessGuard from './components/IFFAccessGuard';
 import TDEULayout from './components/TDEULayout';
 import ReturnHomeButton from './components/ReturnHomeButton';
@@ -48,6 +48,13 @@ const LoveAndWarMatchOverlay = lazy(() => import('./pages/IFF/LoveAndWarMatchOve
 const LoveAndWarUnifiedOverlay = lazy(() => import('./pages/IFF/LoveAndWarUnifiedOverlay'));
 
 const PageLoader = () => {
+  const location = useLocation();
+  const isTDEU = location.pathname.includes('/tdeu') || location.pathname.includes('/ifl/') || location.pathname.includes('/tag/');
+
+  if (isTDEU) {
+      return null;
+  }
+
   return (
     <div className="w-full h-screen flex items-center justify-center bg-transparent relative z-[9999] overflow-hidden">
         <div className="text-center">
