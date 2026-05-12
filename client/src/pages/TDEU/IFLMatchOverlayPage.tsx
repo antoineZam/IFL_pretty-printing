@@ -31,7 +31,7 @@ const LINK_ASSETS = [
 ];
 
 const LOGO_ASSETS = [
-    '/source/overlay/ifl/ifl_logo.png',
+    '/source/overlay/ifl/IFL_logo.png',
     '/source/overlay/ifl/tekkendojo_logo.png',
 ];
 
