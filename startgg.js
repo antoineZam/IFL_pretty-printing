@@ -459,7 +459,7 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
 // Get all tournaments/events in a league with participant counts
 async function getLeagueTournaments(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
   try {
-    const data = await queryStartGG(queries.league.events, { slug: leagueSlug });
+    const data = await queryStartGG(queries.league.eventsLight, { slug: leagueSlug });
     
     if (!data || !data.league || !data.league.events) {
       console.log('No events found for league:', leagueSlug);

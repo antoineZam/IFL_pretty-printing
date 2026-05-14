@@ -311,6 +311,31 @@ const queries = {
       }
     `,
 
+    eventsLight: `
+      query LeagueEventsLight($slug: String!) {
+        league(slug: $slug) {
+          id
+          name
+          events(query: { page: 1, perPage: 50 }) {
+            nodes {
+              id
+              name
+              slug
+              numEntrants
+              startAt
+              tournament {
+                id
+                name
+                slug
+                numAttendees
+                startAt
+              }
+            }
+          }
+        }
+      }
+    `,
+
     events: `
       query LeagueEvents($slug: String!) {
         league(slug: $slug) {
