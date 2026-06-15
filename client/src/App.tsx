@@ -47,6 +47,13 @@ const LoveAndWarMatchControlPage = lazy(() => import('./pages/IFF/LoveAndWarMatc
 const LoveAndWarMatchOverlay = lazy(() => import('./pages/IFF/LoveAndWarMatchOverlay'));
 const LoveAndWarUnifiedOverlay = lazy(() => import('./pages/IFF/LoveAndWarUnifiedOverlay'));
 
+// IFF9 pages
+const IFF9DashboardPage = lazy(() => import('./pages/IFF/IFF9DashboardPage'));
+const IFF9MatchControlPage = lazy(() => import('./pages/IFF/IFF9MatchControlPage'));
+const IFF9MatchOverlay = lazy(() => import('./pages/IFF/IFF9MatchOverlay'));
+const IFF9MatchCardsPage = lazy(() => import('./pages/IFF/IFF9MatchCardsPage'));
+const IFF9UnifiedOverlay = lazy(() => import('./pages/IFF/IFF9UnifiedOverlay'));
+
 const PageLoader = () => {
   const location = useLocation();
   const isTDEU = location.pathname.includes('/tdeu') || location.pathname.includes('/ifl/') || location.pathname.includes('/tag/');
@@ -114,6 +121,12 @@ function App() {
           <Route path="/iff/love-and-war/match-control" element={<IFFAccessGuard><LoveAndWarMatchControlPage /></IFFAccessGuard>} />
           <Route path="/iff/love-and-war/match-overlay" element={<LoveAndWarMatchOverlay />} />
           <Route path="/iff/love-and-war/unified-overlay" element={<LoveAndWarUnifiedOverlay />} />
+          {/* IFF9 routes */}
+          <Route path="/iff/iff-9" element={<IFFAccessGuard><IFF9DashboardPage /></IFFAccessGuard>} />
+          <Route path="/iff/iff-9/match-control" element={<IFFAccessGuard><IFF9MatchControlPage /></IFFAccessGuard>} />
+          <Route path="/iff/iff-9/match-overlay" element={<IFF9MatchOverlay />} />
+          <Route path="/iff/iff-9/match-cards" element={<IFF9MatchCardsPage />} />
+          <Route path="/iff/iff-9/unified-overlay" element={<IFF9UnifiedOverlay />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

@@ -73,6 +73,27 @@ let lnwMatchData = {
     round: 'Round 1',
 };
 
+// IFF9 in-memory state (resilient to DB outages, like lnwMatchData).
+let iff9DisplayMode = { mode: 'idle', visible: false };
+let iff9MatchData = {
+    week_name: 'IFF9 Qualifiers',
+    week_number: 1,
+    event_date: null,
+    match_number: 1,
+    match_type: 'challengers',
+    round_name: '',
+    player_1_name: 'Player 1',
+    player_1_info: '',
+    player_1_character: '',
+    player_1_score: 0,
+    player_2_name: 'Player 2',
+    player_2_info: '',
+    player_2_character: '',
+    player_2_score: 0,
+    win_score: 3,
+};
+let iff9Lineup = { week_name: 'IFF9 Qualifiers', week_number: 1, event_date: null, matches: [] };
+
 // ============================================================
 // DATA INITIALIZATION
 // All DB reads run in parallel; server only starts listening
@@ -682,6 +703,74 @@ iffRouter.post('/love-and-war/match-data', (req, res) => {
     res.json(lnwMatchData);
 });
 
+// ============================================================
+// IFF9 ROUTES  —  /api/iff/iff-9
+// ============================================================
+
+// --- IFF9 Live overlay state (in-memory) ---
+iffRouter.get('/iff-9/match-data', (req, res) => res.json(iff9MatchData));
+iffRouter.post('/iff-9/match-data', (req, res) => {
+    iff9MatchData = patchState(iff9MatchData, req.body);
+    io.emit('iff9-match-data', iff9MatchData);
+    res.json(iff9MatchData);
+});
+
+iffRouter.get('/iff-9/lineup', (req, res) => res.json(iff9Lineup));
+iffRouter.post('/iff-9/lineup', (req, res) => {
+    iff9Lineup = req.body || iff9Lineup;
+    io.emit('iff9-lineup', iff9Lineup);
+    res.json(iff9Lineup);
+});
+
+iffRouter.get('/iff-9/display-mode', (req, res) => res.json(iff9DisplayMode));
+
+// --- IFF9 Weeks (DB persistence) ---
+iffRouter.get('/iff-9/weeks', asyncRoute(async (req, res) => {
+    res.json({ weeks: await dbHelpers.getIFF9Weeks() });
+}));
+
+iffRouter.get('/iff-9/week/:id', asyncRoute(async (req, res) => {
+    const week = await dbHelpers.getIFF9Week(req.params.id);
+    if (!week) return res.status(404).json({ error: 'Week not found' });
+    res.json({ week });
+}));
+
+iffRouter.post('/iff-9/week', asyncRoute(async (req, res) => {
+    const { name, week_number, event_date, status } = req.body;
+    res.json({ week: await dbHelpers.saveIFF9Week({ name, week_number, event_date, status }) });
+}));
+
+iffRouter.put('/iff-9/week/:id', asyncRoute(async (req, res) => {
+    const { name, week_number, event_date, status } = req.body;
+    res.json({ week: await dbHelpers.saveIFF9Week({ id: parseInt(req.params.id), name, week_number, event_date, status }) });
+}));
+
+iffRouter.delete('/iff-9/week/:id', asyncRoute(async (req, res) => {
+    await dbHelpers.deleteIFF9Week(req.params.id);
+    res.json({ success: true });
+}));
+
+// --- IFF9 Matches (DB persistence) ---
+iffRouter.post('/iff-9/week/:id/match', asyncRoute(async (req, res) => {
+    const match = await dbHelpers.saveIFF9Match({ ...req.body, week_id: parseInt(req.params.id) });
+    res.json({ match });
+}));
+
+iffRouter.put('/iff-9/match/:id', asyncRoute(async (req, res) => {
+    const match = await dbHelpers.saveIFF9Match({ ...req.body, id: parseInt(req.params.id) });
+    res.json({ match });
+}));
+
+iffRouter.delete('/iff-9/match/:id', asyncRoute(async (req, res) => {
+    await dbHelpers.deleteIFF9Match(req.params.id);
+    res.json({ success: true });
+}));
+
+iffRouter.post('/iff-9/week/:id/reorder', asyncRoute(async (req, res) => {
+    await dbHelpers.reorderIFF9Matches(req.body.order || []);
+    res.json({ success: true });
+}));
+
 // --- Love & War Tournaments ---
 
 iffRouter.get('/love-and-war/tournaments', asyncRoute(async (req, res) => {
@@ -832,6 +921,9 @@ io.on('connection', (socket) => {
     socket.emit('love-and-war-display-update', loveAndWarDisplayState);
     socket.emit('lnw-match-data',            lnwMatchData);
     socket.emit('lnw-display-mode',          lnwDisplayMode);
+    socket.emit('iff9-match-data',           iff9MatchData);
+    socket.emit('iff9-lineup',               iff9Lineup);
+    socket.emit('iff9-display-mode',         iff9DisplayMode);
 
     socket.on('update-data', async (data) => {
         try {
@@ -911,6 +1003,31 @@ io.on('connection', (socket) => {
         setTimeout(() => {
             io.emit('lnw-match-data',   lnwMatchData);
             io.emit('lnw-display-mode', lnwDisplayMode);
+        }, 100);
+    });
+
+    // --- IFF9 ---
+    socket.on('iff9-match-update', data => {
+        iff9MatchData = patchState(iff9MatchData, data);
+        io.emit('iff9-match-data', iff9MatchData);
+    });
+
+    socket.on('iff9-lineup-update', data => {
+        iff9Lineup = data || iff9Lineup;
+        io.emit('iff9-lineup', iff9Lineup);
+    });
+
+    socket.on('iff9-display-mode', data => {
+        iff9DisplayMode = patchState(iff9DisplayMode, data);
+        io.emit('iff9-display-mode', iff9DisplayMode);
+    });
+
+    socket.on('iff9-refresh-overlay', () => {
+        io.emit('iff9-refresh-overlay');
+        setTimeout(() => {
+            io.emit('iff9-match-data',   iff9MatchData);
+            io.emit('iff9-lineup',       iff9Lineup);
+            io.emit('iff9-display-mode', iff9DisplayMode);
         }, 100);
     });
 });

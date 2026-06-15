@@ -29,7 +29,12 @@ const routePreloaders: Record<string, PreloadableRoute> = {
   '/iff/love-and-war/tournaments': () => import('../pages/IFF/LoveAndWarTournamentsPage'),
   '/iff/love-and-war/match-control': () => import('../pages/IFF/LoveAndWarMatchControlPage'),
   '/iff/love-and-war/match-overlay': () => import('../pages/IFF/LoveAndWarMatchOverlay'),
-  '/iff/love-and-war/unified-overlay': () => import('../pages/IFF/LoveAndWarUnifiedOverlay')
+  '/iff/love-and-war/unified-overlay': () => import('../pages/IFF/LoveAndWarUnifiedOverlay'),
+  '/iff/iff-9': () => import('../pages/IFF/IFF9DashboardPage'),
+  '/iff/iff-9/match-control': () => import('../pages/IFF/IFF9MatchControlPage'),
+  '/iff/iff-9/match-overlay': () => import('../pages/IFF/IFF9MatchOverlay'),
+  '/iff/iff-9/match-cards': () => import('../pages/IFF/IFF9MatchCardsPage'),
+  '/iff/iff-9/unified-overlay': () => import('../pages/IFF/IFF9UnifiedOverlay')
 };
 
 const preloadedRoutes = new Set<string>();

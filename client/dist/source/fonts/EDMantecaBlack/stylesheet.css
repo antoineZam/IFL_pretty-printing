@@ -1,0 +1,26 @@
+@font-face {
+    font-family: 'ED Manteca';
+    src: url('EDMantecaBlack-Regular.eot');
+    src: local('ED Manteca Black Regular'), local('EDMantecaBlack-Regular'),
+        url('EDMantecaBlack-Regular.eot?#iefix') format('embedded-opentype'),
+        url('EDMantecaBlack-Regular.woff2') format('woff2'),
+        url('EDMantecaBlack-Regular.woff') format('woff'),
+        url('EDMantecaBlack-Regular.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'ED Manteca';
+    src: url('EDManteca-Regular.eot');
+    src: local('ED Manteca Regular'), local('EDManteca-Regular'),
+        url('EDManteca-Regular.eot?#iefix') format('embedded-opentype'),
+        url('EDManteca-Regular.woff2') format('woff2'),
+        url('EDManteca-Regular.woff') format('woff'),
+        url('EDManteca-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+

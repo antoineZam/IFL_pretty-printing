@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database, Heart, Archive } from 'lucide-react';
+import { ExternalLink, Lock, Monitor, Settings, Tv, ChevronLeft, Flame, Swords, Database, Heart, Archive, Gamepad2 } from 'lucide-react';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 import { useRoutePreloader } from '../../utils/routePreloader';
 
@@ -19,6 +19,10 @@ const RIBDashboardPage = () => {
     const [glitchingItem, setGlitchingItem] = useState<string | null>(null);
     const navigate = useNavigate();
     const { onMouseEnter, onTouchStart } = useRoutePreloader();
+
+    // Overlay routes open in a new tab and need the connection key for the socket.
+    const connectionKey = searchParams.get('key') || (typeof window !== 'undefined' ? localStorage.getItem('connectionKey') : null);
+    const keyQs = connectionKey ? `?key=${connectionKey}` : '';
 
     const handleArchivedClick = (e: React.MouseEvent, path: string) => {
         e.preventDefault();
@@ -123,6 +127,45 @@ const RIBDashboardPage = () => {
         },
     ];
 
+    const iff9ControlItems: NavItem[] = [
+        {
+            name: "IFF9 Dashboard",
+            description: "Event hub for IFF9",
+            path: "/iff/iff-9",
+            icon: <Gamepad2 size={20} />,
+        },
+        {
+            name: "Match Control",
+            description: "Build the week lineup & drive the overlay",
+            path: "/iff/iff-9/match-control",
+            icon: <Settings size={20} />,
+        },
+        {
+            name: "Unified Overlay",
+            description: "All-in-one OBS browser source",
+            path: `/iff/iff-9/unified-overlay${keyQs}`,
+            icon: <Monitor size={20} />,
+            external: true,
+        },
+    ];
+
+    const iff9OverlayItems: NavItem[] = [
+        {
+            name: "Match Overlay",
+            description: "1v1 in-game top bar",
+            path: `/iff/iff-9/match-overlay${keyQs}`,
+            icon: <Tv size={20} />,
+            external: true,
+        },
+        {
+            name: "Match Cards",
+            description: "Glitch-in vs-card lineup screen",
+            path: `/iff/iff-9/match-cards${keyQs}`,
+            icon: <Tv size={20} />,
+            external: true,
+        },
+    ];
+
     const isLocked = ribKeyRequired && !ribUnlocked;
 
     return (
@@ -196,6 +239,65 @@ const RIBDashboardPage = () => {
                     </div>
                 ) : (
                     <>
+                    {/* IFF9 — Current Event (active) */}
+                    <div className="mb-8">
+                        <h3 className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest mb-3 px-1 flex items-center gap-2 font-mono">
+                            <div className="w-1 h-4 bg-[#10b981] rounded-none shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
+                            IFF9 — Current Event
+                        </h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                {iff9ControlItems.map((item) => (
+                                    <Link
+                                        key={item.path}
+                                        to={item.path}
+                                        target={item.external ? "_blank" : undefined}
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                        className="block"
+                                    >
+                                        <div className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/40 bg-[#020617]/70 hover:bg-[#020617]/95 hover:border-[#10b981] transition-all group cyber-card">
+                                            <div className="p-2.5 rounded-none bg-[#10b981]/10 text-[#10b981] group-hover:bg-[#10b981]/20 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all">
+                                                {item.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-white tracking-widest uppercase font-mono text-sm">{item.name}</h3>
+                                                <p className="text-[#a7f3d0]/50 text-xs font-mono">{item.description}</p>
+                                            </div>
+                                            {item.external
+                                                ? <ExternalLink size={16} className="text-[#10b981] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                : <ChevronLeft size={18} className="text-[#10b981] rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            }
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                            <div className="space-y-3">
+                                {iff9OverlayItems.map((item) => (
+                                    <Link
+                                        key={item.path}
+                                        to={item.path}
+                                        target={item.external ? "_blank" : undefined}
+                                        onMouseEnter={onMouseEnter(item.path)}
+                                        onTouchStart={onTouchStart(item.path)}
+                                        className="block"
+                                    >
+                                        <div className="flex items-center gap-4 p-4 rounded-none border border-[#10b981]/40 bg-[#020617]/70 hover:bg-[#020617]/95 hover:border-[#10b981] transition-all group cyber-card">
+                                            <div className="p-2.5 rounded-none bg-[#10b981]/10 text-[#10b981] group-hover:bg-[#10b981]/20 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all">
+                                                {item.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-white tracking-widest uppercase font-mono text-sm">{item.name}</h3>
+                                                <p className="text-[#a7f3d0]/50 text-xs font-mono">{item.description}</p>
+                                            </div>
+                                            <ExternalLink size={16} className="text-[#10b981] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Main Controls — Archived */}
                         <div>
