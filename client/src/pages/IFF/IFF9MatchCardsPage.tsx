@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import type { IFF9Lineup, IFF9Match } from '../../types/iff9';
+import type { IFF9Lineup, IFF9Match, IFF9MatchType } from '../../types/iff9';
 
 // NOTE: Fonts and final art are intentionally deferred for IFF9. This page only
 // fixes the content disposition; assets (card backgrounds, portraits) load from
@@ -24,76 +24,71 @@ function formatWeek(weekNumber: number | null): string {
 function portraitPath(match: IFF9Match, slot: 1 | 2): string {
     const character = slot === 1 ? match.player_1_character : match.player_2_character;
     const slug = (character || '').toLowerCase().trim().replace(/\s+/g, '_');
-    return `/source/overlay/iff_9/${match.match_type}/portraits/${slug}.png`;
+    const side = slot === 1 ? 'p1' : 'p2';
+    return `/source/overlay/characters/iff_9/${side}/${slug}.png`;
+}
+
+// Map match_type to the card background asset
+function matchCardFramePath(matchType: IFF9MatchType): string {
+    if (matchType === 'masters') return '/source/overlay/iff_9/match_card/master_match.png';
+    if (matchType === 'finalboss') return '/source/overlay/iff_9/match_card/finalboss_match.png';
+    return '/source/overlay/iff_9/match_card/challenger_match.png';
 }
 
 // A single vs-card row. The featured card is rendered larger.
-const MatchCard = ({ match, featured, glitch }: { match: IFF9Match; featured: boolean; glitch: boolean }) => {
-    const typeLabel = match.match_type === 'masters' ? 'MASTERS' : 'CHALLENGERS';
+const MatchCard = ({ match, glitch }: { match: IFF9Match; glitch: boolean }) => {
+    const cardFrameBg = matchCardFramePath(match.match_type);
 
-    if (featured) {
-        return (
-            <div className={`relative w-full ${glitch ? 'click-glitch' : ''}`}>
-                <div className="flex items-stretch w-full border border-white/15 bg-black/50 backdrop-blur-sm overflow-hidden">
-                    {/* Player 1 */}
-                    <div className="flex-1 flex items-center gap-4 p-4">
-                        <img
-                            src={portraitPath(match, 1)}
-                            alt={match.player_1_name}
-                            className="w-20 h-20 object-cover object-top shrink-0 bg-white/5"
-                            onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
-                        />
-                        <div className="min-w-0">
-                            <h3 className="text-2xl font-bold text-white uppercase truncate">{match.player_1_name}</h3>
-                            <p className="text-[11px] text-white/60 uppercase tracking-wider truncate">{match.player_1_info}</p>
-                        </div>
-                    </div>
-
-                    {/* Center: match number, score, round */}
-                    <div className="w-48 shrink-0 flex flex-col items-center justify-center px-4 border-x border-white/15 bg-black/40">
-                        <p className="text-[10px] text-white/50 uppercase tracking-[0.3em]">MATCH_{String(match.match_number).padStart(2, '0')}</p>
-                        <div className="flex items-center gap-3 text-4xl font-black text-white">
-                            <span>{match.player_1_score}</span>
-                            <span className="text-white/40 text-lg">-</span>
-                            <span>{match.player_2_score}</span>
-                        </div>
-                        <p className="text-[11px] text-white/70 uppercase tracking-widest">{match.round_name}</p>
-                    </div>
-
-                    {/* Player 2 */}
-                    <div className="flex-1 flex items-center justify-end gap-4 p-4 text-right">
-                        <div className="min-w-0">
-                            <h3 className="text-2xl font-bold text-white uppercase truncate">{match.player_2_name}</h3>
-                            <p className="text-[11px] text-white/60 uppercase tracking-wider truncate">{match.player_2_info}</p>
-                        </div>
-                        <img
-                            src={portraitPath(match, 2)}
-                            alt={match.player_2_name}
-                            className="w-20 h-20 object-cover object-top shrink-0 bg-white/5"
-                            onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
-                        />
-                    </div>
-                </div>
-                <span className="absolute -top-2 left-4 px-2 py-0.5 text-[9px] uppercase tracking-widest bg-white text-black font-bold">{typeLabel}</span>
-            </div>
-        );
-    }
-
-    // Compact vs-bar for the rest of the lineup.
     return (
-        <div className={`relative w-full ${glitch ? 'click-glitch' : ''}`}>
-            <div className={`flex items-center w-full h-16 border border-white/10 bg-black/40 ${match.is_complete ? 'opacity-60' : ''}`}>
-                <div className="w-24 shrink-0 flex flex-col items-center justify-center border-r border-white/10 h-full">
-                    <span className="text-[9px] text-white/40 uppercase tracking-widest">MATCH</span>
-                    <span className="text-lg font-bold text-white leading-none">{String(match.match_number).padStart(2, '0')}</span>
+        <div className={`relative w-[1146px] h-[257px] ${glitch ? 'click-glitch' : ''}`}>
+            {/* Background frame */}
+            <div className="absolute inset-0 z-0">
+                <img src={cardFrameBg} className="w-full h-full object-contain opacity-90" alt="" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }} />
+            </div>
+
+            {/* P1 Character - Full size absolute layer */}
+            <img
+                src={portraitPath(match, 1)}
+                alt={match.player_1_name}
+                className="absolute inset-0 w-full h-full object-contain z-[1] pointer-events-none"
+                onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
+            />
+
+            {/* P2 Character - Full size absolute layer */}
+            <img
+                src={portraitPath(match, 2)}
+                alt={match.player_2_name}
+                className="absolute inset-0 w-full h-full object-contain z-[1] pointer-events-none"
+                onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
+            />
+
+            {/* Text Overlay */}
+            <div className="relative z-10 flex items-stretch w-full h-full pt-[60px] pb-[30px] px-12">
+                {/* Player 1 Text */}
+                <div className="flex-1 flex items-center justify-start min-w-0 pr-6">
+                    <div className="flex flex-col justify-center">
+                        <h3 className="absolute left-[50px] top-[97px] text-[32px] font-bold text-white uppercase truncate transform scale-y-150">{match.player_1_name}</h3>
+                        <p className="absolute left-[50px] top-[147px] text-[14px] text-white/60 uppercase tracking-wider truncate transform scale-y-150">{match.player_1_info}</p>
+                    </div>
                 </div>
-                <div className="flex-1 flex items-center justify-between px-5 min-w-0">
-                    <span className="text-base font-semibold text-white uppercase truncate flex-1">{match.player_1_name}</span>
-                    <span className="px-3 text-sm font-black text-white/80 shrink-0">{match.player_1_score} - {match.player_2_score}</span>
-                    <span className="text-base font-semibold text-white uppercase truncate flex-1 text-right">{match.player_2_name}</span>
+
+                {/* Center: match number, score, round */}
+                <div className="w-[300px] shrink-0 flex flex-col items-center justify-center drop-shadow-md">
+                    <p className="absolute top-[27px] text-[13px] text-white/50 uppercase tracking-[0.3em] mb-1 transform scale-y-150 font-bold">MATCH_{String(match.match_number).padStart(2, '0')}</p>
+                    <div className="flex items-center gap-4 text-[40px] font-black text-[#34d399] leading-none transform scale-y-150">
+                        <span>{match.player_1_score}</span>
+                        <span className="text-[#34d399] text-[40px] pb-2">-</span>
+                        <span>{match.player_2_score}</span>
+                    </div>
+                    <p className="text-[14px] text-white/70 uppercase tracking-widest mt-1">{match.round_name}</p>
                 </div>
-                <div className="w-28 shrink-0 flex items-center justify-center border-l border-white/10 h-full">
-                    <span className="text-[9px] uppercase tracking-widest text-white/50">{typeLabel}</span>
+
+                {/* Player 2 Text */}
+                <div className="flex-1 flex items-center justify-end min-w-0 pl-6 text-right">
+                    <div className="flex flex-col justify-center">
+                        <h3 className="absolute right-[50px] top-[97px] text-[32px] font-bold text-white uppercase truncate transform scale-y-150">{match.player_2_name}</h3>
+                        <p className="absolute right-[50px] top-[147px] text-[14px] text-white/70 uppercase tracking-wider truncate transform scale-y-150">{match.player_2_info}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -180,60 +175,70 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
 
     const containerClass = embedded ? 'w-full h-full' : 'w-[1920px] h-[1080px]';
 
-    const eventName = lineup?.week_name || 'IFF9 QUALIFIERS';
     const weekLabel = formatWeek(lineup?.week_number ?? null);
     const eventDate = lineup?.event_date || '';
 
     return (
         <div className={`${containerClass} relative overflow-hidden text-white uppercase`} style={{ backgroundColor: '#0a0f0d' }}>
-            {/* Background art (asset pending) */}
+            {/* Background art */}
             <img
-                src="/source/overlay/iff_9/match_cards_bg.png"
+                src="/source/overlay/iff_9/match_card/match_card_background.png"
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover z-0"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                className="absolute inset-0 w-full h-full object-cover z-0 opacity-90"
+                onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
+            />
+            {/* Texture overlay */}
+            <img
+                src="/source/overlay/iff_9/match_card/texture_overlay.png"
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover z-[15] opacity-100 mix-blend-overlay pointer-events-none"
+                onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
             />
 
-            {/* ===== Left sidebar ===== */}
-            <div className="absolute top-0 left-0 h-full w-[26%] z-20 flex">
-                {/* Decorative vertical bars */}
-                <div className="w-24 h-full flex flex-col justify-center gap-2 pl-6 opacity-60">
-                    {Array.from({ length: 9 }).map((_, i) => (
-                        <div
-                            key={i}
-                            className="h-3 bg-[#34d399]/40"
-                            style={{ width: `${30 + ((i * 37) % 70)}%` }}
-                        />
-                    ))}
+            {/* ===== Left sidebar (Week Number) ===== */}
+            {weekLabel && eventDate && (
+                <div className="absolute top-0 left-0 h-full w-[400px] z-20 flex flex-col items-center justify-center pl-16">
+                    <h1 className="absolute top-[510px] left-[138px] text-[12px] font-black text-white leading-none tracking-widest text-center">{eventDate}</h1>
+                    <h2 className="absolute top-[540px] left-[220px] text-[24px] text-[#34d399] font-bold leading-none tracking-widest text-center transform scale-y-150">
+                        {weekLabel}
+                    </h2>
                 </div>
-                <div className="flex-1 flex flex-col justify-center pl-4 pr-8">
-                    <h1 className="text-5xl font-black leading-none text-white tracking-tight">{eventName}</h1>
-                    {eventDate && <p className="mt-3 text-sm text-[#34d399] tracking-[0.3em]">{eventDate}</p>}
-                    {weekLabel && (
-                        <div className="mt-6 inline-flex items-center gap-3">
-                            <div className="w-10 h-px bg-white/40" />
-                            <span className="text-xl font-bold tracking-[0.3em] text-white/90">{weekLabel}</span>
-                        </div>
-                    )}
-                </div>
-            </div>
+            )}
 
             {/* ===== Main lineup ===== */}
-            <div className="absolute top-0 right-0 h-full w-[72%] z-20 flex flex-col justify-center gap-3 pr-16 pl-4">
+            <div className="absolute top-0 right-[90px] h-full w-[1146px] z-20 flex flex-col justify-center">
                 {orderedMatches.length === 0 ? (
                     <div className="text-center text-white/30 text-2xl">No matches in lineup</div>
                 ) : (
-                    orderedMatches.map((match, i) => (
-                        <div
-                            key={match.id ?? `${match.match_number}-${i}`}
-                            style={{
-                                opacity: i < visibleCount ? 1 : 0,
-                                transition: 'opacity 0.18s ease-out',
-                            }}
-                        >
-                            <MatchCard match={match} featured={i === 0} glitch={glitchIndex === i} />
-                        </div>
-                    ))
+                    orderedMatches.map((match, i) => {
+                        // Calculate dynamic margin top based on total cards to fit within 1080px height
+                        let overlapMargin = 0;
+                        if (i > 0) {
+                            if (orderedMatches.length >= 6) {
+                                overlapMargin = -96; // Overlap heavily to fit 6 cards (1062px total height)
+                            } else if (orderedMatches.length === 5) {
+                                overlapMargin = -60; // Overlap to fit 5 cards (1045px total height)
+                            } else if (orderedMatches.length === 4) {
+                                overlapMargin = 16; // Small gap to fit 4 cards (1076px total height)
+                            } else {
+                                overlapMargin = 24; // Default gap-6 for 1-3 cards
+                            }
+                        }
+
+                        return (
+                            <div
+                                key={match.id ?? `${match.match_number}-${i}`}
+                                className="shrink-0"
+                                style={{
+                                    marginTop: `${overlapMargin}px`,
+                                    opacity: i < visibleCount ? 1 : 0,
+                                    transition: 'opacity 0.18s ease-out',
+                                }}
+                            >
+                                <MatchCard match={match} glitch={glitchIndex === i} />
+                            </div>
+                        );
+                    })
                 )}
             </div>
         </div>

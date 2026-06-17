@@ -1,6 +1,6 @@
 // Shared types for the IFF9 event (1v1 match overlay + match-card lineup).
 
-export type IFF9MatchType = 'masters' | 'challengers';
+export type IFF9MatchType = 'masters' | 'challengers' | 'finalboss';
 
 export type IFF9DisplayMode = 'idle' | 'match' | 'match-cards';
 
