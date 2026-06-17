@@ -1,0 +1,7 @@
+export const TEKKEN_8_CHARACTERS = [
+    "Alisa", "Anna", "Armor King", "Asuka", "Azucena", "Bryan", "Claudio", "Clive", "Devil Jin", "Dragunov", 
+    "Eddy", "Fahkumram", "Feng", "Heihachi", "Hwoarang", "Jack-8", "Jin", "Jun", "Kazuya", "King", 
+    "Kuma", "Kunimitsu", "Lars", "Law", "Lee", "Leo", "Leroy", "Lidia", "Lili", "Miary Zo", 
+    "Nina", "Panda", "Paul", "Raven", "Reina", "Shaheen", "Steve", "Victor", "Xiaoyu", "Yoshimitsu", "Zafina",
+    "Pikah", "Schizophrenic"
+];

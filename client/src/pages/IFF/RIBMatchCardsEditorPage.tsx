@@ -12,29 +12,10 @@ import {
 } from 'lucide-react';
 import { countries } from '../../utils/countries';
 
-// Available Tekken 8 characters
-const characters: Record<string, string> = {
-    '': '-- Select Character --',
-    'alisa': 'Alisa',
-    'anna': 'Anna',
-    'armor king': 'Armor King',
-    'azucena': 'Azucena',
-    'bryan': 'Bryan',
-    'eddy': 'Eddy',
-    'heihachi': 'Heihachi',
-    'jin': 'Jin',
-    'kazuya': 'Kazuya',
-    'law': 'Law',
-    'lee': 'Lee',
-    'leo': 'Leo',
-    'lili': 'Lili',
-    'nina': 'Nina',
-    'pikah': 'Pikah',
-    'reina': 'Reina',
-    'steve': 'Steve',
-    'zafina': 'Zafina',
-    'schizophrenic': 'Schizophrenic'
-};
+import { Autocomplete } from '../../components/ui/Autocomplete';
+import { TEKKEN_8_CHARACTERS } from '../../utils/characters';
+
+// Removed local characters map in favor of shared TEKKEN_8_CHARACTERS
 
 interface Match {
     id: number;
@@ -390,15 +371,20 @@ export default function RIBMatchCardsEditorPage() {
                                             placeholder="P1 Title"
                                             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
                                         />
-                                        <select
+                                        <Autocomplete
                                             value={match.p1Character}
-                                            onChange={(e) => handleMatchChange(index, 'p1Character', e.target.value)}
-                                            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
-                                        >
-                                            {Object.entries(characters).map(([value, label]) => (
-                                                <option key={value} value={value}>{label}</option>
-                                            ))}
-                                        </select>
+                                            items={TEKKEN_8_CHARACTERS.filter(c => c.toLowerCase().includes(match.p1Character.toLowerCase()))}
+                                            placeholder="P1 Character"
+                                            inputClassName="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
+                                            onChangeText={(text) => handleMatchChange(index, 'p1Character', text)}
+                                            onSelect={(char) => handleMatchChange(index, 'p1Character', char)}
+                                            keyExtractor={(char) => char}
+                                            renderItem={(char, isHighlighted) => (
+                                                <div className={`w-full text-left px-3 py-2 text-sm transition-colors ${isHighlighted ? 'bg-red-500/20 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}>
+                                                    {char}
+                                                </div>
+                                            )}
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <input
@@ -424,15 +410,20 @@ export default function RIBMatchCardsEditorPage() {
                                             placeholder="P2 Title"
                                             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
                                         />
-                                        <select
+                                        <Autocomplete
                                             value={match.p2Character}
-                                            onChange={(e) => handleMatchChange(index, 'p2Character', e.target.value)}
-                                            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
-                                        >
-                                            {Object.entries(characters).map(([value, label]) => (
-                                                <option key={value} value={value}>{label}</option>
-                                            ))}
-                                        </select>
+                                            items={TEKKEN_8_CHARACTERS.filter(c => c.toLowerCase().includes(match.p2Character.toLowerCase()))}
+                                            placeholder="P2 Character"
+                                            inputClassName="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+                                            onChangeText={(text) => handleMatchChange(index, 'p2Character', text)}
+                                            onSelect={(char) => handleMatchChange(index, 'p2Character', char)}
+                                            keyExtractor={(char) => char}
+                                            renderItem={(char, isHighlighted) => (
+                                                <div className={`w-full text-left px-3 py-2 text-sm transition-colors ${isHighlighted ? 'bg-blue-500/20 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}>
+                                                    {char}
+                                                </div>
+                                            )}
+                                        />
                                     </div>
                                 </div>
                             </div>

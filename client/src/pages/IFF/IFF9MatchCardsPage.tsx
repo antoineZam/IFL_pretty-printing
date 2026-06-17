@@ -68,26 +68,26 @@ const MatchCard = ({ match, glitch }: { match: IFF9Match; glitch: boolean }) => 
                 <div className="flex-1 flex items-center justify-start min-w-0 pr-6">
                     <div className="flex flex-col justify-center">
                         <h3 className="absolute left-[50px] top-[97px] text-[32px] font-bold text-white uppercase truncate transform scale-y-150">{match.player_1_name}</h3>
-                        <p className="absolute left-[50px] top-[147px] text-[14px] text-white/60 uppercase tracking-wider truncate transform scale-y-150">{match.player_1_info}</p>
+                        <p className="absolute left-[50px] top-[147px] text-[14px] text-white/60 uppercase tracking-wider truncate transform scale-y-150 font-d-din-bold">{match.player_1_info}</p>
                     </div>
                 </div>
 
                 {/* Center: match number, score, round */}
                 <div className="w-[300px] shrink-0 flex flex-col items-center justify-center drop-shadow-md">
-                    <p className="absolute top-[27px] text-[13px] text-white/50 uppercase tracking-[0.3em] mb-1 transform scale-y-150 font-bold">MATCH_{String(match.match_number).padStart(2, '0')}</p>
-                    <div className="flex items-center gap-4 text-[40px] font-black text-[#34d399] leading-none transform scale-y-150">
+                    <p className="absolute top-[24px] left-[107px] text-[14px] text-white/50 uppercase tracking-[0.3em] mb-1 transform scale-y-150 font-d-din-bold">MATCH_{String(match.match_number).padStart(2, '0')}</p>
+                    <div className="flex items-center gap-4 text-[40px] text-[#34d399] leading-none transform scale-y-150 font-d-din-bold">
                         <span>{match.player_1_score}</span>
-                        <span className="text-[#34d399] text-[40px] pb-2">-</span>
+                        <span className="text-[#34d399] text-[40px] pb-2 font-d-din-bold">-</span>
                         <span>{match.player_2_score}</span>
                     </div>
-                    <p className="text-[14px] text-white/70 uppercase tracking-widest mt-1">{match.round_name}</p>
+                    <p className="text-[14px] text-white/70 uppercase tracking-widest mt-1 font-d-din-bold">{match.round_name}</p>
                 </div>
 
                 {/* Player 2 Text */}
                 <div className="flex-1 flex items-center justify-end min-w-0 pl-6 text-right">
                     <div className="flex flex-col justify-center">
                         <h3 className="absolute right-[50px] top-[97px] text-[32px] font-bold text-white uppercase truncate transform scale-y-150">{match.player_2_name}</h3>
-                        <p className="absolute right-[50px] top-[147px] text-[14px] text-white/70 uppercase tracking-wider truncate transform scale-y-150">{match.player_2_info}</p>
+                        <p className="absolute right-[50px] top-[147px] text-[14px] text-white/70 uppercase tracking-wider truncate transform scale-y-150 font-d-din-bold">{match.player_2_info}</p>
                     </div>
                 </div>
             </div>
@@ -198,8 +198,8 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
             {/* ===== Left sidebar (Week Number) ===== */}
             {weekLabel && eventDate && (
                 <div className="absolute top-0 left-0 h-full w-[400px] z-20 flex flex-col items-center justify-center pl-16">
-                    <h1 className="absolute top-[510px] left-[138px] text-[12px] font-black text-white leading-none tracking-widest text-center">{eventDate}</h1>
-                    <h2 className="absolute top-[540px] left-[220px] text-[24px] text-[#34d399] font-bold leading-none tracking-widest text-center transform scale-y-150">
+                    <h1 className="absolute top-[510px] left-[138px] text-[12px] text-white leading-none tracking-widest text-center font-d-din-bold">{eventDate}</h1>
+                    <h2 className="absolute top-[540px] left-[220px] text-[24px] text-[#34d399] leading-none tracking-widest text-center transform scale-y-150 font-d-din-bold">
                         {weekLabel}
                     </h2>
                 </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
     ChevronLeft, Plus, Minus, Trash2, Save, Send, Eye, Image, PlayCircle, Tv,
@@ -468,6 +468,8 @@ const IFF9MatchControlPage = () => {
     );
 };
 
+import { Autocomplete } from '../../components/ui/Autocomplete';
+
 // ---- Player name input with DB autocompletion ----
 interface PlayerAutocompleteProps {
     value: string;
@@ -478,56 +480,61 @@ interface PlayerAutocompleteProps {
 }
 
 const PlayerAutocomplete = ({ value, players, placeholder, onChangeText, onSelectPlayer }: PlayerAutocompleteProps) => {
-    const [open, setOpen] = useState(false);
-    const [highlight, setHighlight] = useState(0);
-    const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
     const query = value.trim().toLowerCase();
     const matches = query
         ? players.filter(p => p.name.toLowerCase().includes(query)).slice(0, 8)
         : players.slice(0, 8);
 
-    const choose = (p: IFFPlayer) => {
-        onSelectPlayer(p);
-        setOpen(false);
-    };
-
     return (
-        <div className="relative">
-            <input
-                type="text"
-                value={value}
-                onChange={(e) => { onChangeText(e.target.value); setOpen(true); setHighlight(0); }}
-                onFocus={() => setOpen(true)}
-                onBlur={() => { blurTimer.current = setTimeout(() => setOpen(false), 150); }}
-                onKeyDown={(e) => {
-                    if (!open || matches.length === 0) return;
-                    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight(h => Math.min(h + 1, matches.length - 1)); }
-                    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight(h => Math.max(h - 1, 0)); }
-                    else if (e.key === 'Enter') { e.preventDefault(); choose(matches[highlight]); }
-                    else if (e.key === 'Escape') { setOpen(false); }
-                }}
-                placeholder={placeholder}
-                autoComplete="off"
-                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white font-medium focus:border-[#10b981] focus:outline-none"
-            />
-            {open && matches.length > 0 && (
-                <div className="absolute z-30 mt-1 w-full max-h-56 overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg shadow-2xl">
-                    {matches.map((p, i) => (
-                        <button
-                            key={p.id}
-                            type="button"
-                            onMouseDown={(e) => { e.preventDefault(); if (blurTimer.current) clearTimeout(blurTimer.current); choose(p); }}
-                            onMouseEnter={() => setHighlight(i)}
-                            className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 transition-colors ${i === highlight ? 'bg-[#10b981]/20' : 'hover:bg-gray-800'}`}
-                        >
-                            <span className="text-sm text-white font-medium truncate">{p.name}</span>
-                            {p.character_name && <span className="text-[11px] text-gray-400 uppercase shrink-0">{p.character_name}</span>}
-                        </button>
-                    ))}
+        <Autocomplete
+            value={value}
+            items={matches}
+            placeholder={placeholder}
+            inputClassName="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white font-medium focus:border-[#10b981] focus:outline-none"
+            onChangeText={onChangeText}
+            onSelect={onSelectPlayer}
+            keyExtractor={(p) => p.id}
+            renderItem={(p, isHighlighted) => (
+                <div className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 transition-colors ${isHighlighted ? 'bg-[#10b981]/20' : 'hover:bg-gray-800'}`}>
+                    <span className="text-sm text-white font-medium truncate">{p.name}</span>
+                    {p.character_name && <span className="text-[11px] text-gray-400 uppercase shrink-0">{p.character_name}</span>}
                 </div>
             )}
-        </div>
+        />
+    );
+};
+
+import { TEKKEN_8_CHARACTERS } from '../../utils/characters';
+
+interface CharacterAutocompleteProps {
+    value: string;
+    placeholder?: string;
+    onChangeText: (text: string) => void;
+}
+
+const CharacterAutocomplete = ({ value, placeholder, onChangeText }: CharacterAutocompleteProps) => {
+    const matches = useMemo(() => {
+        if (!value) return TEKKEN_8_CHARACTERS;
+        const q = value.toLowerCase();
+        return TEKKEN_8_CHARACTERS.filter(c => c.toLowerCase().includes(q));
+    }, [value]);
+
+    return (
+        <Autocomplete
+            value={value}
+            items={matches}
+            placeholder={placeholder}
+            containerClassName="relative flex-1"
+            inputClassName="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
+            onChangeText={onChangeText}
+            onSelect={(char) => onChangeText(char)}
+            keyExtractor={(char) => char}
+            renderItem={(char, isHighlighted) => (
+                <div className={`w-full text-left px-3 py-2 text-sm transition-colors ${isHighlighted ? 'bg-[#10b981]/20 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
+                    {char}
+                </div>
+            )}
+        />
     );
 };
 
@@ -611,11 +618,10 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
                     />
                     <div className="flex items-center gap-2">
-                        <input
-                            type="text" value={match.player_1_character}
-                            onChange={(e) => onUpdate({ player_1_character: e.target.value })}
+                        <CharacterAutocomplete
+                            value={match.player_1_character}
+                            onChangeText={(text) => onUpdate({ player_1_character: text })}
                             placeholder="Character"
-                            className="flex-1 px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
                         />
                         <div className="flex items-center gap-1">
                             <button onClick={() => onAdjustScore(1, -1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Minus size={16} /></button>
@@ -641,11 +647,10 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
                     />
                     <div className="flex items-center gap-2">
-                        <input
-                            type="text" value={match.player_2_character}
-                            onChange={(e) => onUpdate({ player_2_character: e.target.value })}
+                        <CharacterAutocomplete
+                            value={match.player_2_character}
+                            onChangeText={(text) => onUpdate({ player_2_character: text })}
                             placeholder="Character"
-                            className="flex-1 px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
                         />
                         <div className="flex items-center gap-1">
                             <button onClick={() => onAdjustScore(2, -1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Minus size={16} /></button>

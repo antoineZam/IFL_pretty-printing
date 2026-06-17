@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Download, Database, Trophy, Users, Swords, RefreshCw, Calendar, CheckCircle, XCircle, Edit2, X, Save, Trash2 } from 'lucide-react';
 import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
+import { Autocomplete } from '../../components/ui/Autocomplete';
+import { TEKKEN_8_CHARACTERS } from '../../utils/characters';
+
 interface Tournament {
     tournament_id: number;
     name: string;
@@ -1045,12 +1048,19 @@ const TournamentDataPage = () => {
                                 
                                 <div>
                                     <label className="block text-xs text-gray-400 mb-1.5">Main Character</label>
-                                    <input
-                                        type="text"
+                                    <Autocomplete
                                         value={editForm.main_character}
-                                        onChange={(e) => setEditForm({ ...editForm, main_character: e.target.value })}
+                                        items={TEKKEN_8_CHARACTERS.filter(c => c.toLowerCase().includes(editForm.main_character.toLowerCase()))}
                                         placeholder="e.g., Jin, Kazuya, Law"
-                                        className="w-full px-3 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-600 focus:border-purple-500/50 focus:outline-none"
+                                        inputClassName="w-full px-3 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-600 focus:border-purple-500/50 focus:outline-none"
+                                        onChangeText={(text) => setEditForm({ ...editForm, main_character: text })}
+                                        onSelect={(char) => setEditForm({ ...editForm, main_character: char })}
+                                        keyExtractor={(char) => char}
+                                        renderItem={(char, isHighlighted) => (
+                                            <div className={`w-full text-left px-3 py-2 text-sm transition-colors ${isHighlighted ? 'bg-purple-500/20 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
+                                                {char}
+                                            </div>
+                                        )}
                                     />
                                 </div>
                             </div>

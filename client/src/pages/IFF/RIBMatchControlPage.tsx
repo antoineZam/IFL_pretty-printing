@@ -28,29 +28,10 @@ import {
 } from 'lucide-react';
 import { countries } from '../../utils/countries';
 
-// Available Tekken 8 characters
-const characters: Record<string, string> = {
-    '': '-- Select Character --',
-    'alisa': 'Alisa',
-    'anna': 'Anna',
-    'armor king': 'Armor King',
-    'azucena': 'Azucena',
-    'bryan': 'Bryan',
-    'eddy': 'Eddy',
-    'heihachi': 'Heihachi',
-    'jin': 'Jin',
-    'kazuya': 'Kazuya',
-    'law': 'Law',
-    'lee': 'Lee',
-    'leo': 'Leo',
-    'lili': 'Lili',
-    'nina': 'Nina',
-    'pikah': 'Pikah',
-    'reina': 'Reina',
-    'steve': 'Steve',
-    'zafina': 'Zafina',
-    'schizophrenic': 'Schizophrenic'
-};
+import { Autocomplete } from '../../components/ui/Autocomplete';
+import { TEKKEN_8_CHARACTERS } from '../../utils/characters';
+
+// Removed local characters map in favor of shared TEKKEN_8_CHARACTERS
 
 interface MatchCardData {
     eventTitle: string;
@@ -838,15 +819,20 @@ export default function RIBMatchControlPage() {
                                     </div>
                                     <div>
                                         <label className="block text-sm text-gray-400 mb-1">Character</label>
-                                        <select
+                                        <Autocomplete
                                             value={editingPlayer.character}
-                                            onChange={(e) => updateEditingPlayer('character', e.target.value)}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
-                                        >
-                                            {Object.entries(characters).map(([value, label]) => (
-                                                <option key={value} value={value}>{label}</option>
-                                            ))}
-                                        </select>
+                                            items={TEKKEN_8_CHARACTERS.filter(c => c.toLowerCase().includes(editingPlayer.character.toLowerCase()))}
+                                            placeholder="Select Character"
+                                            inputClassName="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                                            onChangeText={(text) => updateEditingPlayer('character', text)}
+                                            onSelect={(char) => updateEditingPlayer('character', char)}
+                                            keyExtractor={(char) => char}
+                                            renderItem={(char, isHighlighted) => (
+                                                <div className={`w-full text-left px-3 py-2 text-sm transition-colors ${isHighlighted ? 'bg-red-500/20 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}>
+                                                    {char}
+                                                </div>
+                                            )}
+                                        />
                                     </div>
                                 </div>
 

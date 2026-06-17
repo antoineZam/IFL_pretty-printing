@@ -43,6 +43,7 @@ export default {
         'archivo-extra-condensed-medium-italic': ['Archivo Extra Condensed Medium Italic', 'sans-serif'],
         'archivo-extra-condensed-extrabold-italic': ['Archivo Extra Condensed ExtraBold Italic', 'sans-serif'],
         'archivo-extra-condensed-semibold': ['Archivo Extra Condensed SemiBold', 'sans-serif'],
+        'advine-pixel': ['Advine Pixel', 'sans-serif'],
         'gotham-bold': ['Gotham Bold', 'sans-serif'],
         'gotham-book': ['Gotham Book', 'sans-serif'],
         'gotham-light': ['Gotham Light', 'sans-serif'],
