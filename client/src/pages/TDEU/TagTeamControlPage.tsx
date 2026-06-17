@@ -8,6 +8,8 @@ import { NeonButton } from '../../components/ui/NeonButton';
 import { countries } from '../../utils/countries';
 import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
+import { Autocomplete } from '../../components/ui/Autocomplete';
+
 interface Player {
     name: string;
     sponsor: string;
@@ -64,14 +66,6 @@ const TagTeamControlPage = () => {
     const [socket, setSocket] = useState<Socket | null>(null);
     const [data, setData] = useState<TagTeamData>(initialData);
     const [playerHistory, setPlayerHistory] = useState<PlayerHistoryItem[]>([]);
-    
-    // State for autocomplete suggestions (one for each player input)
-    const [suggestions, setSuggestions] = useState<Record<PlayerKey, PlayerHistoryItem[]>>({
-        'team1.0': [],
-        'team1.1': [],
-        'team2.0': [],
-        'team2.1': [],
-    });
 
     useEffect(() => {
         // Get connection key from URL or localStorage
@@ -164,20 +158,6 @@ const TagTeamControlPage = () => {
                     )
                 }
             }));
-
-            // Handle autocomplete for player name fields
-            if (field === 'name' && value) {
-                const playerKey = `${team}.${playerIdx}` as PlayerKey;
-                const searchTerm = value.toLowerCase();
-                const filtered = playerHistory.filter(p => 
-                    p.name.toLowerCase().includes(searchTerm) || 
-                    (p.username && p.username.toLowerCase().includes(searchTerm))
-                );
-                setSuggestions(prev => ({ ...prev, [playerKey]: filtered }));
-            } else if (field === 'name') {
-                const playerKey = `${team}.${playerIdx}` as PlayerKey;
-                setSuggestions(prev => ({ ...prev, [playerKey]: [] }));
-            }
         }
     };
 
@@ -195,7 +175,6 @@ const TagTeamControlPage = () => {
                 )
             }
         }));
-        setSuggestions(prev => ({ ...prev, [playerKey]: [] }));
     };
 
     const deleteFromHistory = async (playerName: string) => {
@@ -304,26 +283,26 @@ const TagTeamControlPage = () => {
                             </div>
                             <hr className="border-white/10 my-4" />
                             {/* Player 1 */}
-                            <div className="relative">
-                                <CyberInput id="team1.0.name" label="Player 1 Name" value={data.team1.players[0]?.name || ''} onChange={handleInputChange} autoComplete="off" />
-                                {suggestions['team1.0'].length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden max-h-48 overflow-y-auto">
-                                        {suggestions['team1.0'].map(s => (
-                                            <div 
-                                                key={s.name} 
-                                                onClick={() => handleSuggestionClick('team1.0', s)}
-                                                className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-2"
-                                            >
-                                                {s.flag && (
-                                                    <img src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} alt={s.flag} className="w-5 h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                                )}
-                                                <span>{s.name}</span>
-                                                {s.team && <span className="text-xs text-gray-500 ml-auto">{s.team}</span>}
-                                            </div>
-                                        ))}
+                            <Autocomplete
+                                value={data.team1.players[0]?.name || ''}
+                                items={playerHistory.filter(p => p.name.toLowerCase().includes((data.team1.players[0]?.name || '').toLowerCase()) || (p.username && p.username.toLowerCase().includes((data.team1.players[0]?.name || '').toLowerCase()))).slice(0, 8)}
+                                placeholder="Player 1 Name"
+                                inputClassName="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-700 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all duration-300 w-full"
+                                onChangeText={(text) => handleInputChange({ target: { id: 'team1.0.name', value: text } } as any)}
+                                onSelect={(player) => handleSuggestionClick('team1.0', player)}
+                                keyExtractor={(player) => player.name}
+                                renderItem={(s, isHighlighted) => (
+                                    <div 
+                                        className={`px-4 py-2 cursor-pointer flex items-center gap-2 ${isHighlighted ? 'bg-blue-500/20' : 'hover:bg-blue-500/20'}`}
+                                    >
+                                        {s.flag && (
+                                            <img src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} alt={s.flag} className="w-5 h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                        )}
+                                        <span>{s.name}</span>
+                                        {s.team && <span className="text-xs text-gray-500 ml-auto">{s.team}</span>}
                                     </div>
                                 )}
-                            </div>
+                            />
                             <div className="grid grid-cols-2 gap-4">
                                 <CyberInput id="team1.0.sponsor" label="P1 Sponsor" value={data.team1.players[0]?.sponsor || ''} onChange={handleInputChange} />
                                 <div className="flex flex-col gap-1.5">
@@ -335,26 +314,26 @@ const TagTeamControlPage = () => {
                             </div>
                             <hr className="border-white/10 my-4" />
                             {/* Player 2 */}
-                            <div className="relative">
-                                <CyberInput id="team1.1.name" label="Player 2 Name" value={data.team1.players[1]?.name || ''} onChange={handleInputChange} autoComplete="off" />
-                                {suggestions['team1.1'].length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden max-h-48 overflow-y-auto">
-                                        {suggestions['team1.1'].map(s => (
-                                            <div 
-                                                key={s.name} 
-                                                onClick={() => handleSuggestionClick('team1.1', s)}
-                                                className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-2"
-                                            >
-                                                {s.flag && (
-                                                    <img src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} alt={s.flag} className="w-5 h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                                )}
-                                                <span>{s.name}</span>
-                                                {s.team && <span className="text-xs text-gray-500 ml-auto">{s.team}</span>}
-                                            </div>
-                                        ))}
+                            <Autocomplete
+                                value={data.team1.players[1]?.name || ''}
+                                items={playerHistory.filter(p => p.name.toLowerCase().includes((data.team1.players[1]?.name || '').toLowerCase()) || (p.username && p.username.toLowerCase().includes((data.team1.players[1]?.name || '').toLowerCase()))).slice(0, 8)}
+                                placeholder="Player 2 Name"
+                                inputClassName="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-700 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all duration-300 w-full"
+                                onChangeText={(text) => handleInputChange({ target: { id: 'team1.1.name', value: text } } as any)}
+                                onSelect={(player) => handleSuggestionClick('team1.1', player)}
+                                keyExtractor={(player) => player.name}
+                                renderItem={(s, isHighlighted) => (
+                                    <div 
+                                        className={`px-4 py-2 cursor-pointer flex items-center gap-2 ${isHighlighted ? 'bg-blue-500/20' : 'hover:bg-blue-500/20'}`}
+                                    >
+                                        {s.flag && (
+                                            <img src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} alt={s.flag} className="w-5 h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                        )}
+                                        <span>{s.name}</span>
+                                        {s.team && <span className="text-xs text-gray-500 ml-auto">{s.team}</span>}
                                     </div>
                                 )}
-                            </div>
+                            />
                             <div className="grid grid-cols-2 gap-4">
                                 <CyberInput id="team1.1.sponsor" label="P2 Sponsor" value={data.team1.players[1]?.sponsor || ''} onChange={handleInputChange} />
                                 <div className="flex flex-col gap-1.5">
@@ -404,26 +383,26 @@ const TagTeamControlPage = () => {
                             </div>
                             <hr className="border-white/10 my-4" />
                             {/* Player 1 */}
-                            <div className="relative">
-                                <CyberInput id="team2.0.name" label="Player 1 Name" value={data.team2.players[0]?.name || ''} onChange={handleInputChange} className="text-right" autoComplete="off" />
-                                {suggestions['team2.0'].length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden max-h-48 overflow-y-auto">
-                                        {suggestions['team2.0'].map(s => (
-                                            <div 
-                                                key={s.name} 
-                                                onClick={() => handleSuggestionClick('team2.0', s)}
-                                                className="px-4 py-2 hover:bg-red-500/20 cursor-pointer flex items-center gap-2 justify-end"
-                                            >
-                                                {s.team && <span className="text-xs text-gray-500 mr-auto">{s.team}</span>}
-                                                <span>{s.name}</span>
-                                                {s.flag && (
-                                                    <img src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} alt={s.flag} className="w-5 h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                                )}
-                                            </div>
-                                        ))}
+                            <Autocomplete
+                                value={data.team2.players[0]?.name || ''}
+                                items={playerHistory.filter(p => p.name.toLowerCase().includes((data.team2.players[0]?.name || '').toLowerCase()) || (p.username && p.username.toLowerCase().includes((data.team2.players[0]?.name || '').toLowerCase()))).slice(0, 8)}
+                                placeholder="Player 1 Name"
+                                inputClassName="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-700 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50 transition-all duration-300 w-full text-right"
+                                onChangeText={(text) => handleInputChange({ target: { id: 'team2.0.name', value: text } } as any)}
+                                onSelect={(player) => handleSuggestionClick('team2.0', player)}
+                                keyExtractor={(player) => player.name}
+                                renderItem={(s, isHighlighted) => (
+                                    <div 
+                                        className={`px-4 py-2 cursor-pointer flex items-center gap-2 justify-end ${isHighlighted ? 'bg-red-500/20' : 'hover:bg-red-500/20'}`}
+                                    >
+                                        {s.team && <span className="text-xs text-gray-500 mr-auto">{s.team}</span>}
+                                        <span>{s.name}</span>
+                                        {s.flag && (
+                                            <img src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} alt={s.flag} className="w-5 h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                        )}
                                     </div>
                                 )}
-                            </div>
+                            />
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-xs font-bold uppercase text-gray-500">P1 Flag</label>
@@ -435,26 +414,26 @@ const TagTeamControlPage = () => {
                             </div>
                             <hr className="border-white/10 my-4" />
                             {/* Player 2 */}
-                            <div className="relative">
-                                <CyberInput id="team2.1.name" label="Player 2 Name" value={data.team2.players[1]?.name || ''} onChange={handleInputChange} className="text-right" autoComplete="off" />
-                                {suggestions['team2.1'].length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-surfaceHighlight border border-white/10 rounded-lg z-20 overflow-hidden max-h-48 overflow-y-auto">
-                                        {suggestions['team2.1'].map(s => (
-                                            <div 
-                                                key={s.name} 
-                                                onClick={() => handleSuggestionClick('team2.1', s)}
-                                                className="px-4 py-2 hover:bg-red-500/20 cursor-pointer flex items-center gap-2 justify-end"
-                                            >
-                                                {s.team && <span className="text-xs text-gray-500 mr-auto">{s.team}</span>}
-                                                <span>{s.name}</span>
-                                                {s.flag && (
-                                                    <img src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} alt={s.flag} className="w-5 h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                                )}
-                                            </div>
-                                        ))}
+                            <Autocomplete
+                                value={data.team2.players[1]?.name || ''}
+                                items={playerHistory.filter(p => p.name.toLowerCase().includes((data.team2.players[1]?.name || '').toLowerCase()) || (p.username && p.username.toLowerCase().includes((data.team2.players[1]?.name || '').toLowerCase()))).slice(0, 8)}
+                                placeholder="Player 2 Name"
+                                inputClassName="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-700 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50 transition-all duration-300 w-full text-right"
+                                onChangeText={(text) => handleInputChange({ target: { id: 'team2.1.name', value: text } } as any)}
+                                onSelect={(player) => handleSuggestionClick('team2.1', player)}
+                                keyExtractor={(player) => player.name}
+                                renderItem={(s, isHighlighted) => (
+                                    <div 
+                                        className={`px-4 py-2 cursor-pointer flex items-center gap-2 justify-end ${isHighlighted ? 'bg-red-500/20' : 'hover:bg-red-500/20'}`}
+                                    >
+                                        {s.team && <span className="text-xs text-gray-500 mr-auto">{s.team}</span>}
+                                        <span>{s.name}</span>
+                                        {s.flag && (
+                                            <img src={`https://flagcdn.com/w20/${s.flag.toLowerCase()}.png`} alt={s.flag} className="w-5 h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                        )}
                                     </div>
                                 )}
-                            </div>
+                            />
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-xs font-bold uppercase text-gray-500">P2 Flag</label>
