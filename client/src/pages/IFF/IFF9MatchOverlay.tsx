@@ -88,59 +88,57 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
                 />
 
                 {/* Player 1 Country Code (Alpha-3) */}
-                <div className="absolute top-[20px] left-[210px] text-[28px] text-[#7C9A79] z-10">
+                <div className="absolute top-[20px] left-[190px] text-[32px] text-[#7C9A79] z-10 w-[70px] flex items-center justify-center">
                     {data.player_1_country || ''}
                 </div>
 
-                {/* Player 1 Rank */}
-                <div className="absolute top-[26px] left-[455px] text-[22px] text-[#F0EEED] opacity-65 flex items-baseline z-10">
-                    <span className="mr-1">IFF9</span>
-                    <span>RANK #</span>
-                    <span className={`ml-1 text-[#F0EEED] ${data.player_1_rank ? '' : 'opacity-65'}`}>{data.player_1_rank ?? 'N/A'}</span>
-                </div>
-
-                {/* Player 1 name - left half (matches Love & War 1v1 positioning) */}
+                {/* Player 1 name*/}
                 <div className="absolute w-full h-[100px] z-10 flex items-center">
-                    <div className="absolute top-[16px] left-[-200px] right-[calc(50%+100px)] flex items-center justify-center">
-                        <span className="text-[34px] text-[#CEDAC6] whitespace-nowrap uppercase">
+                    <div className="absolute top-[24px] left-[280px] flex items-center justify-start min-w-[200px]">
+                        <span className="text-[26px] text-[#CEDAC6] whitespace-nowrap uppercase tracking-widest">
                             {data.player_1_name}
                         </span>
                     </div>
                 </div>
 
+                {/* Player 1 Rank */}
+                <div className="absolute top-[26px] left-[485px] text-[24px] text-[#F0EEED] opacity-65 flex items-baseline z-10 tracking-widest uppercase">
+                    <span className="mr-1">RANK #</span>
+                    <span className={`text-[#F0EEED] ${data.player_1_rank ? '' : 'opacity-65'}`}>{data.player_1_rank ?? 'N/A'}</span>
+                </div>
+
                 {/* Player 1 score */}
-                <div className="absolute top-[12px] left-[595px] text-[40px] w-[100px] text-[#CEDAC6] text-center z-10">
-                    {data.player_1_score}
+                <div className="absolute top-[12px] left-[620px] text-[40px] w-[50px] text-[#CEDAC6] text-center z-10">
+                    {String(data.player_1_score).padStart(2, '0')}
                 </div>
 
                 {/* Player 2 Country Code (Alpha-3) */}
-                <div className="absolute top-[20px] right-[205px] text-[28px] text-[#7C9A79] z-10 text-right">
+                <div className="absolute top-[20px] right-[190px] text-[32px] text-[#7C9A79] z-10 w-[70px] flex items-center justify-center">
                     {data.player_2_country || ''}
-                </div>
-
-                {/* Player 2 Rank */}
-                <div className="absolute top-[26px] right-[455px] text-[22px] text-[#F0EEED] opacity-65 flex items-baseline justify-end z-10">
-                    <span className="mr-1">IFF9</span>
-                    <span>RANK #</span>
-                    <span className={`ml-1 text-[#F0EEED] ${data.player_2_rank ? '' : 'opacity-65'}`}>{data.player_2_rank ?? 'N/A'}</span>
                 </div>
 
                 {/* Player 2 name - right half */}
                 <div className="absolute w-full h-[100px] z-10 flex items-center">
-                    <div className="absolute top-[16px] right-[-200px] left-[calc(50%+100px)] flex items-center justify-center">
-                        <span className="text-[34px] text-[#CEDAC6] whitespace-nowrap uppercase">
+                    <div className="absolute top-[24px] right-[280px] flex items-center justify-end min-w-[200px]">
+                        <span className="text-[26px] text-[#CEDAC6] whitespace-nowrap uppercase tracking-widest">
                             {data.player_2_name}
                         </span>
                     </div>
                 </div>
 
+                {/* Player 2 Rank */}
+                <div className="absolute top-[26px] right-[485px] text-[24px] text-[#F0EEED] opacity-65 flex items-baseline justify-end z-10 tracking-widest uppercase">
+                    <span className="mr-1">RANK #</span>
+                    <span className={`text-[#F0EEED] ${data.player_2_rank ? '' : 'opacity-65'}`}>{data.player_2_rank ?? 'N/A'}</span>
+                </div>
+
                 {/* Player 2 score */}
-                <div className="absolute top-[12px] right-[595px] text-[40px] w-[100px] text-[#CEDAC6] text-center z-10">
-                    {data.player_2_score}
+                <div className="absolute top-[12px] right-[620px] text-[40px] w-[50px] text-[#CEDAC6] text-center z-10">
+                    {String(data.player_2_score).padStart(2, '0')}
                 </div>
 
                 {/* Round / match info - centered */}
-                <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[20px] text-[#D8D7D5] text-center w-[600px] z-10">
+                <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[24px] text-[#D8D7D5] text-center w-[600px] z-10">
                     {data.round_name}
                 </div>
             </div>
