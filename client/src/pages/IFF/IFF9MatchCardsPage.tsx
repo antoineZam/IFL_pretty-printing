@@ -75,7 +75,7 @@ const MatchCard = ({ match, glitch }: { match: IFF9Match; glitch: boolean }) => 
 
                 {/* Center: match number, score, round */}
                 <div className="w-[300px] shrink-0 flex flex-col items-center justify-center drop-shadow-md">
-                    <p className="absolute top-[24px] left-[107px] text-[14px] text-[#D8D7D5] uppercase tracking-[0.3em] mb-1 transform scale-y-150 font-d-din-bold">MATCH_{String(match.match_number).padStart(2, '0')}</p>
+                    <p className="absolute top-[24px] left-[107px] text-[12.6px] text-[#D8D7D5] uppercase tracking-[0.15em] mb-1 transform scale-y-150 font-d-din-bold">MATCH_{String(match.match_number).padStart(2, '0')}</p>
                     <div className="flex items-center gap-4 text-[40px] text-[#7C9A79] leading-none transform scale-y-150 font-d-din-bold">
                         <span>{match.player_1_score}</span>
                         <span className="text-[#7C9A79] text-[40px] pb-2 font-d-din-bold">-</span>
@@ -199,8 +199,8 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
             {/* ===== Left sidebar (Week Number) ===== */}
             {weekLabel && eventDate && (
                 <div className="absolute top-0 left-0 h-full w-[400px] z-20 flex flex-col items-center justify-center pl-16">
-                    <h1 className="absolute top-[510px] left-[138px] text-[12px] text-white leading-none tracking-widest text-center font-d-din-bold">{eventDate}</h1>
-                    <h2 className="absolute top-[540px] left-[220px] text-[24px] text-[#34d399] leading-none tracking-widest text-center transform scale-y-150 font-d-din-bold">
+                    <h1 className="absolute top-[510px] left-[138px] text-[12px] text-[#D8D7D5] leading-none tracking-widest text-center font-d-din-bold">{eventDate}</h1>
+                    <h2 className="absolute top-[540px] left-[220px] text-[24px] text-[#7C9A79] leading-none tracking-widest text-center transform scale-y-150 font-d-din-bold">
                         {weekLabel}
                     </h2>
                 </div>
