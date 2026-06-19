@@ -84,8 +84,8 @@ const IFF9UnifiedOverlay = () => {
             return (
                 <div className="w-full h-full relative">
                     <img
-                        src="/source/overlay/iff_9/default.png"
-                        alt="IFF9 Overlay"
+                        src="/source/overlay/iff_9/idle.png"
+                        alt="IFF9 Idle"
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
