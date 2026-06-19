@@ -37,7 +37,7 @@ function matchCardFramePath(matchType: IFF9MatchType): string {
 }
 
 // A single vs-card row. The featured card is rendered larger.
-const MatchCard = ({ match, glitch }: { match: IFF9Match; glitch: boolean }) => {
+const MatchCard = ({ match, glitch, forceImageRefresh }: { match: IFF9Match; glitch: boolean; forceImageRefresh: number }) => {
     const cardFrameBg = matchCardFramePath(match.match_type);
 
     return (
@@ -49,6 +49,7 @@ const MatchCard = ({ match, glitch }: { match: IFF9Match; glitch: boolean }) => 
 
             {/* P1 Character - Full size absolute layer */}
             <img
+                key={`p1-${match.id}-${match.player_1_character}-${forceImageRefresh}`}
                 src={portraitPath(match, 1)}
                 alt={match.player_1_name}
                 className="absolute inset-0 w-full h-full object-contain z-[1] pointer-events-none"
@@ -57,6 +58,7 @@ const MatchCard = ({ match, glitch }: { match: IFF9Match; glitch: boolean }) => 
 
             {/* P2 Character - Full size absolute layer */}
             <img
+                key={`p2-${match.id}-${match.player_2_character}-${forceImageRefresh}`}
                 src={portraitPath(match, 2)}
                 alt={match.player_2_name}
                 className="absolute inset-0 w-full h-full object-contain z-[1] pointer-events-none"
@@ -101,6 +103,7 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
     const [lineup, setLineup] = useState<IFF9Lineup | null>(initialLineup);
     const [visibleCount, setVisibleCount] = useState(0);
     const [glitchIndex, setGlitchIndex] = useState<number | null>(null);
+    const [forceImageRefresh, setForceImageRefresh] = useState(0);
 
     // Transparent background (standalone mode only)
     useEffect(() => {
@@ -116,7 +119,10 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
     // Listen on provided socket (embedded mode)
     useEffect(() => {
         if (!propSocket) return;
-        const handler = (data: IFF9Lineup) => setLineup(data);
+        const handler = (data: IFF9Lineup) => {
+            setLineup(data);
+            setForceImageRefresh(Date.now());
+        };
         propSocket.on('iff9-lineup', handler);
         return () => { propSocket.off('iff9-lineup', handler); };
     }, [propSocket]);
@@ -127,7 +133,10 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
         const key = searchParams.get('key');
         if (!key) return;
         const socket: Socket = io({ auth: { token: key } });
-        socket.on('iff9-lineup', (data: IFF9Lineup) => setLineup(data));
+        socket.on('iff9-lineup', (data: IFF9Lineup) => {
+            setLineup(data);
+            setForceImageRefresh(Date.now());
+        });
         return () => { socket.disconnect(); };
     }, [searchParams, embedded, propSocket]);
 
@@ -150,6 +159,13 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
         return [featured, ...rest];
     }, [matches, featuredIndex]);
 
+    // Use a derived key representing the lineup order to avoid re-triggering 
+    // the staggered animation when just scores or names change.
+    const lineupOrderKey = useMemo(
+        () => orderedMatches.map(m => m.id ?? m.match_number).join(','),
+        [orderedMatches]
+    );
+
     // Staggered glitch-in reveal whenever the lineup changes or the page becomes active.
     useEffect(() => {
         if (!active) return;
@@ -165,7 +181,7 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
             if (i >= orderedMatches.length) clearInterval(timer);
         }, REVEAL_INTERVAL_MS);
         return () => clearInterval(timer);
-    }, [orderedMatches, active]);
+    }, [lineupOrderKey, active]);
 
     // Clear the transient glitch class shortly after each reveal.
     useEffect(() => {
@@ -236,7 +252,7 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
                                     transition: 'opacity 0.18s ease-out',
                                 }}
                             >
-                                <MatchCard match={match} glitch={glitchIndex === i} />
+                                <MatchCard match={match} glitch={glitchIndex === i} forceImageRefresh={forceImageRefresh} />
                             </div>
                         );
                     })

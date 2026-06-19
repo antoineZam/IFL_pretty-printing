@@ -102,8 +102,8 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
                 </div>
 
                 {/* Player 1 Rank */}
-                <div className="absolute top-[26px] left-[485px] text-[24px] text-[#F0EEED] opacity-65 flex items-baseline z-10 tracking-widest uppercase">
-                    <span className="mr-1">RANK #</span>
+                <div className="absolute top-[26px] left-[485px] text-[24px] text-[#F0EEED] opacity-65 flex items-baseline z-10 uppercase">
+                    <span >RANK #</span>
                     <span className={`text-[#F0EEED] ${data.player_1_rank ? '' : 'opacity-65'}`}>{data.player_1_rank ?? 'N/A'}</span>
                 </div>
 
@@ -128,7 +128,7 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
 
                 {/* Player 2 Rank */}
                 <div className="absolute top-[26px] right-[485px] text-[24px] text-[#F0EEED] opacity-65 flex items-baseline justify-end z-10 tracking-widest uppercase">
-                    <span className="mr-1">RANK #</span>
+                    <span>RANK #</span>
                     <span className={`text-[#F0EEED] ${data.player_2_rank ? '' : 'opacity-65'}`}>{data.player_2_rank ?? 'N/A'}</span>
                 </div>
 
