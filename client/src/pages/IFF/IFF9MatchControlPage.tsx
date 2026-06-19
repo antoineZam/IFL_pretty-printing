@@ -88,9 +88,9 @@ const IFF9MatchControlPage = () => {
         }
     };
 
-    const loadWeeks = async () => {
+    const loadWeeks = async (showSpinner = true) => {
         try {
-            setIsLoading(true);
+            if (showSpinner) setIsLoading(true);
             const res = await fetch('/api/iff/iff-9/weeks');
             if (res.ok) {
                 const data = await res.json();
@@ -99,7 +99,7 @@ const IFF9MatchControlPage = () => {
         } catch (err) {
             console.error('Error loading IFF9 weeks:', err);
         } finally {
-            setIsLoading(false);
+            if (showSpinner) setIsLoading(false);
         }
     };
 
@@ -117,8 +117,12 @@ const IFF9MatchControlPage = () => {
                 status: data.week.status,
             });
             setMatches((data.week.matches || []).map((m: IFF9Match) => ({
-                ...defaultIFF9Match, ...m,
-                is_complete: !!m.is_complete, is_active: !!m.is_active,
+                ...defaultIFF9Match, 
+                ...m,
+                player_1_name: m.player_1_name || defaultIFF9Match.player_1_name,
+                player_2_name: m.player_2_name || defaultIFF9Match.player_2_name,
+                is_complete: !!m.is_complete, 
+                is_active: !!m.is_active,
             })));
             setDeletedIds([]);
         } catch (err) {
@@ -226,8 +230,21 @@ const IFF9MatchControlPage = () => {
         setTimeout(() => setPushed(false), 2000);
     }, [pushLive]);
 
+    const handleWeekChange = async (targetId: number | null) => {
+        // Auto-save current progress before switching if it exists in DB
+        if (week.id || matches.length > 0) {
+            await saveAll(true); // true means silent/background save
+        }
+        
+        if (targetId) {
+            await loadWeek(targetId);
+        } else {
+            newWeek();
+        }
+    };
+
     // ---- Persistence ----
-    const saveAll = async () => {
+    const saveAll = async (silent = false) => {
         try {
             // 1. Save week (create or update) to obtain an id.
             const weekRes = await fetch(
@@ -262,10 +279,12 @@ const IFF9MatchControlPage = () => {
             }
 
             setDeletedIds([]);
-            await loadWeeks();
+            await loadWeeks(false);
             await loadWeek(weekId);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
+            if (!silent) {
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+            }
         } catch (err) {
             console.error('Error saving IFF9 week:', err);
         }
@@ -306,7 +325,7 @@ const IFF9MatchControlPage = () => {
                     }
                 }
                 
-                await loadWeeks();
+                await loadWeeks(false);
                 await loadWeek(newWeekId);
             }
         } catch (err) {
@@ -418,15 +437,15 @@ const IFF9MatchControlPage = () => {
                         <div className="flex items-center gap-2">
                             <select
                                 value={week.id ?? ''}
-                                onChange={(e) => e.target.value ? loadWeek(parseInt(e.target.value)) : newWeek()}
+                                onChange={(e) => handleWeekChange(e.target.value ? parseInt(e.target.value) : null)}
                                 className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm"
                             >
                                 <option value="">New week...</option>
                                 {weeks.map(w => (
-                                    <option key={w.id} value={w.id}>{w.name} {w.week_number ? `(W${w.week_number})` : ''}</option>
+                                    <option key={w.id} value={w.id}>{w.name} {w.week_number ? `(Week ${w.week_number})` : ''}</option>
                                 ))}
                             </select>
-                            <button onClick={newWeek} className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm">
+                            <button onClick={() => handleWeekChange(null)} className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm">
                                 <Plus size={14} /> New
                             </button>
                         </div>
@@ -499,7 +518,7 @@ const IFF9MatchControlPage = () => {
                         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
                             Live Active Match
                             <span className="ml-2 px-2 py-0.5 rounded text-xs bg-[#10b981]/30 text-[#34d399]">
-                                MATCH_{String(activeMatch.match_number).padStart(2, '0')} / {activeMatch.match_type}
+                                {week.week_number ? `WEEK ${week.week_number} / ` : ''}MATCH_{String(activeMatch.match_number).padStart(2, '0')} / {activeMatch.match_type}
                             </span>
                         </h3>
                         <div className="bg-black/80 rounded-xl p-6 border border-gray-700/50 flex items-center justify-between">
@@ -683,7 +702,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                 {/* Player 1 */}
                 <div className="space-y-2">
                     <PlayerAutocomplete
-                        value={match.player_1_name}
+                        value={match.player_1_name || ''}
                         players={players}
                         placeholder="Player 1 name"
                         onChangeText={(text) => onUpdate({ player_1_name: text, player_1_id: null })}
@@ -730,7 +749,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                 {/* Player 2 */}
                 <div className="space-y-2">
                     <PlayerAutocomplete
-                        value={match.player_2_name}
+                        value={match.player_2_name || ''}
                         players={players}
                         placeholder="Player 2 name"
                         onChangeText={(text) => onUpdate({ player_2_name: text, player_2_id: null })}
