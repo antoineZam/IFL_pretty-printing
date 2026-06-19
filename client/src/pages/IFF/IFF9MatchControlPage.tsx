@@ -581,9 +581,9 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                             className="w-16 px-2 py-1 bg-gray-800 border border-gray-700 rounded-lg text-center text-white"
                         />
                     </div>
-                    {/* Masters / Challengers / Final Boss toggle */}
+                    {/* Masters / Challengers / Final Boss / Qualifier toggle */}
                     <div className="flex bg-gray-800/60 p-1 rounded-lg">
-                        {(['masters', 'challengers', 'finalboss'] as IFF9MatchType[]).map(t => (
+                        {(['masters', 'challengers', 'finalboss', 'qualifier'] as IFF9MatchType[]).map(t => (
                             <button
                                 key={t}
                                 onClick={() => onUpdate({ match_type: t })}

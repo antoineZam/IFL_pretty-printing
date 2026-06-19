@@ -32,6 +32,7 @@ function portraitPath(match: IFF9Match, slot: 1 | 2): string {
 function matchCardFramePath(matchType: IFF9MatchType): string {
     if (matchType === 'masters') return '/source/overlay/iff_9/match_card/master_match.png';
     if (matchType === 'finalboss') return '/source/overlay/iff_9/match_card/finalboss_match.png';
+    if (matchType === 'qualifier') return '/source/overlay/iff_9/match_card/qualfier_matchcard.png';
     return '/source/overlay/iff_9/match_card/challenger_match.png';
 }
 
