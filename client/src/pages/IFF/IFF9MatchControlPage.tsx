@@ -562,6 +562,9 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
     // When a DB player is chosen, store their ID and auto-fill remaining fields.
     const fillFromPlayer = (slot: 1 | 2, p: IFFPlayer) => {
         const accolades = p.iff_history || p.iff8_ranking || '';
+        // Determine rank if possible from iff8_ranking (e.g. "#1" -> 1)
+        const rankMatch = p.iff8_ranking ? p.iff8_ranking.match(/#(\d+)/) : null;
+        const rank = rankMatch ? parseInt(rankMatch[1]) : null;
         
         if (slot === 1) {
             onUpdate({ 
@@ -569,6 +572,8 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                 player_1_name: p.name, 
                 player_1_character: p.character_name || '', 
                 player_1_info: accolades,
+                player_1_country: p.country || '',
+                player_1_rank: rank
             });
         } else {
             onUpdate({ 
@@ -576,6 +581,8 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                 player_2_name: p.name, 
                 player_2_character: p.character_name || '', 
                 player_2_info: accolades,
+                player_2_country: p.country || '',
+                player_2_rank: rank
             });
         }
     };
@@ -637,7 +644,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                     />
                     <div className="grid grid-cols-2 gap-2">
                         <input
-                            type="text" value={match.player_1_country}
+                            type="text" value={match.player_1_country || ''}
                             onChange={(e) => onUpdate({ player_1_country: e.target.value.toUpperCase().slice(0, 3) })}
                             placeholder="Country (3-letter)"
                             maxLength={3}
