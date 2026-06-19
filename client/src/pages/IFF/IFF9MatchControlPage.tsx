@@ -20,6 +20,7 @@ interface IFFPlayer {
     character_name?: string | null;
     iff_history?: string | null;
     iff8_ranking?: string | null;
+    country?: string | null;
 }
 
 function buildMatchData(week: IFF9Week, match: IFF9Match): IFF9MatchData {
@@ -30,14 +31,20 @@ function buildMatchData(week: IFF9Week, match: IFF9Match): IFF9MatchData {
         match_number: match.match_number,
         match_type: match.match_type,
         round_name: match.round_name,
+        player_1_id: match.player_1_id,
         player_1_name: match.player_1_name,
         player_1_info: match.player_1_info,
         player_1_character: match.player_1_character,
         player_1_score: match.player_1_score,
+        player_1_country: match.player_1_country,
+        player_1_rank: match.player_1_rank,
+        player_2_id: match.player_2_id,
         player_2_name: match.player_2_name,
         player_2_info: match.player_2_info,
         player_2_character: match.player_2_character,
         player_2_score: match.player_2_score,
+        player_2_country: match.player_2_country,
+        player_2_rank: match.player_2_rank,
         win_score: match.win_score,
     };
 }
@@ -552,13 +559,24 @@ interface MatchRowProps {
 }
 
 const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActive, onAdjustScore, onMove }: MatchRowProps) => {
-    // Auto-fill name + character + accolades when a DB player is chosen.
+    // When a DB player is chosen, store their ID and auto-fill remaining fields.
     const fillFromPlayer = (slot: 1 | 2, p: IFFPlayer) => {
         const accolades = p.iff_history || p.iff8_ranking || '';
+        
         if (slot === 1) {
-            onUpdate({ player_1_name: p.name, player_1_character: p.character_name || '', player_1_info: accolades });
+            onUpdate({ 
+                player_1_id: p.id,
+                player_1_name: p.name, 
+                player_1_character: p.character_name || '', 
+                player_1_info: accolades,
+            });
         } else {
-            onUpdate({ player_2_name: p.name, player_2_character: p.character_name || '', player_2_info: accolades });
+            onUpdate({ 
+                player_2_id: p.id,
+                player_2_name: p.name, 
+                player_2_character: p.character_name || '', 
+                player_2_info: accolades,
+            });
         }
     };
     return (
@@ -608,7 +626,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         value={match.player_1_name}
                         players={players}
                         placeholder="Player 1 name"
-                        onChangeText={(text) => onUpdate({ player_1_name: text })}
+                        onChangeText={(text) => onUpdate({ player_1_name: text, player_1_id: null })}
                         onSelectPlayer={(p) => fillFromPlayer(1, p)}
                     />
                     <input
@@ -617,6 +635,24 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         placeholder="Accolades (e.g. 2X IFF CHAMPION / 3X FINALIST)"
                         className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
                     />
+                    <div className="grid grid-cols-2 gap-2">
+                        <input
+                            type="text" value={match.player_1_country}
+                            onChange={(e) => onUpdate({ player_1_country: e.target.value.toUpperCase().slice(0, 3) })}
+                            placeholder="Country (3-letter)"
+                            maxLength={3}
+                            className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none uppercase"
+                        />
+                        <input
+                            type="number" value={match.player_1_rank === null ? '' : match.player_1_rank}
+                            onChange={(e) => {
+                                const val = e.target.value ? parseInt(e.target.value) : null;
+                                onUpdate({ player_1_rank: val });
+                            }}
+                            placeholder="Rank #"
+                            className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
+                        />
+                    </div>
                     <div className="flex items-center gap-2">
                         <CharacterAutocomplete
                             value={match.player_1_character}
@@ -637,7 +673,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         value={match.player_2_name}
                         players={players}
                         placeholder="Player 2 name"
-                        onChangeText={(text) => onUpdate({ player_2_name: text })}
+                        onChangeText={(text) => onUpdate({ player_2_name: text, player_2_id: null })}
                         onSelectPlayer={(p) => fillFromPlayer(2, p)}
                     />
                     <input
@@ -646,6 +682,24 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         placeholder="Accolades (e.g. 2X IFF CHAMPION / 7X FINALIST)"
                         className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
                     />
+                    <div className="grid grid-cols-2 gap-2">
+                        <input
+                            type="text" value={match.player_2_country}
+                            onChange={(e) => onUpdate({ player_2_country: e.target.value.toUpperCase().slice(0, 3) })}
+                            placeholder="Country (3-letter)"
+                            maxLength={3}
+                            className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none uppercase"
+                        />
+                        <input
+                            type="number" value={match.player_2_rank === null ? '' : match.player_2_rank}
+                            onChange={(e) => {
+                                const val = e.target.value ? parseInt(e.target.value) : null;
+                                onUpdate({ player_2_rank: val });
+                            }}
+                            placeholder="Rank #"
+                            className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
+                        />
+                    </div>
                     <div className="flex items-center gap-2">
                         <CharacterAutocomplete
                             value={match.player_2_character}

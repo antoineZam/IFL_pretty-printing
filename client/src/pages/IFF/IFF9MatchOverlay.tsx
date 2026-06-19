@@ -71,7 +71,7 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
     const bottomPagePath = `/source/overlay/iff_9/${matchType}/bottom_page.png`;
 
     return (
-        <div className={`${containerClass} bg-transparent text-white uppercase overflow-hidden`}>
+        <div className={`${containerClass} bg-transparent text-white uppercase overflow-hidden font-pp-neue-bit-bold tracking-widest`}>
             <div className="relative w-full h-full">
                 {/* Stream overlay (asset pending) */}
                 <img
@@ -87,36 +87,60 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
 
+                {/* Player 1 Country Code (Alpha-3) */}
+                <div className="absolute top-[26px] left-[138px] text-[28px] text-white/80 z-10" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
+                    {data.player_1_country || ''}
+                </div>
+
+                {/* Player 1 Rank */}
+                <div className="absolute top-[26px] left-[555px] text-[22px] text-white/50 flex items-baseline z-10" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
+                    <span className="mr-1">IFF9</span>
+                    <span>RANK #</span>
+                    <span className={`ml-1 text-white ${data.player_1_rank ? '' : 'opacity-50'}`}>{data.player_1_rank ?? 'N/A'}</span>
+                </div>
+
                 {/* Player 1 name - left half (matches Love & War 1v1 positioning) */}
                 <div className="absolute w-full h-[100px] z-10 flex items-center">
                     <div className="absolute left-[-280px] right-[calc(50%+100px)] flex items-center justify-center">
-                        <span className="text-[28px] font-bold text-white whitespace-nowrap uppercase" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
+                        <span className="text-[34px] text-white whitespace-nowrap uppercase" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
                             {data.player_1_name}
                         </span>
                     </div>
                 </div>
 
                 {/* Player 1 score */}
-                <div className="absolute top-[-5px] left-[724px] text-[26px] w-[100px] text-center font-bold z-10">
+                <div className="absolute top-[-5px] left-[724px] text-[30px] w-[100px] text-center z-10" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
                     {data.player_1_score}
+                </div>
+
+                {/* Player 2 Country Code (Alpha-3) */}
+                <div className="absolute top-[26px] right-[136px] text-[28px] text-white/80 z-10 text-right" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
+                    {data.player_2_country || ''}
+                </div>
+
+                {/* Player 2 Rank */}
+                <div className="absolute top-[26px] right-[555px] text-[22px] text-white/50 flex items-baseline justify-end z-10" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
+                    <span className="mr-1">IFF9</span>
+                    <span>RANK #</span>
+                    <span className={`ml-1 text-white ${data.player_2_rank ? '' : 'opacity-50'}`}>{data.player_2_rank ?? 'N/A'}</span>
                 </div>
 
                 {/* Player 2 name - right half */}
                 <div className="absolute w-full h-[100px] z-10 flex items-center">
                     <div className="absolute right-[-280px] left-[calc(50%+100px)] flex items-center justify-center">
-                        <span className="text-[28px] font-bold text-white whitespace-nowrap uppercase" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
+                        <span className="text-[34px] text-white whitespace-nowrap uppercase" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
                             {data.player_2_name}
                         </span>
                     </div>
                 </div>
 
                 {/* Player 2 score */}
-                <div className="absolute top-[-5px] right-[725px] text-[26px] w-[100px] text-center font-bold z-10">
+                <div className="absolute top-[-5px] right-[725px] text-[30px] w-[100px] text-center z-10" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
                     {data.player_2_score}
                 </div>
 
                 {/* Round / match info - centered */}
-                <div className="absolute top-[1px] left-1/2 -translate-x-1/2 text-base text-center w-[600px] tracking-[2px] font-semibold z-10">
+                <div className="absolute top-[3px] left-1/2 -translate-x-1/2 text-[20px] text-center w-[600px] z-10" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
                     {data.round_name}
                 </div>
             </div>

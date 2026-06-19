@@ -57,6 +57,7 @@ export default {
         'd-din-exp-bold': ['D-DIN Exp Bold', 'sans-serif'],
         'd-din-exp-italic': ['D-DIN Exp Italic', 'sans-serif'],
         'crook': ['Crook', 'sans-serif'],
+        'pp-neue-bit-bold': ['PP Neue Bit Bold', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
