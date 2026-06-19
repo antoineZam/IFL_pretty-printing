@@ -415,7 +415,7 @@ const IFF9MatchControlPage = () => {
 
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={saveAll}
+                                onClick={() => saveAll()}
                                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all font-semibold ${saved ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white border border-gray-600'}`}
                             >
                                 <Save size={18} /> {saved ? 'Saved!' : 'Save to DB'}
