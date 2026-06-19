@@ -145,19 +145,9 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
         [lineup]
     );
 
-    // Featured = the active match (falls back to the first one).
-    const featuredIndex = useMemo(() => {
-        const idx = matches.findIndex(m => m.is_active);
-        return idx >= 0 ? idx : 0;
-    }, [matches]);
-
-    // Ordered for display: featured first, then the rest in lineup order.
     const orderedMatches = useMemo(() => {
-        if (matches.length === 0) return [];
-        const featured = matches[featuredIndex];
-        const rest = matches.filter((_, i) => i !== featuredIndex);
-        return [featured, ...rest];
-    }, [matches, featuredIndex]);
+        return matches;
+    }, [matches]);
 
     // Use a derived key representing the lineup order to avoid re-triggering 
     // the staggered animation when just scores or names change.

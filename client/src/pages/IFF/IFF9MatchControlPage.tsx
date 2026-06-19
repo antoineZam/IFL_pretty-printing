@@ -202,17 +202,29 @@ const IFF9MatchControlPage = () => {
         setMatches(prev => {
             const target = index + dir;
             if (target < 0 || target >= prev.length) return prev;
-            const copy = [...prev];
-            [copy[index], copy[target]] = [copy[target], copy[index]];
-            return copy.map((m, i) => ({ ...m, match_order: i + 1 }));
+            
+            const newMatches = prev.map(m => ({ ...m }));
+            
+            // Swap their match numbers before swapping their positions in the array
+            const tempMatchNumber = newMatches[index].match_number;
+            newMatches[index].match_number = newMatches[target].match_number;
+            newMatches[target].match_number = tempMatchNumber;
+            
+            // Now swap the objects in the array
+            const temp = newMatches[index];
+            newMatches[index] = newMatches[target];
+            newMatches[target] = temp;
+            
+            // Re-assign match_order based on the new array index
+            return newMatches.map((m, i) => ({ ...m, match_order: i + 1 }));
         });
     };
 
-    const pushToOverlay = () => {
+    const pushToOverlay = useCallback(() => {
         pushLive();
         setPushed(true);
-        setTimeout(() => setPushed(false), 1500);
-    };
+        setTimeout(() => setPushed(false), 2000);
+    }, [pushLive]);
 
     // ---- Persistence ----
     const saveAll = async () => {
