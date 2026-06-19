@@ -271,11 +271,52 @@ const IFF9MatchControlPage = () => {
         }
     };
 
-    const newWeek = () => {
-        skipLiveRef.current = true;
-        setWeek({ ...emptyWeek });
-        setMatches([]);
-        setDeletedIds([]);
+    const newWeek = async () => {
+        try {
+            // Ask user if they want to carry over matches (duplicate) or start blank
+            const carryOver = window.confirm("Do you want to carry over the current matches to the new week? (Click OK to copy matches, Cancel to start blank)");
+            
+            const newWeekObj = { ...emptyWeek };
+            if (carryOver && week.name) {
+                newWeekObj.name = week.name;
+                newWeekObj.week_number = week.week_number ? week.week_number + 1 : null;
+            }
+
+            // Create a new week in the DB immediately to ensure it exists
+            const res = await fetch('/api/iff/iff-9/week', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newWeekObj),
+            });
+            const data = await res.json();
+            
+            if (data.week && data.week.id) {
+                const newWeekId = data.week.id;
+                skipLiveRef.current = true;
+                
+                // If carry over, save the copied matches immediately to the new week
+                if (carryOver && matches.length > 0) {
+                    for (const m of matches) {
+                        const body = JSON.stringify({ ...m, id: undefined, week_id: newWeekId });
+                        await fetch(`/api/iff/iff-9/week/${newWeekId}/match`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body,
+                        });
+                    }
+                }
+                
+                await loadWeeks();
+                await loadWeek(newWeekId);
+            }
+        } catch (err) {
+            console.error('Error creating new week:', err);
+            // Fallback to local state reset if DB fails
+            skipLiveRef.current = true;
+            setWeek({ ...emptyWeek });
+            setMatches([]);
+            setDeletedIds([]);
+        }
     };
 
     if (isLoading) {
