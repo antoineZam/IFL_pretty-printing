@@ -71,8 +71,17 @@ const IFF9MatchControlPage = () => {
         return () => { newSocket.disconnect(); };
     }, [key]);
 
+    const [isNewWeekModalOpen, setIsNewWeekModalOpen] = useState(false);
+
     useEffect(() => {
-        loadWeeks();
+        const init = async () => {
+            const data = await loadWeeks(true);
+            if (data && data.weeks && data.weeks.length > 0) {
+                // Auto-load the most recent week if it exists
+                await loadWeek(data.weeks[0].id);
+            }
+        };
+        init();
         loadPlayers();
     }, []);
 
@@ -95,12 +104,14 @@ const IFF9MatchControlPage = () => {
             if (res.ok) {
                 const data = await res.json();
                 setWeeks(data.weeks || []);
+                return data;
             }
         } catch (err) {
             console.error('Error loading IFF9 weeks:', err);
         } finally {
             if (showSpinner) setIsLoading(false);
         }
+        return null;
     };
 
     const loadWeek = async (id: number) => {
@@ -239,7 +250,7 @@ const IFF9MatchControlPage = () => {
         if (targetId) {
             await loadWeek(targetId);
         } else {
-            newWeek();
+            setIsNewWeekModalOpen(true);
         }
     };
 
@@ -290,11 +301,9 @@ const IFF9MatchControlPage = () => {
         }
     };
 
-    const newWeek = async () => {
+    const createNewWeek = async (carryOver: boolean) => {
+        setIsNewWeekModalOpen(false);
         try {
-            // Ask user if they want to carry over matches (duplicate) or start blank
-            const carryOver = window.confirm("Do you want to carry over the current matches to the new week? (Click OK to copy matches, Cancel to start blank)");
-            
             const newWeekObj = { ...emptyWeek };
             if (carryOver && week.name) {
                 newWeekObj.name = week.name;
@@ -348,6 +357,38 @@ const IFF9MatchControlPage = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-[#04110c] to-black text-white">
+            {/* Modal for New Week */}
+            {isNewWeekModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-2xl max-w-md w-full">
+                        <h2 className="text-xl font-bold text-white mb-4">Create New Week</h2>
+                        <p className="text-gray-400 mb-6 text-sm">
+                            Do you want to carry over the current matches to the new week, or start with a blank slate?
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => createNewWeek(true)}
+                                className="w-full py-2.5 bg-[#10b981] hover:bg-[#059669] text-white font-semibold rounded-xl transition-colors"
+                            >
+                                Copy Matches
+                            </button>
+                            <button
+                                onClick={() => createNewWeek(false)}
+                                className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-semibold rounded-xl border border-gray-700 transition-colors"
+                            >
+                                Start Blank
+                            </button>
+                            <button
+                                onClick={() => setIsNewWeekModalOpen(false)}
+                                className="w-full py-2.5 bg-transparent hover:bg-red-900/40 text-red-400 font-semibold rounded-xl transition-colors mt-2"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">

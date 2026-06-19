@@ -1023,7 +1023,7 @@ async function getIFF9Weeks() {
       FROM iff9_weeks w
       LEFT JOIN iff9_matches m ON w.id = m.week_id
       GROUP BY w.id
-      ORDER BY w.week_number ASC, w.created_at DESC
+      ORDER BY w.week_number DESC, w.created_at DESC
     `);
     return rows;
   } catch (error) {
