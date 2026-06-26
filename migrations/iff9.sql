@@ -21,11 +21,19 @@ CREATE TABLE `iff9_matches` (
     `match_number` INT NOT NULL, -- displayed as 'MATCH_X'
     `match_type` VARCHAR(20) NOT NULL DEFAULT 'challengers', -- 'masters' or 'challengers' (selects asset set)
     `round_name` VARCHAR(100) NULL, -- free-text round/stage label (e.g. 'MISTER')
+    
     `player_1_id` INT NULL,
+    `player_1_name` VARCHAR(100) NULL,
+    `player_1_country` VARCHAR(10) NULL,
+    `player_1_rank` INT NULL,
     `player_1_info` VARCHAR(255) NULL, -- accolades, e.g. '2X IFF CHAMPION / 3X FINALIST'
     `player_1_character` VARCHAR(100) NULL,
     `player_1_score` INT DEFAULT 0,
+    
     `player_2_id` INT NULL,
+    `player_2_name` VARCHAR(100) NULL,
+    `player_2_country` VARCHAR(10) NULL,
+    `player_2_rank` INT NULL,
     `player_2_info` VARCHAR(255) NULL,
     `player_2_character` VARCHAR(100) NULL,
     `player_2_score` INT DEFAULT 0,

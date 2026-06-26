@@ -1087,8 +1087,8 @@ async function getIFF9Matches(weekId) {
   try {
     const [matches] = await pool.execute(
       `SELECT m.*, 
-              p1.name as player_1_name, p1.country as player_1_country, p1.iff8_ranking as player_1_rank_raw,
-              p2.name as player_2_name, p2.country as player_2_country, p2.iff8_ranking as player_2_rank_raw
+              p1.name as db_p1_name, p1.country as db_p1_country, p1.iff8_ranking as db_p1_rank_raw,
+              p2.name as db_p2_name, p2.country as db_p2_country, p2.iff8_ranking as db_p2_rank_raw
        FROM iff9_matches m
        LEFT JOIN iff_players p1 ON m.player_1_id = p1.id
        LEFT JOIN iff_players p2 ON m.player_2_id = p2.id
@@ -1099,12 +1099,18 @@ async function getIFF9Matches(weekId) {
 
     // Map raw DB strings (like "#1") to ranks for the frontend if needed
     return matches.map(m => {
-      const p1RankMatch = m.player_1_rank_raw ? m.player_1_rank_raw.match(/#(\d+)/) : null;
-      const p2RankMatch = m.player_2_rank_raw ? m.player_2_rank_raw.match(/#(\d+)/) : null;
+      const p1RankMatch = m.db_p1_rank_raw ? m.db_p1_rank_raw.match(/#(\d+)/) : null;
+      const p2RankMatch = m.db_p2_rank_raw ? m.db_p2_rank_raw.match(/#(\d+)/) : null;
       return {
         ...m,
-        player_1_rank: p1RankMatch ? parseInt(p1RankMatch[1]) : null,
-        player_2_rank: p2RankMatch ? parseInt(p2RankMatch[1]) : null,
+        // Prefer manual overrides in iff9_matches if they exist, otherwise fall back to db profiles
+        player_1_name: m.player_1_name || m.db_p1_name,
+        player_1_country: m.player_1_country || m.db_p1_country,
+        player_1_rank: m.player_1_rank !== null ? m.player_1_rank : (p1RankMatch ? parseInt(p1RankMatch[1]) : null),
+        
+        player_2_name: m.player_2_name || m.db_p2_name,
+        player_2_country: m.player_2_country || m.db_p2_country,
+        player_2_rank: m.player_2_rank !== null ? m.player_2_rank : (p2RankMatch ? parseInt(p2RankMatch[1]) : null),
       };
     });
   } catch (error) {
@@ -1117,8 +1123,8 @@ async function saveIFF9Match(match) {
   try {
     const {
       id, week_id, match_order, match_number, match_type, round_name,
-      player_1_id, player_1_info, player_1_character, player_1_score,
-      player_2_id, player_2_info, player_2_character, player_2_score,
+      player_1_id, player_1_name, player_1_country, player_1_rank, player_1_info, player_1_character, player_1_score,
+      player_2_id, player_2_name, player_2_country, player_2_rank, player_2_info, player_2_character, player_2_score,
       win_score, is_complete, is_active
     } = match;
 
@@ -1126,13 +1132,13 @@ async function saveIFF9Match(match) {
       await pool.execute(
         `UPDATE iff9_matches
          SET match_order = ?, match_number = ?, match_type = ?, round_name = ?,
-             player_1_id = ?, player_1_info = ?, player_1_character = ?, player_1_score = ?,
-             player_2_id = ?, player_2_info = ?, player_2_character = ?, player_2_score = ?,
+             player_1_id = ?, player_1_name = ?, player_1_country = ?, player_1_rank = ?, player_1_info = ?, player_1_character = ?, player_1_score = ?,
+             player_2_id = ?, player_2_name = ?, player_2_country = ?, player_2_rank = ?, player_2_info = ?, player_2_character = ?, player_2_score = ?,
              win_score = ?, is_complete = ?, is_active = ?
          WHERE id = ?`,
         [match_order || 1, match_number || 1, match_type || 'challengers', round_name || null,
-         player_1_id || null, player_1_info || null, player_1_character || null, player_1_score || 0,
-         player_2_id || null, player_2_info || null, player_2_character || null, player_2_score || 0,
+         player_1_id || null, player_1_name || null, player_1_country || null, player_1_rank || null, player_1_info || null, player_1_character || null, player_1_score || 0,
+         player_2_id || null, player_2_name || null, player_2_country || null, player_2_rank || null, player_2_info || null, player_2_character || null, player_2_score || 0,
          win_score || 3, is_complete || false, is_active || false, id]
       );
       return { id, ...match };
@@ -1140,13 +1146,13 @@ async function saveIFF9Match(match) {
       const [result] = await pool.execute(
         `INSERT INTO iff9_matches
          (week_id, match_order, match_number, match_type, round_name,
-          player_1_id, player_1_info, player_1_character, player_1_score,
-          player_2_id, player_2_info, player_2_character, player_2_score,
+          player_1_id, player_1_name, player_1_country, player_1_rank, player_1_info, player_1_character, player_1_score,
+          player_2_id, player_2_name, player_2_country, player_2_rank, player_2_info, player_2_character, player_2_score,
           win_score, is_complete, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [week_id, match_order || 1, match_number || 1, match_type || 'challengers', round_name || null,
-         player_1_id || null, player_1_info || null, player_1_character || null, player_1_score || 0,
-         player_2_id || null, player_2_info || null, player_2_character || null, player_2_score || 0,
+         player_1_id || null, player_1_name || null, player_1_country || null, player_1_rank || null, player_1_info || null, player_1_character || null, player_1_score || 0,
+         player_2_id || null, player_2_name || null, player_2_country || null, player_2_rank || null, player_2_info || null, player_2_character || null, player_2_score || 0,
          win_score || 3, is_complete || false, is_active || false]
       );
       return { id: result.insertId, ...match };
