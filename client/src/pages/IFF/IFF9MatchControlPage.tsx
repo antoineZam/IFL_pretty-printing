@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
     ChevronLeft, Plus, Minus, Trash2, Save, Send, Eye, Image, PlayCircle, Tv,
-    ArrowUp, ArrowDown, Star, RotateCcw, Calendar
+    ArrowUp, ArrowDown, Star, RotateCcw, Calendar, ArrowLeftRight
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -233,6 +233,30 @@ const IFF9MatchControlPage = () => {
             // Re-assign match_order based on the new array index
             return newMatches.map((m, i) => ({ ...m, match_order: i + 1 }));
         });
+    };
+
+    const swapMatchPlayers = (index: number) => {
+        setMatches(prev => prev.map((m, i) => {
+            if (i !== index) return m;
+            return {
+                ...m,
+                player_1_id: m.player_2_id,
+                player_1_name: m.player_2_name,
+                player_1_info: m.player_2_info,
+                player_1_character: m.player_2_character,
+                player_1_score: m.player_2_score,
+                player_1_country: m.player_2_country,
+                player_1_rank: m.player_2_rank,
+                
+                player_2_id: m.player_1_id,
+                player_2_name: m.player_1_name,
+                player_2_info: m.player_1_info,
+                player_2_character: m.player_1_character,
+                player_2_score: m.player_1_score,
+                player_2_country: m.player_1_country,
+                player_2_rank: m.player_1_rank,
+            };
+        }));
     };
 
     const pushToOverlay = useCallback(() => {
@@ -547,6 +571,7 @@ const IFF9MatchControlPage = () => {
                                     onSetActive={() => setActiveMatch(index)}
                                     onAdjustScore={(slot, delta) => adjustScore(index, slot, delta)}
                                     onMove={(dir) => moveMatch(index, dir)}
+                                    onSwap={() => swapMatchPlayers(index)}
                                 />
                             ))}
                         </div>
@@ -669,9 +694,10 @@ interface MatchRowProps {
     onSetActive: () => void;
     onAdjustScore: (slot: 1 | 2, delta: number) => void;
     onMove: (dir: -1 | 1) => void;
+    onSwap: () => void;
 }
 
-const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActive, onAdjustScore, onMove }: MatchRowProps) => {
+const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActive, onAdjustScore, onMove, onSwap }: MatchRowProps) => {
     // When a DB player is chosen, store their ID and auto-fill remaining fields.
     const fillFromPlayer = (slot: 1 | 2, p: IFFPlayer) => {
         const accolades = p.iff_history || p.iff8_ranking || '';
@@ -733,6 +759,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5">
+                    <button onClick={onSwap} title="Swap Players" className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-[#34d399]"><ArrowLeftRight size={14} /></button>
                     <button onClick={() => onMove(-1)} disabled={index === 0} className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-30"><ArrowUp size={14} /></button>
                     <button onClick={() => onMove(1)} disabled={index === count - 1} className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-30"><ArrowDown size={14} /></button>
                     <button onClick={onDelete} className="p-1.5 rounded-lg bg-red-900/40 hover:bg-red-800/60 text-red-300"><Trash2 size={14} /></button>
