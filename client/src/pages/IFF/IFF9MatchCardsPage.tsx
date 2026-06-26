@@ -37,7 +37,7 @@ function matchCardFramePath(matchType: IFF9MatchType): string {
 }
 
 // A single vs-card row. The featured card is rendered larger.
-const MatchCard = ({ match, glitch, forceImageRefresh }: { match: IFF9Match; glitch: boolean; forceImageRefresh: number }) => {
+const MatchCard = ({ match, glitch }: { match: IFF9Match; glitch: boolean }) => {
     const cardFrameBg = matchCardFramePath(match.match_type);
 
     return (
@@ -49,7 +49,6 @@ const MatchCard = ({ match, glitch, forceImageRefresh }: { match: IFF9Match; gli
 
             {/* P1 Character - Full size absolute layer */}
             <img
-                key={`p1-${match.id}-${match.player_1_character}-${forceImageRefresh}`}
                 src={portraitPath(match, 1)}
                 alt={match.player_1_name}
                 className="absolute inset-0 w-full h-full object-contain z-[1] pointer-events-none"
@@ -58,7 +57,6 @@ const MatchCard = ({ match, glitch, forceImageRefresh }: { match: IFF9Match; gli
 
             {/* P2 Character - Full size absolute layer */}
             <img
-                key={`p2-${match.id}-${match.player_2_character}-${forceImageRefresh}`}
                 src={portraitPath(match, 2)}
                 alt={match.player_2_name}
                 className="absolute inset-0 w-full h-full object-contain z-[1] pointer-events-none"
@@ -103,7 +101,6 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
     const [lineup, setLineup] = useState<IFF9Lineup | null>(initialLineup);
     const [visibleCount, setVisibleCount] = useState(0);
     const [glitchIndex, setGlitchIndex] = useState<number | null>(null);
-    const [forceImageRefresh, setForceImageRefresh] = useState(0);
 
     // Transparent background (standalone mode only)
     useEffect(() => {
@@ -121,7 +118,6 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
         if (!propSocket) return;
         const handler = (data: IFF9Lineup) => {
             setLineup(data);
-            setForceImageRefresh(Date.now());
         };
         propSocket.on('iff9-lineup', handler);
         return () => { propSocket.off('iff9-lineup', handler); };
@@ -135,7 +131,6 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
         const socket: Socket = io({ auth: { token: key } });
         socket.on('iff9-lineup', (data: IFF9Lineup) => {
             setLineup(data);
-            setForceImageRefresh(Date.now());
         });
         return () => { socket.disconnect(); };
     }, [searchParams, embedded, propSocket]);
@@ -242,7 +237,7 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
                                     transition: 'opacity 0.18s ease-out',
                                 }}
                             >
-                                <MatchCard match={match} glitch={glitchIndex === i} forceImageRefresh={forceImageRefresh} />
+                                <MatchCard match={match} glitch={glitchIndex === i} />
                             </div>
                         );
                     })

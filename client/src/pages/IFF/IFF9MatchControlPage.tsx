@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
     ChevronLeft, Plus, Minus, Trash2, Save, Send, Eye, Image, PlayCircle, Tv,
@@ -157,12 +157,18 @@ const IFF9MatchControlPage = () => {
         if (am) socket.emit('iff9-match-update', buildMatchData(week, am));
     }, [socket, week, matches]);
 
+    // Throttle the live push so we don't spam the server on every keystroke
     useEffect(() => {
         if (skipLiveRef.current) {
             skipLiveRef.current = false;
             return;
         }
-        pushLive();
+        
+        const timeoutId = setTimeout(() => {
+            pushLive();
+        }, 150); // Small 150ms debounce helps massively with text inputs
+        
+        return () => clearTimeout(timeoutId);
     }, [week, matches, pushLive]);
 
     const updateDisplayMode = (mode: IFF9DisplayMode) => {
@@ -189,31 +195,31 @@ const IFF9MatchControlPage = () => {
         });
     };
 
-    const updateMatch = (index: number, updates: Partial<IFF9Match>) => {
+    const updateMatch = useCallback((index: number, updates: Partial<IFF9Match>) => {
         setMatches(prev => prev.map((m, i) => i === index ? { ...m, ...updates } : m));
-    };
+    }, []);
 
-    const deleteMatch = (index: number) => {
+    const deleteMatch = useCallback((index: number) => {
         setMatches(prev => {
             const target = prev[index];
             if (target?.id) setDeletedIds(d => [...d, target.id as number]);
             return prev.filter((_, i) => i !== index);
         });
-    };
+    }, []);
 
-    const setActiveMatch = (index: number) => {
+    const setActiveMatch = useCallback((index: number) => {
         setMatches(prev => prev.map((m, i) => ({ ...m, is_active: i === index })));
-    };
+    }, []);
 
-    const adjustScore = (index: number, slot: 1 | 2, delta: number) => {
+    const adjustScore = useCallback((index: number, slot: 1 | 2, delta: number) => {
         setMatches(prev => prev.map((m, i) => {
             if (i !== index) return m;
             const field = slot === 1 ? 'player_1_score' : 'player_2_score';
             return { ...m, [field]: Math.max(0, (m as any)[field] + delta) };
         }));
-    };
+    }, []);
 
-    const moveMatch = (index: number, dir: -1 | 1) => {
+    const moveMatch = useCallback((index: number, dir: -1 | 1) => {
         setMatches(prev => {
             const target = index + dir;
             if (target < 0 || target >= prev.length) return prev;
@@ -233,9 +239,9 @@ const IFF9MatchControlPage = () => {
             // Re-assign match_order based on the new array index
             return newMatches.map((m, i) => ({ ...m, match_order: i + 1 }));
         });
-    };
+    }, []);
 
-    const swapMatchPlayers = (index: number) => {
+    const swapMatchPlayers = useCallback((index: number) => {
         setMatches(prev => prev.map((m, i) => {
             if (i !== index) return m;
             return {
@@ -257,7 +263,7 @@ const IFF9MatchControlPage = () => {
                 player_2_rank: m.player_1_rank,
             };
         }));
-    };
+    }, []);
 
     const pushToOverlay = useCallback(() => {
         pushLive();
@@ -561,17 +567,17 @@ const IFF9MatchControlPage = () => {
                         <div className="space-y-3">
                             {matches.map((m, index) => (
                                 <MatchRow
-                                    key={m.id ?? `idx-${index}`}
+                                    key={m.id ?? `idx-${m.match_order}-${index}`}
                                     match={m}
                                     index={index}
                                     count={matches.length}
                                     players={players}
-                                    onUpdate={(u) => updateMatch(index, u)}
-                                    onDelete={() => deleteMatch(index)}
-                                    onSetActive={() => setActiveMatch(index)}
-                                    onAdjustScore={(slot, delta) => adjustScore(index, slot, delta)}
-                                    onMove={(dir) => moveMatch(index, dir)}
-                                    onSwap={() => swapMatchPlayers(index)}
+                                    onUpdate={updateMatch}
+                                    onDelete={deleteMatch}
+                                    onSetActive={setActiveMatch}
+                                    onAdjustScore={adjustScore}
+                                    onMove={moveMatch}
+                                    onSwap={swapMatchPlayers}
                                 />
                             ))}
                         </div>
@@ -689,15 +695,15 @@ interface MatchRowProps {
     index: number;
     count: number;
     players: IFFPlayer[];
-    onUpdate: (updates: Partial<IFF9Match>) => void;
-    onDelete: () => void;
-    onSetActive: () => void;
-    onAdjustScore: (slot: 1 | 2, delta: number) => void;
-    onMove: (dir: -1 | 1) => void;
-    onSwap: () => void;
+    onUpdate: (index: number, updates: Partial<IFF9Match>) => void;
+    onDelete: (index: number) => void;
+    onSetActive: (index: number) => void;
+    onAdjustScore: (index: number, slot: 1 | 2, delta: number) => void;
+    onMove: (index: number, dir: -1 | 1) => void;
+    onSwap: (index: number) => void;
 }
 
-const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActive, onAdjustScore, onMove, onSwap }: MatchRowProps) => {
+const MatchRow = React.memo(({ match, index, count, players, onUpdate, onDelete, onSetActive, onAdjustScore, onMove, onSwap }: MatchRowProps) => {
     // When a DB player is chosen, store their ID and auto-fill remaining fields.
     const fillFromPlayer = (slot: 1 | 2, p: IFFPlayer) => {
         const accolades = p.iff_history || p.iff8_ranking || '';
@@ -706,7 +712,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
         const rank = rankMatch ? parseInt(rankMatch[1]) : null;
         
         if (slot === 1) {
-            onUpdate({ 
+            onUpdate(index, { 
                 player_1_id: p.id,
                 player_1_name: p.name, 
                 player_1_character: p.character_name || '', 
@@ -715,7 +721,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                 player_1_rank: rank
             });
         } else {
-            onUpdate({ 
+            onUpdate(index, { 
                 player_2_id: p.id,
                 player_2_name: p.name, 
                 player_2_character: p.character_name || '', 
@@ -730,7 +736,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={onSetActive}
+                        onClick={() => onSetActive(index)}
                         title="Set as active / featured"
                         className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${match.is_active ? 'bg-[#10b981] text-black' : 'bg-gray-800 text-gray-500 border border-gray-700 hover:border-[#10b981]/50'}`}
                     >
@@ -741,7 +747,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         <input
                             type="number"
                             value={match.match_number}
-                            onChange={(e) => onUpdate({ match_number: parseInt(e.target.value) || 1 })}
+                            onChange={(e) => onUpdate(index, { match_number: parseInt(e.target.value) || 1 })}
                             className="w-16 px-2 py-1 bg-gray-800 border border-gray-700 rounded-lg text-center text-white"
                         />
                     </div>
@@ -750,7 +756,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         {(['masters', 'challengers', 'finalboss', 'qualifier'] as IFF9MatchType[]).map(t => (
                             <button
                                 key={t}
-                                onClick={() => onUpdate({ match_type: t })}
+                                onClick={() => onUpdate(index, { match_type: t })}
                                 className={`px-3 py-1 rounded-md text-xs font-medium uppercase tracking-wider transition-all ${match.match_type === t ? 'bg-[#10b981] text-black' : 'text-gray-400 hover:text-white'}`}
                             >
                                 {t === 'finalboss' ? 'boss' : t}
@@ -759,10 +765,10 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <button onClick={onSwap} title="Swap Players" className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-[#34d399]"><ArrowLeftRight size={14} /></button>
-                    <button onClick={() => onMove(-1)} disabled={index === 0} className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-30"><ArrowUp size={14} /></button>
-                    <button onClick={() => onMove(1)} disabled={index === count - 1} className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-30"><ArrowDown size={14} /></button>
-                    <button onClick={onDelete} className="p-1.5 rounded-lg bg-red-900/40 hover:bg-red-800/60 text-red-300"><Trash2 size={14} /></button>
+                    <button onClick={() => onSwap(index)} title="Swap Players" className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-[#34d399]"><ArrowLeftRight size={14} /></button>
+                    <button onClick={() => onMove(index, -1)} disabled={index === 0} className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-30"><ArrowUp size={14} /></button>
+                    <button onClick={() => onMove(index, 1)} disabled={index === count - 1} className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-30"><ArrowDown size={14} /></button>
+                    <button onClick={() => onDelete(index)} className="p-1.5 rounded-lg bg-red-900/40 hover:bg-red-800/60 text-red-300"><Trash2 size={14} /></button>
                 </div>
             </div>
 
@@ -773,12 +779,12 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         value={match.player_1_name || ''}
                         players={players}
                         placeholder="Player 1 name"
-                        onChangeText={(text) => onUpdate({ player_1_name: text, player_1_id: null })}
+                        onChangeText={(text) => onUpdate(index, { player_1_name: text, player_1_id: null })}
                         onSelectPlayer={(p) => fillFromPlayer(1, p)}
                     />
                     <textarea
                         value={match.player_1_info}
-                        onChange={(e) => onUpdate({ player_1_info: e.target.value })}
+                        onChange={(e) => onUpdate(index, { player_1_info: e.target.value })}
                         placeholder="Accolades (e.g. 2X IFF CHAMPION \n 3X FINALIST)"
                         rows={2}
                         className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none resize-y"
@@ -786,7 +792,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                     <div className="grid grid-cols-2 gap-2">
                         <input
                             type="text" value={match.player_1_country || ''}
-                            onChange={(e) => onUpdate({ player_1_country: e.target.value.toUpperCase().slice(0, 3) })}
+                            onChange={(e) => onUpdate(index, { player_1_country: e.target.value.toUpperCase().slice(0, 3) })}
                             placeholder="Country (3-letter)"
                             maxLength={3}
                             className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none uppercase"
@@ -795,7 +801,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                             type="number" value={match.player_1_rank === null ? '' : match.player_1_rank}
                             onChange={(e) => {
                                 const val = e.target.value ? parseInt(e.target.value) : null;
-                                onUpdate({ player_1_rank: val });
+                                onUpdate(index, { player_1_rank: val });
                             }}
                             placeholder="Rank #"
                             className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
@@ -804,13 +810,13 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                     <div className="flex items-center gap-2">
                         <CharacterAutocomplete
                             value={match.player_1_character}
-                            onChangeText={(text) => onUpdate({ player_1_character: text })}
+                            onChangeText={(text) => onUpdate(index, { player_1_character: text })}
                             placeholder="Character"
                         />
                         <div className="flex items-center gap-1">
-                            <button onClick={() => onAdjustScore(1, -1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Minus size={16} /></button>
+                            <button onClick={() => onAdjustScore(index, 1, -1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Minus size={16} /></button>
                             <span className="w-10 text-center text-2xl font-black text-white">{match.player_1_score}</span>
-                            <button onClick={() => onAdjustScore(1, 1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Plus size={16} /></button>
+                            <button onClick={() => onAdjustScore(index, 1, 1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Plus size={16} /></button>
                         </div>
                     </div>
                 </div>
@@ -821,12 +827,12 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         value={match.player_2_name || ''}
                         players={players}
                         placeholder="Player 2 name"
-                        onChangeText={(text) => onUpdate({ player_2_name: text, player_2_id: null })}
+                        onChangeText={(text) => onUpdate(index, { player_2_name: text, player_2_id: null })}
                         onSelectPlayer={(p) => fillFromPlayer(2, p)}
                     />
                     <textarea
                         value={match.player_2_info}
-                        onChange={(e) => onUpdate({ player_2_info: e.target.value })}
+                        onChange={(e) => onUpdate(index, { player_2_info: e.target.value })}
                         placeholder="Accolades (e.g. 2X IFF CHAMPION \n 7X FINALIST)"
                         rows={2}
                         className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none resize-y"
@@ -834,7 +840,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                     <div className="grid grid-cols-2 gap-2">
                         <input
                             type="text" value={match.player_2_country}
-                            onChange={(e) => onUpdate({ player_2_country: e.target.value.toUpperCase().slice(0, 3) })}
+                            onChange={(e) => onUpdate(index, { player_2_country: e.target.value.toUpperCase().slice(0, 3) })}
                             placeholder="Country (3-letter)"
                             maxLength={3}
                             className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none uppercase"
@@ -843,7 +849,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                             type="number" value={match.player_2_rank === null ? '' : match.player_2_rank}
                             onChange={(e) => {
                                 const val = e.target.value ? parseInt(e.target.value) : null;
-                                onUpdate({ player_2_rank: val });
+                                onUpdate(index, { player_2_rank: val });
                             }}
                             placeholder="Rank #"
                             className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
@@ -852,13 +858,13 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                     <div className="flex items-center gap-2">
                         <CharacterAutocomplete
                             value={match.player_2_character}
-                            onChangeText={(text) => onUpdate({ player_2_character: text })}
+                            onChangeText={(text) => onUpdate(index, { player_2_character: text })}
                             placeholder="Character"
                         />
                         <div className="flex items-center gap-1">
-                            <button onClick={() => onAdjustScore(2, -1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Minus size={16} /></button>
+                            <button onClick={() => onAdjustScore(index, 2, -1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Minus size={16} /></button>
                             <span className="w-10 text-center text-2xl font-black text-white">{match.player_2_score}</span>
-                            <button onClick={() => onAdjustScore(2, 1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Plus size={16} /></button>
+                            <button onClick={() => onAdjustScore(index, 2, 1)} className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center"><Plus size={16} /></button>
                         </div>
                     </div>
                 </div>
@@ -868,7 +874,7 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                 <input
                     type="text" value={match.round_name}
-                    onChange={(e) => onUpdate({ round_name: e.target.value })}
+                    onChange={(e) => onUpdate(index, { round_name: e.target.value })}
                     placeholder="Round / stage label (e.g. MISTER)"
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white text-sm focus:border-[#10b981] focus:outline-none"
                 />
@@ -876,17 +882,17 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                     <span className="text-xs text-gray-500 uppercase tracking-wider">First to</span>
                     <input
                         type="number" value={match.win_score}
-                        onChange={(e) => onUpdate({ win_score: parseInt(e.target.value) || 1 })}
+                        onChange={(e) => onUpdate(index, { win_score: parseInt(e.target.value) || 1 })}
                         className="w-20 px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white text-center focus:border-[#10b981] focus:outline-none"
                     />
                     <label className="flex items-center gap-2 ml-auto text-sm text-gray-400">
-                        <input type="checkbox" checked={match.is_complete} onChange={(e) => onUpdate({ is_complete: e.target.checked })} />
+                        <input type="checkbox" checked={match.is_complete} onChange={(e) => onUpdate(index, { is_complete: e.target.checked })} />
                         Complete
                     </label>
                 </div>
             </div>
         </div>
     );
-};
+});
 
 export default IFF9MatchControlPage;
