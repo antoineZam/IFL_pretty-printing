@@ -20,7 +20,6 @@ interface IFFPlayer {
     character_name?: string | null;
     iff_history?: string | null;
     iff8_ranking?: string | null;
-    country?: string | null;
 }
 
 function buildMatchData(week: IFF9Week, match: IFF9Match): IFF9MatchData {
@@ -274,7 +273,7 @@ const IFF9MatchControlPage = () => {
     const handleWeekChange = async (targetId: number | null) => {
         // Auto-save current progress before switching if it exists in DB
         if (week.id || matches.length > 0) {
-            await saveAll(true); // true means silent/background save
+            await saveAll(true, false); // true means silent, false means skip reloading current week
         }
         
         if (targetId) {
@@ -285,7 +284,7 @@ const IFF9MatchControlPage = () => {
     };
 
     // ---- Persistence ----
-    const saveAll = async (silent = false) => {
+    const saveAll = async (silent = false, reloadCurrent = true) => {
         try {
             // 1. Save week (create or update) to obtain an id.
             const weekRes = await fetch(
@@ -321,7 +320,9 @@ const IFF9MatchControlPage = () => {
 
             setDeletedIds([]);
             await loadWeeks(false);
-            await loadWeek(weekId);
+            if (reloadCurrent) {
+                await loadWeek(weekId);
+            }
             if (!silent) {
                 setSaved(true);
                 setTimeout(() => setSaved(false), 2000);
@@ -717,7 +718,6 @@ const MatchRow = React.memo(({ match, index, count, players, onUpdate, onDelete,
                 player_1_name: p.name, 
                 player_1_character: p.character_name || '', 
                 player_1_info: accolades,
-                player_1_country: p.country || '',
                 player_1_rank: rank
             });
         } else {
@@ -726,7 +726,6 @@ const MatchRow = React.memo(({ match, index, count, players, onUpdate, onDelete,
                 player_2_name: p.name, 
                 player_2_character: p.character_name || '', 
                 player_2_info: accolades,
-                player_2_country: p.country || '',
                 player_2_rank: rank
             });
         }
@@ -839,7 +838,7 @@ const MatchRow = React.memo(({ match, index, count, players, onUpdate, onDelete,
                     />
                     <div className="grid grid-cols-2 gap-2">
                         <input
-                            type="text" value={match.player_2_country}
+                            type="text" value={match.player_2_country || ''}
                             onChange={(e) => onUpdate(index, { player_2_country: e.target.value.toUpperCase().slice(0, 3) })}
                             placeholder="Country (3-letter)"
                             maxLength={3}

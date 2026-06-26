@@ -1086,9 +1086,9 @@ async function deleteIFF9Week(id) {
 async function getIFF9Matches(weekId) {
   try {
     const [matches] = await pool.execute(
-      `SELECT m.*, 
-              p1.name as db_p1_name, p1.country as db_p1_country, p1.iff8_ranking as db_p1_rank_raw,
-              p2.name as db_p2_name, p2.country as db_p2_country, p2.iff8_ranking as db_p2_rank_raw
+      `      SELECT m.*, 
+              p1.name as db_p1_name, p1.user_id as p1_uid, p1.iff8_ranking as db_p1_rank_raw,
+              p2.name as db_p2_name, p2.user_id as p2_uid, p2.iff8_ranking as db_p2_rank_raw
        FROM iff9_matches m
        LEFT JOIN iff_players p1 ON m.player_1_id = p1.id
        LEFT JOIN iff_players p2 ON m.player_2_id = p2.id
@@ -1105,11 +1105,11 @@ async function getIFF9Matches(weekId) {
         ...m,
         // Prefer manual overrides in iff9_matches if they exist, otherwise fall back to db profiles
         player_1_name: m.player_1_name || m.db_p1_name,
-        player_1_country: m.player_1_country || m.db_p1_country,
+        player_1_country: m.player_1_country,
         player_1_rank: m.player_1_rank !== null ? m.player_1_rank : (p1RankMatch ? parseInt(p1RankMatch[1]) : null),
         
         player_2_name: m.player_2_name || m.db_p2_name,
-        player_2_country: m.player_2_country || m.db_p2_country,
+        player_2_country: m.player_2_country,
         player_2_rank: m.player_2_rank !== null ? m.player_2_rank : (p2RankMatch ? parseInt(p2RankMatch[1]) : null),
       };
     });
