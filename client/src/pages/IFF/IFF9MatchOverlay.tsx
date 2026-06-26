@@ -95,7 +95,7 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
                 {/* Player 1 name*/}
                 <div className="absolute w-full h-[100px] z-10 flex items-center">
                     <div className="absolute top-[24px] left-[280px] flex items-center justify-start min-w-[200px]">
-                        <span className="text-[26px] text-[#CEDAC6] whitespace-nowrap uppercase tracking-widest">
+                        <span className="text-[26px] text-[#CEDAC6] whitespace-nowrap uppercase tracking-widest leading-none mt-1">
                             {data.player_1_name}
                         </span>
                     </div>
@@ -120,7 +120,7 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
                 {/* Player 2 name - right half */}
                 <div className="absolute w-full h-[100px] z-10 flex items-center">
                     <div className="absolute top-[24px] right-[280px] flex items-center justify-end min-w-[200px]">
-                        <span className="text-[26px] text-[#CEDAC6] whitespace-nowrap uppercase tracking-widest">
+                        <span className="text-[26px] text-[#CEDAC6] whitespace-nowrap uppercase tracking-widest leading-none mt-1">
                             {data.player_2_name}
                         </span>
                     </div>

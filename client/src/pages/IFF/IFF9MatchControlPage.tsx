@@ -590,7 +590,7 @@ const IFF9MatchControlPage = () => {
                         <div className="bg-black/80 rounded-xl p-6 border border-gray-700/50 flex items-center justify-between">
                             <div className="text-left flex-1 min-w-0">
                                 <span className="text-2xl font-bold text-white truncate block">{activeMatch.player_1_name}</span>
-                                <span className="text-xs text-gray-500 uppercase">{activeMatch.player_1_info}</span>
+                                <span className="text-xs text-gray-500 uppercase whitespace-pre-wrap leading-tight">{activeMatch.player_1_info}</span>
                             </div>
                             <div className="flex items-center gap-6 px-8">
                                 <span className="text-5xl font-black text-white">{activeMatch.player_1_score}</span>
@@ -603,7 +603,7 @@ const IFF9MatchControlPage = () => {
                             </div>
                             <div className="text-right flex-1 min-w-0">
                                 <span className="text-2xl font-bold text-white truncate block">{activeMatch.player_2_name}</span>
-                                <span className="text-xs text-gray-500 uppercase">{activeMatch.player_2_info}</span>
+                                <span className="text-xs text-gray-500 uppercase whitespace-pre-wrap leading-tight">{activeMatch.player_2_info}</span>
                             </div>
                         </div>
                     </div>
@@ -776,11 +776,12 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         onChangeText={(text) => onUpdate({ player_1_name: text, player_1_id: null })}
                         onSelectPlayer={(p) => fillFromPlayer(1, p)}
                     />
-                    <input
-                        type="text" value={match.player_1_info}
+                    <textarea
+                        value={match.player_1_info}
                         onChange={(e) => onUpdate({ player_1_info: e.target.value })}
-                        placeholder="Accolades (e.g. 2X IFF CHAMPION / 3X FINALIST)"
-                        className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
+                        placeholder="Accolades (e.g. 2X IFF CHAMPION \n 3X FINALIST)"
+                        rows={2}
+                        className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none resize-y"
                     />
                     <div className="grid grid-cols-2 gap-2">
                         <input
@@ -823,11 +824,12 @@ const MatchRow = ({ match, index, count, players, onUpdate, onDelete, onSetActiv
                         onChangeText={(text) => onUpdate({ player_2_name: text, player_2_id: null })}
                         onSelectPlayer={(p) => fillFromPlayer(2, p)}
                     />
-                    <input
-                        type="text" value={match.player_2_info}
+                    <textarea
+                        value={match.player_2_info}
                         onChange={(e) => onUpdate({ player_2_info: e.target.value })}
-                        placeholder="Accolades (e.g. 2X IFF CHAMPION / 7X FINALIST)"
-                        className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none"
+                        placeholder="Accolades (e.g. 2X IFF CHAMPION \n 7X FINALIST)"
+                        rows={2}
+                        className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-[#10b981] focus:outline-none resize-y"
                     />
                     <div className="grid grid-cols-2 gap-2">
                         <input

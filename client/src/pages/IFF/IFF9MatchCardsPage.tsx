@@ -71,8 +71,8 @@ const MatchCard = ({ match, glitch, forceImageRefresh }: { match: IFF9Match; gli
                 <div className="flex-1 flex items-center justify-start min-w-0 pr-6">
                     <div className="flex flex-col justify-center">
                         <h3 className="absolute left-[50px] top-[97px] text-[32px] font-d-din-bold text-[#D8D7D5] uppercase truncate transform scale-y-150">{match.player_1_name}</h3>
-                            <p className="absolute left-[50px] top-[147px] text-[14px] text-[#7C9A79] uppercase tracking-wider truncate transform scale-y-150 font-d-din">{match.player_1_info}</p>
-                        </div>
+                        <p className="absolute left-[50px] top-[147px] text-[14px] text-[#7C9A79] uppercase tracking-wider transform scale-y-150 font-d-din whitespace-pre-wrap leading-none">{match.player_1_info}</p>
+                    </div>
                 </div>
 
                 {/* Center: match number, score, round */}
@@ -90,7 +90,7 @@ const MatchCard = ({ match, glitch, forceImageRefresh }: { match: IFF9Match; gli
                 <div className="flex-1 flex items-center justify-end min-w-0 pl-6 text-right">
                     <div className="flex flex-col justify-center">
                         <h3 className="absolute right-[50px] top-[97px] text-[32px] font-d-din-bold text-[#D8D7D5] uppercase truncate transform scale-y-150">{match.player_2_name}</h3>
-                        <p className="absolute right-[50px] top-[147px] text-[14px] text-[#7C9A79] uppercase tracking-wider truncate transform scale-y-150 font-d-din">{match.player_2_info}</p>
+                        <p className="absolute right-[50px] top-[147px] text-[14px] text-[#7C9A79] uppercase tracking-wider transform scale-y-150 font-d-din whitespace-pre-wrap leading-none text-right">{match.player_2_info}</p>
                     </div>
                 </div>
             </div>
