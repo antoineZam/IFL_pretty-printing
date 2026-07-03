@@ -17,6 +17,46 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
     const [searchParams] = useSearchParams();
     const [data, setData] = useState<IFF9MatchData | null>(initialData);
     const [error, setError] = useState<string | null>(null);
+    const [glitch, setGlitch] = useState<boolean>(false);
+
+    // 1. Trigger glitch when player names change
+    useEffect(() => {
+        if (!data) return;
+        setGlitch(true);
+        const timer = setTimeout(() => setGlitch(false), 400);
+        return () => clearTimeout(timer);
+    }, [data?.player_1_name, data?.player_2_name]);
+
+    // 2. Continuous random glitch loop (every 8-12 seconds)
+    useEffect(() => {
+        let startTimer: ReturnType<typeof setTimeout>;
+        let endTimer: ReturnType<typeof setTimeout>;
+
+        const scheduleNextGlitch = () => {
+            // Pick a random delay between 8000ms (8s) and 12000ms (12s)
+            const randomDelay = Math.random() * (12000 - 8000) + 8000;
+            
+            startTimer = setTimeout(() => {
+                setGlitch(true);
+                
+                // Turn off the glitch after 400ms and schedule the next one
+                endTimer = setTimeout(() => {
+                    setGlitch(false);
+                    scheduleNextGlitch(); 
+                }, 400);
+                
+            }, randomDelay);
+        };
+
+        // Start the loop
+        scheduleNextGlitch();
+
+        // Cleanup on unmount
+        return () => {
+            clearTimeout(startTimer);
+            clearTimeout(endTimer);
+        };
+    }, []);
 
     // Transparent background (standalone mode only)
     useEffect(() => {
@@ -92,9 +132,9 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
                     {data.player_1_country || ''}
                 </div>
 
-                {/* Player 1 name*/}
+                {/* Player 1 name */}
                 <div className="absolute w-full h-[100px] z-10 flex items-center">
-                    <div className="absolute top-[24px] left-[280px] flex items-center justify-start min-w-[200px]">
+                    <div className={`absolute top-[27px] left-[280px] flex items-center justify-start min-w-[200px] ${glitch ? 'click-glitch' : ''}`}>
                         <span className="text-[26px] text-[#CEDAC6] whitespace-nowrap uppercase tracking-widest leading-none mt-1">
                             {data.player_1_name}
                         </span>
@@ -119,7 +159,7 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
 
                 {/* Player 2 name - right half */}
                 <div className="absolute w-full h-[100px] z-10 flex items-center">
-                    <div className="absolute top-[24px] right-[280px] flex items-center justify-end min-w-[200px]">
+                    <div className={`absolute top-[27px] right-[280px] flex items-center justify-end min-w-[200px] ${glitch ? 'click-glitch' : ''}`}>
                         <span className="text-[26px] text-[#CEDAC6] whitespace-nowrap uppercase tracking-widest leading-none mt-1">
                             {data.player_2_name}
                         </span>
@@ -127,7 +167,7 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
                 </div>
 
                 {/* Player 2 Rank */}
-                <div className="absolute top-[26px] right-[485px] text-[24px] text-[#F0EEED] opacity-65 flex items-baseline justify-end z-10 tracking-widest uppercase">
+                <div className="absolute top-[26px] right-[475px] text-[24px] text-[#F0EEED] opacity-65 flex items-baseline justify-end z-10 tracking-widest uppercase">
                     <span>RANK #</span>
                     <span className={`text-[#F0EEED] ${data.player_2_rank ? '' : 'opacity-65'}`}>{data.player_2_rank ?? 'N/A'}</span>
                 </div>
