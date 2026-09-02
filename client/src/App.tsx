@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import IFFAccessGuard from './components/IFFAccessGuard';
-import TDEULayout from './components/TDEULayout';
 import ReturnHomeButton from './components/ReturnHomeButton';
 import GlitchTransition from './components/GlitchTransition';
 import IFFCyberBackground from './components/IFFCyberBackground';
@@ -9,6 +8,11 @@ import IFFCyberBackground from './components/IFFCyberBackground';
 // Eager load only critical pages for initial render
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
+
+// TDEULayout pulls in three.js / @react-three (~900 kB). Lazy-loading it keeps
+// that chunk off the critical path of every other route -- most importantly the
+// OBS overlay pages, which previously downloaded and parsed it for nothing.
+const TDEULayout = lazy(() => import('./components/TDEULayout'));
 
 // Lazy load all other pages for code splitting
 const TDEUDashboardPage = lazy(() => import('./pages/TDEU/TDEUDashboardPage'));

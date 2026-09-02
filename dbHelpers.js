@@ -1,32 +1,109 @@
 const pool = require('./db');
 
-// Helper function to get or create a current tournament
-async function getOrCreateCurrentTournament() {
-  try {
-    // Try to get a tournament with status 'active'
-    let [rows] = await pool.execute(
-      'SELECT * FROM tournaments WHERE status = ? ORDER BY tournament_id DESC LIMIT 1',
-      ['active']
+// ============================================================
+// HOT-PATH CACHES
+//
+// The live scoreboard writes on every single score button press. Resolving the
+// active tournament, both player rows and the whole player history from MySQL
+// on each of those presses cost ~10 sequential round-trips -- painful over the
+// SSH tunnel this deployment uses. Everything below is derived from writes this
+// process performs itself, so it can be kept in memory and invalidated
+// explicitly whenever something outside that path touches the tables.
+// ============================================================
+
+let currentTournamentPromise = null;   // Promise<tournamentId>
+const userCache = new Map();           // normalized username -> { id, sponsor, country }
+const userInFlight = new Map();        // normalized username -> in-flight getOrCreateUser promise
+let playerHistoryCache = null;         // materialized /api/history payload, or null when stale
+let currentMatchIdPromise = null;      // Promise<matchId> for the active tournament's latest match
+let cacheEpoch = 0;                    // bumped on invalidation; in-flight reads check it before caching
+
+/** Drops every cached player/user row. Call after any write that bypasses getOrCreateUser. */
+function invalidatePlayerCaches() {
+  cacheEpoch++;
+  userCache.clear();
+  playerHistoryCache = null;
+}
+
+/** Drops the cached active tournament and its current match. */
+function invalidateTournamentCache() {
+  currentTournamentPromise = null;
+  currentMatchIdPromise = null;
+}
+
+function normalizeUserKey(username) {
+  return (username || '').trim().toLowerCase();
+}
+
+async function resolveCurrentTournament() {
+  // Try to get a tournament with status 'active'
+  let [rows] = await pool.execute(
+    'SELECT tournament_id FROM tournaments WHERE status = ? ORDER BY tournament_id DESC LIMIT 1',
+    ['active']
+  );
+
+  if (rows.length === 0) {
+    // Create a new active tournament
+    const [result] = await pool.execute(
+      'INSERT INTO tournaments (name, season, status, game_version) VALUES (?, ?, ?, ?)',
+      ['Current Tournament', 'Current Season', 'active', 'Tekken 8']
     );
-
-    if (rows.length === 0) {
-      // Create a new active tournament
-      const [result] = await pool.execute(
-        'INSERT INTO tournaments (name, season, status, game_version) VALUES (?, ?, ?, ?)',
-        ['Current Tournament', 'Current Season', 'active', 'Tekken 8']
-      );
-      return result.insertId;
-    }
-
-    return rows[0].tournament_id;
-  } catch (error) {
-    console.error('Error getting/creating current tournament:', error);
-    throw error;
+    return result.insertId;
   }
+
+  return rows[0].tournament_id;
+}
+
+// Helper function to get or create a current tournament.
+// The active tournament does not change while the server is running, so the
+// lookup is resolved once and shared by every subsequent caller.
+function getOrCreateCurrentTournament() {
+  if (!currentTournamentPromise) {
+    currentTournamentPromise = resolveCurrentTournament().catch(error => {
+      currentTournamentPromise = null; // never cache a failure
+      console.error('Error getting/creating current tournament:', error);
+      throw error;
+    });
+  }
+  return currentTournamentPromise;
 }
 
 // Helper function to get or create a user
-async function getOrCreateUser(displayName, team = null, flag = null) {
+//
+// The `username LIKE '% | name'` branch below cannot use an index, so every call
+// is a full scan of `users`. Once a name has been resolved its row is cached and
+// repeat calls -- which is what a live match is, the same two players over and
+// over -- cost nothing unless the sponsor or flag actually changed.
+function getOrCreateUser(displayName, team = null, flag = null) {
+  const parsedName = (displayName && displayName.includes(' | '))
+    ? displayName.split(' | ').slice(1).join(' | ')
+    : displayName;
+  const cacheKey = normalizeUserKey(parsedName);
+
+  const cached = userCache.get(cacheKey);
+  const sponsorFromName = (displayName && displayName.includes(' | ')) ? displayName.split(' | ')[0] : (team || null);
+  if (cached &&
+      !(sponsorFromName && sponsorFromName !== cached.sponsor) &&
+      !(flag && flag !== cached.country)) {
+    return Promise.resolve(cached.id);
+  }
+
+  // Callers now resolve both players concurrently; without this, two lookups for
+  // the same unknown name would race and insert the player twice.
+  const pending = userInFlight.get(cacheKey);
+  if (pending) return pending;
+
+  const promise = resolveUser(displayName, team, flag)
+    .finally(() => { userInFlight.delete(cacheKey); });
+  userInFlight.set(cacheKey, promise);
+  return promise;
+}
+
+async function resolveUser(displayName, team = null, flag = null) {
+  // A concurrent sync or delete can invalidate the caches while this read is in
+  // flight; anything resolved before that must not be written back.
+  const epoch = cacheEpoch;
+  const remember = (key, entry) => { if (epoch === cacheEpoch) userCache.set(key, entry); };
   try {
     // Parse displayName to extract sponsor and actual username
     // Format: "SPONSOR | PlayerName" or just "PlayerName"
@@ -38,13 +115,31 @@ async function getOrCreateUser(displayName, team = null, flag = null) {
       sponsor = parts[0];
       username = parts.slice(1).join(' | ');
     }
-    
+
+    const cacheKey = normalizeUserKey(username);
+    const cached = userCache.get(cacheKey);
+    if (cached) {
+      const sponsorChanged = sponsor && sponsor !== cached.sponsor;
+      const flagChanged    = flag    && flag    !== cached.country;
+      if (!sponsorChanged && !flagChanged) return cached.id;
+
+      const newSponsor = sponsor || cached.sponsor;
+      const newFlag    = flag    || cached.country;
+      await pool.execute(
+        'UPDATE users SET username = ?, sponsor = ?, country = ? WHERE user_id = ?',
+        [username, newSponsor, newFlag, cached.id]
+      );
+      remember(cacheKey, { id: cached.id, sponsor: newSponsor, country: newFlag });
+      playerHistoryCache = null;
+      return cached.id;
+    }
+
     // Search by multiple possible formats to avoid duplicates:
     // 1. Exact username match
     // 2. The full displayName (old format like "SPONSOR | Name")
     // 3. Any username ending with the player name after " | "
     let [rows] = await pool.execute(
-      `SELECT * FROM users 
+      `SELECT user_id, username, sponsor, country FROM users 
        WHERE username = ? 
        OR username = ?
        OR username LIKE ?`,
@@ -57,6 +152,8 @@ async function getOrCreateUser(displayName, team = null, flag = null) {
         'INSERT INTO users (username, sponsor, country) VALUES (?, ?, ?)',
         [username, sponsor, flag || null]
       );
+      remember(cacheKey, { id: result.insertId, sponsor: sponsor, country: flag || null });
+      playerHistoryCache = null;
       return result.insertId;
     }
 
@@ -72,8 +169,10 @@ async function getOrCreateUser(displayName, team = null, flag = null) {
         'UPDATE users SET username = ?, sponsor = ?, country = ? WHERE user_id = ?',
         [username, newSponsor, newFlag, existingUser.user_id]
       );
+      playerHistoryCache = null;
     }
 
+    remember(cacheKey, { id: existingUser.user_id, sponsor: newSponsor, country: newFlag });
     return existingUser.user_id;
   } catch (error) {
     console.error('Error getting/creating user:', error);
@@ -139,37 +238,55 @@ async function loadIFLData() {
   }
 }
 
+async function resolveCurrentMatchId(tournamentId) {
+  const [existingMatches] = await pool.execute(
+    'SELECT match_id FROM matches WHERE tournament_id = ? ORDER BY match_id DESC LIMIT 1',
+    [tournamentId]
+  );
+  return existingMatches.length > 0 ? existingMatches[0].match_id : null;
+}
+
+/** Persists the live scoreboard. Returns the resolved player ids. */
 async function saveIFLData(data) {
   try {
     const tournamentId = await getOrCreateCurrentTournament();
     
-    // Get or create players
-    const p1Id = await getOrCreateUser(data.p1Name, data.p1Team, data.p1Flag);
-    const p2Id = await getOrCreateUser(data.p2Name, data.p2Team, data.p2Flag);
+    // Get or create players -- independent lookups, so resolve them together.
+    const [p1Id, p2Id] = await Promise.all([
+      getOrCreateUser(data.p1Name, data.p1Team, data.p1Flag),
+      getOrCreateUser(data.p2Name, data.p2Team, data.p2Flag),
+    ]);
 
-    // Check if there's an existing current match
-    const [existingMatches] = await pool.execute(
-      'SELECT match_id FROM matches WHERE tournament_id = ? ORDER BY match_id DESC LIMIT 1',
-      [tournamentId]
-    );
+    // Check if there's an existing current match. The row this resolves to only
+    // changes when this process inserts one, so the id is remembered.
+    if (!currentMatchIdPromise) {
+      currentMatchIdPromise = resolveCurrentMatchId(tournamentId).catch(error => {
+        currentMatchIdPromise = null;
+        throw error;
+      });
+    }
+    let matchId = await currentMatchIdPromise;
 
-    if (existingMatches.length > 0) {
+    if (matchId != null) {
       // Update existing match
       await pool.execute(
         `UPDATE matches 
          SET player1_id = ?, player2_id = ?, score_p1 = ?, score_p2 = ?, 
              round_name = ?, match_time = NOW()
          WHERE match_id = ?`,
-        [p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1', existingMatches[0].match_id]
+        [p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1', matchId]
       );
     } else {
       // Create new match
-      await pool.execute(
+      const [result] = await pool.execute(
         `INSERT INTO matches (tournament_id, player1_id, player2_id, score_p1, score_p2, round_name, match_time)
          VALUES (?, ?, ?, ?, ?, ?, NOW())`,
         [tournamentId, p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1']
       );
+      currentMatchIdPromise = Promise.resolve(result.insertId);
     }
+
+    return { p1Id, p2Id };
   } catch (error) {
     console.error('Error saving IFL data:', error);
     throw error;
@@ -177,12 +294,19 @@ async function saveIFLData(data) {
 }
 
 // Player History Functions
+//
+// The history is the full `users` table, re-sent to every connected client
+// (overlays included) whenever it changes. Re-reading and re-serializing it on
+// each scoreboard write was the single largest cost in that path, so the
+// materialized payload is cached and rebuilt only after a write invalidates it.
 async function loadPlayerHistory() {
+  if (playerHistoryCache) return playerHistoryCache;
+  const epoch = cacheEpoch;
   try {
     const [rows] = await pool.execute(
       'SELECT username, sponsor, country FROM users ORDER BY username'
     );
-    return rows.map(row => {
+    const history = rows.map(row => {
       // Build display name with sponsor prefix for overlay controllers
       const username = row.username || '';
       const sponsor = row.sponsor || '';
@@ -195,19 +319,27 @@ async function loadPlayerHistory() {
         team: sponsor // Sponsor/team from dedicated column
       };
     });
+    if (epoch === cacheEpoch) playerHistoryCache = history;
+    return history;
   } catch (error) {
     console.error('Error loading player history:', error);
     return [];
   }
 }
 
+/** True when the last savePlayerHistory/getOrCreateUser call actually changed a row. */
+function isPlayerHistoryStale() {
+  return playerHistoryCache === null;
+}
+
 async function savePlayerHistory(players) {
   try {
-    for (const player of players) {
-      if (player.name) {
-        await getOrCreateUser(player.name, player.team, player.flag);
-      }
-    }
+    // Independent upserts -- no reason to serialize them.
+    await Promise.all(
+      players
+        .filter(player => player.name)
+        .map(player => getOrCreateUser(player.name, player.team, player.flag))
+    );
   } catch (error) {
     console.error('Error saving player history:', error);
     throw error;
@@ -849,14 +981,26 @@ async function getLnWTournamentRankings(tournamentId) {
 async function updateTournamentPlacements(tournamentId, placements) {
   try {
     // placements is an array of { team_id, placement }
-    for (const { team_id, placement } of placements) {
-      await pool.execute(
-        `UPDATE iff_lnw_tournament_teams 
-         SET placement = ? 
-         WHERE tournament_id = ? AND team_id = ?`,
-        [placement, tournamentId, team_id]
-      );
+    // Collapsed into a single CASE update so a full bracket's placements cost one
+    // round-trip instead of one per team.
+    // Last entry wins on a duplicate team_id, matching the old per-row loop.
+    const deduped = new Map();
+    for (const p of placements || []) {
+      if (p && p.team_id != null) deduped.set(p.team_id, p.placement);
     }
+    const rows = [...deduped].map(([team_id, placement]) => ({ team_id, placement }));
+    if (rows.length === 0) return true;
+
+    const cases    = rows.map(() => 'WHEN ? THEN ?').join(' ');
+    const caseArgs = rows.flatMap(({ team_id, placement }) => [team_id, placement]);
+    const teamIds  = rows.map(r => r.team_id);
+
+    await pool.query(
+      `UPDATE iff_lnw_tournament_teams
+       SET placement = CASE team_id ${cases} END
+       WHERE tournament_id = ? AND team_id IN (${teamIds.map(() => '?').join(', ')})`,
+      [...caseArgs, tournamentId, ...teamIds]
+    );
     return true;
   } catch (error) {
     console.error('Error updating tournament placements:', error);
@@ -1016,6 +1160,11 @@ async function removeTeamFromGroup(tournamentId, teamId) {
 
 module.exports = {
   loadIFLData,
+  // Cache control -- call after any write that touches users/tournaments outside
+  // of getOrCreateUser / saveIFLData (start.gg sync, manual edits, deletes).
+  invalidatePlayerCaches,
+  invalidateTournamentCache,
+  isPlayerHistoryStale,
   saveIFLData,
   loadPlayerHistory,
   savePlayerHistory,

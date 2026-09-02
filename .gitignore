@@ -1,3 +1,6 @@
 node_modules
 .env
-client/dist/assets/*
+
+# Build output -- regenerate with `npm run build --prefix client`.
+# public/source is no longer copied here (see copyPublicDir in vite.config.ts).
+client/dist/

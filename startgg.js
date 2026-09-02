@@ -11,12 +11,70 @@ if (!STARTGG_API_KEY) {
   console.warn('Get your API key from: https://developer.start.gg/');
 }
 
-// GraphQL query helper
-async function queryStartGG(query, variables = {}) {
-  if (!STARTGG_API_KEY) {
-    throw new Error('STARTGG_API_KEY is not configured');
-  }
+// ============================================================
+// RESPONSE CACHE
+//
+// Every start.gg call is a network round-trip to a rate-limited third party,
+// and the Top 8 overlay re-polls the same bracket every 20s while a control
+// page is usually polling it too. Two layers sit in front of the API:
+//
+//   * in-flight coalescing -- identical concurrent requests share one HTTP
+//     call. No staleness whatsoever.
+//   * a short TTL cache, sized per data type: seconds for live scores,
+//     minutes for structural data (phase layout, tournament listings) that
+//     does not change during a broadcast.
+// ============================================================
 
+const TTL = {
+  LIVE:       5 * 1000,        // bracket sets / standings mid-tournament
+  STRUCTURE: 10 * 60 * 1000,   // phase groups, event layout
+  LISTING:    5 * 60 * 1000,   // league + tournament listings
+};
+
+const responseCache = new Map();  // key -> { value, expiresAt }
+const inFlight      = new Map();  // key -> Promise
+
+function withCache(key, ttlMs, producer) {
+  const hit = responseCache.get(key);
+  if (hit && hit.expiresAt > Date.now()) return Promise.resolve(hit.value);
+
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+
+  const promise = Promise.resolve()
+    .then(producer)
+    .then(value => {
+      responseCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+      return value;
+    })
+    .finally(() => { inFlight.delete(key); });
+
+  inFlight.set(key, promise);
+  return promise;
+}
+
+/** Drops every cached start.gg response. Called after a sync writes new data. */
+function clearCache() {
+  responseCache.clear();
+}
+
+// GraphQL query helper
+function queryStartGG(query, variables = {}) {
+  if (!STARTGG_API_KEY) {
+    return Promise.reject(new Error('STARTGG_API_KEY is not configured'));
+  }
+  // Coalesce identical concurrent queries onto a single request.
+  const key = `gql:${query}:${JSON.stringify(variables)}`;
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+
+  const promise = executeStartGGQuery(query, variables)
+    .finally(() => { inFlight.delete(key); });
+  inFlight.set(key, promise);
+  return promise;
+}
+
+async function executeStartGGQuery(query, variables) {
   try {
     const response = await axios.post(
       STARTGG_API_URL,
@@ -152,33 +210,41 @@ async function searchTournaments(searchTerm, perPage = 50) {
 
 // Search for Iron Fist League Season 2 tournaments specifically
 // ONLY returns tournaments where slug starts with 'iron-fist-league-2'
-async function searchIronFistLeagueTournaments(maxResults = 50) {
+function searchIronFistLeagueTournaments(maxResults = 50) {
+  return withCache(`ifl-search:${maxResults}`, TTL.LISTING, () =>
+    searchIronFistLeagueTournamentsUncached(maxResults));
+}
+
+async function searchIronFistLeagueTournamentsUncached(maxResults = 50) {
   const allTournaments = [];
   const seenIds = new Set();
 
-  // Search with multiple terms to find all potential matches
+  // Search with multiple terms to find all potential matches.
+  // The three searches are independent, so they run together rather than
+  // stacking three sequential round-trips.
   const searchTerms = ['Iron Fist League', 'IFL', 'iron fist'];
-  
-  for (const term of searchTerms) {
-    try {
-      const data = await queryStartGG(queries.search.tournamentsByName, { term });
-      
-      if (data && data.tournaments && data.tournaments.nodes) {
-        for (const t of data.tournaments.nodes) {
-          // STRICT FILTER: slug MUST start with 'iron-fist-league-2' (Season 2 tournaments)
-          const slugLower = t.slug ? t.slug.toLowerCase() : '';
-          const slugMatch = slugLower.startsWith(`tournament/${IFL_TOURNAMENT_BASE}`) ||
-                           slugLower.startsWith(IFL_TOURNAMENT_BASE) ||
-                           slugLower.includes(`/${IFL_TOURNAMENT_BASE}`);
-          
-          if (slugMatch && !seenIds.has(t.id)) {
-            seenIds.add(t.id);
-            allTournaments.push(t);
-          }
-        }
+
+  const responses = await Promise.all(searchTerms.map(term =>
+    queryStartGG(queries.search.tournamentsByName, { term })
+      .catch(e => {
+        console.error(`  Error searching "${term}":`, e.message);
+        return null;
+      })
+  ));
+
+  for (const data of responses) {
+    if (!data?.tournaments?.nodes) continue;
+    for (const t of data.tournaments.nodes) {
+      // STRICT FILTER: slug MUST start with 'iron-fist-league-2' (Season 2 tournaments)
+      const slugLower = t.slug ? t.slug.toLowerCase() : '';
+      const slugMatch = slugLower.startsWith(`tournament/${IFL_TOURNAMENT_BASE}`) ||
+                       slugLower.startsWith(IFL_TOURNAMENT_BASE) ||
+                       slugLower.includes(`/${IFL_TOURNAMENT_BASE}`);
+
+      if (slugMatch && !seenIds.has(t.id)) {
+        seenIds.add(t.id);
+        allTournaments.push(t);
       }
-    } catch (e) {
-      console.error(`  Error searching "${term}":`, e.message);
     }
   }
 
@@ -263,7 +329,12 @@ const IFL_LEAGUE_SLUG = 'IFL2';  // Short slug for the league (https://www.start
 const IFL_TOURNAMENT_BASE = 'iron-fist-league-2';  // Season 2 base slug for all tournaments
 
 // Get league standings from start.gg (includes rank and points)
-async function getLeagueStandings(leagueSlug = IFL_LEAGUE_SLUG, limit = 8) {
+function getLeagueStandings(leagueSlug = IFL_LEAGUE_SLUG, limit = 8) {
+  return withCache(`league-standings:${leagueSlug}:${limit}`, TTL.LIVE, () =>
+    getLeagueStandingsUncached(leagueSlug, limit));
+}
+
+async function getLeagueStandingsUncached(leagueSlug, limit) {
   try {
     const data = await queryStartGG(queries.league.standings, { 
       slug: leagueSlug, 
@@ -308,7 +379,12 @@ async function getLeagueStandings(leagueSlug = IFL_LEAGUE_SLUG, limit = 8) {
 }
 
 // Get event standings from start.gg (top placements for a tournament event)
-async function getEventStandings(eventSlug, limit = 8) {
+function getEventStandings(eventSlug, limit = 8) {
+  return withCache(`event-standings:${eventSlug}:${limit}`, TTL.LIVE, () =>
+    getEventStandingsUncached(eventSlug, limit));
+}
+
+async function getEventStandingsUncached(eventSlug, limit) {
   try {
     const data = await queryStartGG(queries.event.standings, { 
       slug: eventSlug, 
@@ -349,17 +425,27 @@ async function getEventStandings(eventSlug, limit = 8) {
 
 // Get Top 8 bracket data from start.gg
 // Identifies the "Top 8" phase and only fetches sets from it
-async function getEventBracket(eventSlug, page = 1, perPage = 25) {
+function getEventBracket(eventSlug, page = 1, perPage = 25) {
+  return withCache(`event-bracket:${eventSlug}:${page}:${perPage}`, TTL.LIVE, () =>
+    getEventBracketUncached(eventSlug, page, perPage));
+}
+
+// Which phase groups make up "Top 8" is fixed once the bracket is generated, so
+// this lookup does not need to be repeated on every poll.
+function getTop8PhaseGroupIds(eventSlug) {
+  return withCache(`event-top8-phases:${eventSlug}`, TTL.STRUCTURE, async () => {
+    const phasesData = await queryStartGG(queries.event.phases, { slug: eventSlug });
+    const top8Phase = phasesData?.event?.phases?.find(p => /top\s*8/i.test(p.name));
+    return top8Phase?.phaseGroups?.nodes?.length
+      ? top8Phase.phaseGroups.nodes.map(pg => pg.id)
+      : null;
+  });
+}
+
+async function getEventBracketUncached(eventSlug, page, perPage) {
   try {
     // Find the Top 8 phase group IDs
-    let phaseGroupIds = null;
-    const phasesData = await queryStartGG(queries.event.phases, { slug: eventSlug });
-    if (phasesData?.event?.phases) {
-      const top8Phase = phasesData.event.phases.find(p => /top\s*8/i.test(p.name));
-      if (top8Phase?.phaseGroups?.nodes?.length) {
-        phaseGroupIds = top8Phase.phaseGroups.nodes.map(pg => pg.id);
-      }
-    }
+    const phaseGroupIds = await getTop8PhaseGroupIds(eventSlug);
 
     const variables = { slug: eventSlug, page, perPage };
     if (phaseGroupIds) {
@@ -457,7 +543,12 @@ async function getEventBracket(eventSlug, page = 1, perPage = 25) {
 }
 
 // Get all tournaments/events in a league with participant counts
-async function getLeagueTournaments(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
+function getLeagueTournaments(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
+  return withCache(`league-tournaments:${leagueSlug}:${limit}`, TTL.LISTING, () =>
+    getLeagueTournamentsUncached(leagueSlug, limit));
+}
+
+async function getLeagueTournamentsUncached(leagueSlug, limit) {
   try {
     const data = await queryStartGG(queries.league.eventsLight, { slug: leagueSlug });
     
@@ -585,6 +676,7 @@ module.exports = {
   getEventStandings,
   getEventBracket,
   getPlayerLeaguePlacements,
-  queryStartGG
+  queryStartGG,
+  clearCache
 };
 

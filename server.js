@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const compression = require('compression');
 const http    = require('http');
 const socketIo = require('socket.io');
 const fs   = require('fs');
@@ -40,8 +41,36 @@ const app    = express();
 const server = http.createServer(app);
 const io     = socketIo(server);
 
-app.use(express.static(path.join(__dirname, 'client', 'dist')));
-app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source')));
+// gzip everything text-shaped. The client bundle and the JSON payloads that
+// overlays poll compress to roughly a quarter of their size.
+app.use(compression());
+
+const CLIENT_DIST = path.join(__dirname, 'client', 'dist');
+
+// Overlay artwork and fonts are large and effectively static. Caching them for a
+// day stops every OBS scene reload from re-fetching hundreds of megabytes;
+// revalidation still happens via ETag once the window lapses.
+//
+// Mounted ahead of the dist handler on purpose: the vite build also copies
+// public/ into dist/, so with the old ordering /source/* was answered by the
+// dist handler instead and picked up its default no-cache headers.
+app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source'), {
+    maxAge: '1d',
+}));
+
+// Vite fingerprints everything under /assets, so those files can never change
+// behind a given URL -- serve them as permanently cacheable. index.html must not
+// be cached or clients would keep booting a stale bundle after a deploy.
+app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets'), {
+    immutable: true,
+    maxAge: '1y',
+}));
+app.use(express.static(CLIENT_DIST, {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+    },
+}));
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -222,6 +251,7 @@ historyRouter.post('/', asyncRoute(async (req, res) => {
 historyRouter.delete('/', asyncRoute(async (req, res) => {
     const { name } = req.body;
     const [result] = await pool.execute('DELETE FROM users WHERE username = ?', [name]);
+    dbHelpers.invalidatePlayerCaches();
     if (result.affectedRows > 0) return res.json({ success: true, message: 'Player deleted.' });
     res.status(404).json({ success: false, message: 'Player not found.' });
 }));
@@ -312,6 +342,11 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
             WHERE users.user_id = matches.player1_id OR users.user_id = matches.player2_id
         ) AND EXISTS (SELECT 1 FROM matches)`
     );
+    // The sync wrote users and matches straight through the pool, so the
+    // in-memory player/match caches no longer reflect the tables.
+    dbHelpers.invalidatePlayerCaches();
+    dbHelpers.invalidateTournamentCache();
+    startgg.clearCache();
     const playersRemoved = cleaned.affectedRows || 0;
     if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
 
@@ -379,6 +414,11 @@ startggRouter.post('/sync/tournament/:slug', asyncRoute(async (req, res) => {
             WHERE users.user_id = matches.player1_id OR users.user_id = matches.player2_id
         ) AND EXISTS (SELECT 1 FROM matches)`
     );
+    // The sync wrote users and matches straight through the pool, so the
+    // in-memory player/match caches no longer reflect the tables.
+    dbHelpers.invalidatePlayerCaches();
+    dbHelpers.invalidateTournamentCache();
+    startgg.clearCache();
     const playersRemoved = cleaned.affectedRows || 0;
     if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
 
@@ -387,6 +427,8 @@ startggRouter.post('/sync/tournament/:slug', asyncRoute(async (req, res) => {
 
 startggRouter.post('/sync/player/:slug', asyncRoute(async (req, res) => {
     const userId = await startggSync.syncPlayerFromStartGG(req.params.slug);
+    dbHelpers.invalidatePlayerCaches();
+    startgg.clearCache();
     res.json({ success: true, message: 'Player synced successfully', userId });
 }));
 
@@ -522,6 +564,7 @@ dbRouter.put('/player/:playerId', asyncRoute(async (req, res) => {
     if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
     values.push(playerId);
     await pool.execute(`UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`, values);
+    dbHelpers.invalidatePlayerCaches();
     const [[player]] = await pool.execute(
         `SELECT u.*, COUNT(DISTINCT m.match_id) as total_matches,
                 SUM(CASE WHEN m.winner_id = u.user_id THEN 1 ELSE 0 END) as wins
@@ -540,6 +583,8 @@ dbRouter.delete('/player/:playerId', asyncRoute(async (req, res) => {
     const { playerId } = req.params;
     await pool.execute('DELETE FROM matches WHERE player1_id = ? OR player2_id = ?', [playerId, playerId]);
     const [result] = await pool.execute('DELETE FROM users WHERE user_id = ?', [playerId]);
+    dbHelpers.invalidatePlayerCaches();
+    dbHelpers.invalidateTournamentCache();
     if (result.affectedRows === 0) {
         return res.status(404).json({ error: 'Player not found' });
     }
@@ -589,6 +634,8 @@ dbRouter.post('/players/cleanup', asyncRoute(async (req, res) => {
             console.log(`[Cleanup] Fixed: "${player.username}" → "${actualName}"`);
         }
     }
+    dbHelpers.invalidatePlayerCaches();
+    dbHelpers.invalidateTournamentCache();
     playerHistory = await dbHelpers.loadPlayerHistory();
     io.emit('history-update', playerHistory);
     res.json({ success: true, message: `Fixed ${fixed} player names, merged ${merged} duplicates`, fixed, merged });
@@ -810,6 +857,54 @@ iffRouter.delete('/love-and-war/group/:groupId/teams/:teamId', asyncRoute(async 
 app.use('/api/iff', requireRibAuth, iffRouter);
 
 // ============================================================
+// SCOREBOARD PERSISTENCE
+//
+// Score buttons fire in bursts. Writing each intermediate state to MySQL is
+// wasted work -- only the latest one matters -- so writes are coalesced behind
+// a single in-flight save and the newest pending state always wins.
+// ============================================================
+
+let persistInFlight = false;
+let persistPending  = null;
+
+function queueOverlayPersist(data) {
+    persistPending = data;
+    if (persistInFlight) return;
+    persistInFlight = true;
+    // Defer past the current tick so a rapid burst collapses into one write.
+    setImmediate(runOverlayPersist);
+}
+
+async function runOverlayPersist() {
+    try {
+        while (persistPending) {
+            const data = persistPending;
+            persistPending = null;
+            try {
+                await dbHelpers.saveIFLData(data);
+                const players = [
+                    { name: data.p1Name, team: data.p1Team, flag: data.p1Flag },
+                    { name: data.p2Name, team: data.p2Team, flag: data.p2Flag },
+                ].filter(p => p.name);
+                if (players.length > 0) {
+                    await dbHelpers.savePlayerHistory(players);
+                    // Only re-broadcast the (whole) player list when a row actually
+                    // changed; the common case is the same two players repeatedly.
+                    if (dbHelpers.isPlayerHistoryStale()) {
+                        playerHistory = await dbHelpers.loadPlayerHistory();
+                        io.emit('history-update', playerHistory);
+                    }
+                }
+            } catch (err) {
+                console.error('Error persisting overlay data:', err);
+            }
+        }
+    } finally {
+        persistInFlight = false;
+    }
+}
+
+// ============================================================
 // SOCKET.IO
 // ============================================================
 
@@ -833,20 +928,13 @@ io.on('connection', (socket) => {
     socket.emit('lnw-match-data',            lnwMatchData);
     socket.emit('lnw-display-mode',          lnwDisplayMode);
 
-    socket.on('update-data', async (data) => {
-        try {
-            overlayData = data;
-            await dbHelpers.saveIFLData(overlayData);
-            const players = [
-                { name: data.p1Name, team: data.p1Team, flag: data.p1Flag },
-                { name: data.p2Name, team: data.p2Team, flag: data.p2Flag },
-            ].filter(p => p.name);
-            if (players.length > 0) {
-                await dbHelpers.savePlayerHistory(players);
-                io.emit('history-update', await dbHelpers.loadPlayerHistory());
-            }
-            io.emit('data-update', overlayData);
-        } catch (err) { console.error('Error handling update-data:', err); }
+    socket.on('update-data', (data) => {
+        // Overlays get the new scoreboard on this tick. Persistence used to run
+        // first, which meant every score button press waited on a chain of
+        // database round-trips before anything moved on stream.
+        overlayData = data;
+        io.emit('data-update', overlayData);
+        queueOverlayPersist(data);
     });
 
     socket.on('tag-team-update', async (data) => {
@@ -916,4 +1004,7 @@ io.on('connection', (socket) => {
 });
 
 // Catch-all: serve the React SPA for any non-API route.
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html')));
+app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+});
