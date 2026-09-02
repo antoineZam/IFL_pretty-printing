@@ -43,6 +43,7 @@ export default {
         'archivo-extra-condensed-medium-italic': ['Archivo Extra Condensed Medium Italic', 'sans-serif'],
         'archivo-extra-condensed-extrabold-italic': ['Archivo Extra Condensed ExtraBold Italic', 'sans-serif'],
         'archivo-extra-condensed-semibold': ['Archivo Extra Condensed SemiBold', 'sans-serif'],
+        'advine-pixel': ['Advine Pixel', 'sans-serif'],
         'gotham-bold': ['Gotham Bold', 'sans-serif'],
         'gotham-book': ['Gotham Book', 'sans-serif'],
         'gotham-light': ['Gotham Light', 'sans-serif'],
@@ -56,6 +57,7 @@ export default {
         'd-din-exp-bold': ['D-DIN Exp Bold', 'sans-serif'],
         'd-din-exp-italic': ['D-DIN Exp Italic', 'sans-serif'],
         'crook': ['Crook', 'sans-serif'],
+        'pp-neue-bit-bold': ['PP Neue Bit Bold', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

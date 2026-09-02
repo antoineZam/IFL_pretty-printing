@@ -1158,6 +1158,181 @@ async function removeTeamFromGroup(tournamentId, teamId) {
   }
 }
 
+// ===== IFF9 Week + Match-card Functions =====
+
+async function getIFF9Weeks() {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT w.*, COUNT(m.id) as match_count
+      FROM iff9_weeks w
+      LEFT JOIN iff9_matches m ON w.id = m.week_id
+      GROUP BY w.id
+      ORDER BY w.week_number DESC, w.created_at DESC
+    `);
+    return rows;
+  } catch (error) {
+    console.error('Error getting IFF9 weeks:', error);
+    throw error;
+  }
+}
+
+async function getIFF9Week(id) {
+  try {
+    const [weeks] = await pool.execute(`SELECT * FROM iff9_weeks WHERE id = ?`, [id]);
+    if (weeks.length === 0) return null;
+
+    const week = weeks[0];
+    week.matches = await getIFF9Matches(id);
+    return week;
+  } catch (error) {
+    console.error('Error getting IFF9 week:', error);
+    throw error;
+  }
+}
+
+async function saveIFF9Week(week) {
+  try {
+    const { id, name, week_number, event_date, status } = week;
+
+    if (id) {
+      await pool.execute(
+        `UPDATE iff9_weeks
+         SET name = ?, week_number = ?, event_date = ?, status = ?
+         WHERE id = ?`,
+        [name, week_number || null, event_date || null, status || 'setup', id]
+      );
+      return await getIFF9Week(id);
+    } else {
+      const [result] = await pool.execute(
+        `INSERT INTO iff9_weeks (name, week_number, event_date, status)
+         VALUES (?, ?, ?, ?)`,
+        [name, week_number || null, event_date || null, status || 'setup']
+      );
+      return await getIFF9Week(result.insertId);
+    }
+  } catch (error) {
+    console.error('Error saving IFF9 week:', error);
+    throw error;
+  }
+}
+
+async function deleteIFF9Week(id) {
+  try {
+    await pool.execute(`DELETE FROM iff9_matches WHERE week_id = ?`, [id]);
+    await pool.execute(`DELETE FROM iff9_weeks WHERE id = ?`, [id]);
+    return true;
+  } catch (error) {
+    console.error('Error deleting IFF9 week:', error);
+    throw error;
+  }
+}
+
+async function getIFF9Matches(weekId) {
+  try {
+    const [matches] = await pool.execute(
+      `      SELECT m.*, 
+              p1.name as db_p1_name, p1.user_id as p1_uid, p1.iff8_ranking as db_p1_rank_raw,
+              p2.name as db_p2_name, p2.user_id as p2_uid, p2.iff8_ranking as db_p2_rank_raw
+       FROM iff9_matches m
+       LEFT JOIN iff_players p1 ON m.player_1_id = p1.id
+       LEFT JOIN iff_players p2 ON m.player_2_id = p2.id
+       WHERE m.week_id = ? 
+       ORDER BY m.match_order ASC, m.match_number ASC`,
+      [weekId]
+    );
+
+    // Map raw DB strings (like "#1") to ranks for the frontend if needed
+    return matches.map(m => {
+      const p1RankMatch = m.db_p1_rank_raw ? m.db_p1_rank_raw.match(/#(\d+)/) : null;
+      const p2RankMatch = m.db_p2_rank_raw ? m.db_p2_rank_raw.match(/#(\d+)/) : null;
+      return {
+        ...m,
+        // Prefer manual overrides in iff9_matches if they exist, otherwise fall back to db profiles
+        player_1_name: m.player_1_name || m.db_p1_name,
+        player_1_country: m.player_1_country,
+        player_1_rank: m.player_1_rank !== null ? m.player_1_rank : (p1RankMatch ? parseInt(p1RankMatch[1]) : null),
+        
+        player_2_name: m.player_2_name || m.db_p2_name,
+        player_2_country: m.player_2_country,
+        player_2_rank: m.player_2_rank !== null ? m.player_2_rank : (p2RankMatch ? parseInt(p2RankMatch[1]) : null),
+      };
+    });
+  } catch (error) {
+    console.error('Error getting IFF9 matches:', error);
+    throw error;
+  }
+}
+
+async function saveIFF9Match(match) {
+  try {
+    const {
+      id, week_id, match_order, match_number, match_type, round_name,
+      player_1_id, player_1_name, player_1_country, player_1_rank, player_1_info, player_1_character, player_1_score,
+      player_2_id, player_2_name, player_2_country, player_2_rank, player_2_info, player_2_character, player_2_score,
+      win_score, is_complete, is_active
+    } = match;
+
+    if (id) {
+      await pool.execute(
+        `UPDATE iff9_matches
+         SET match_order = ?, match_number = ?, match_type = ?, round_name = ?,
+             player_1_id = ?, player_1_name = ?, player_1_country = ?, player_1_rank = ?, player_1_info = ?, player_1_character = ?, player_1_score = ?,
+             player_2_id = ?, player_2_name = ?, player_2_country = ?, player_2_rank = ?, player_2_info = ?, player_2_character = ?, player_2_score = ?,
+             win_score = ?, is_complete = ?, is_active = ?
+         WHERE id = ?`,
+        [match_order || 1, match_number || 1, match_type || 'challengers', round_name || null,
+         player_1_id || null, player_1_name || null, player_1_country || null, player_1_rank || null, player_1_info || null, player_1_character || null, player_1_score || 0,
+         player_2_id || null, player_2_name || null, player_2_country || null, player_2_rank || null, player_2_info || null, player_2_character || null, player_2_score || 0,
+         win_score || 3, is_complete || false, is_active || false, id]
+      );
+      return { id, ...match };
+    } else {
+      const [result] = await pool.execute(
+        `INSERT INTO iff9_matches
+         (week_id, match_order, match_number, match_type, round_name,
+          player_1_id, player_1_name, player_1_country, player_1_rank, player_1_info, player_1_character, player_1_score,
+          player_2_id, player_2_name, player_2_country, player_2_rank, player_2_info, player_2_character, player_2_score,
+          win_score, is_complete, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [week_id, match_order || 1, match_number || 1, match_type || 'challengers', round_name || null,
+         player_1_id || null, player_1_name || null, player_1_country || null, player_1_rank || null, player_1_info || null, player_1_character || null, player_1_score || 0,
+         player_2_id || null, player_2_name || null, player_2_country || null, player_2_rank || null, player_2_info || null, player_2_character || null, player_2_score || 0,
+         win_score || 3, is_complete || false, is_active || false]
+      );
+      return { id: result.insertId, ...match };
+    }
+  } catch (error) {
+    console.error('Error saving IFF9 match:', error);
+    throw error;
+  }
+}
+
+async function deleteIFF9Match(id) {
+  try {
+    await pool.execute(`DELETE FROM iff9_matches WHERE id = ?`, [id]);
+    return true;
+  } catch (error) {
+    console.error('Error deleting IFF9 match:', error);
+    throw error;
+  }
+}
+
+async function reorderIFF9Matches(order) {
+  try {
+    // order is an array of { id, match_order }
+    for (const { id, match_order } of order) {
+      await pool.execute(
+        `UPDATE iff9_matches SET match_order = ? WHERE id = ?`,
+        [match_order, id]
+      );
+    }
+    return true;
+  } catch (error) {
+    console.error('Error reordering IFF9 matches:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   loadIFLData,
   // Cache control -- call after any write that touches users/tournaments outside
@@ -1202,6 +1377,15 @@ module.exports = {
   saveLnWGroup,
   deleteLnWGroup,
   assignTeamToGroup,
-  removeTeamFromGroup
+  removeTeamFromGroup,
+  // IFF9 Week + Match functions
+  getIFF9Weeks,
+  getIFF9Week,
+  saveIFF9Week,
+  deleteIFF9Week,
+  getIFF9Matches,
+  saveIFF9Match,
+  deleteIFF9Match,
+  reorderIFF9Matches
 };
 

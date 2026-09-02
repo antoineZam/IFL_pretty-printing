@@ -8,14 +8,8 @@ import { NeonButton } from '../../components/ui/NeonButton';
 import { getCountryCode } from '../../utils/countries';
 import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
-// Available characters for Tekken 8
-const CHARACTERS = [
-    'alisa', 'anna', 'armor king', 'asuka', 'azucena', 'bryan', 'claudio',
-    'devil jin', 'dragunov', 'eddy', 'feng', 'heihachi', 'hwoarang',
-    'jack-8', 'jin', 'jun', 'kazuya', 'king', 'kuma', 'lars', 'law',
-    'lee', 'leo', 'leroy', 'lidia', 'lili', 'nina', 'panda', 'paul',
-    'raven', 'reina', 'shaheen', 'steve', 'victor', 'xiaoyu', 'yoshimitsu', 'zafina'
-];
+import { Autocomplete } from '../../components/ui/Autocomplete';
+import { TEKKEN_8_CHARACTERS } from '../../utils/characters';
 
 interface Tournament {
     id: number;
@@ -706,18 +700,20 @@ const IFLTop8ControlPage = () => {
 
                                             {/* Character Select */}
                                             <div className="col-span-3">
-                                                <select
+                                                <Autocomplete
                                                     value={player.character}
-                                                    onChange={(e) => updateTop8Player(idx, 'character', e.target.value)}
-                                                    className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm capitalize"
-                                                >
-                                                    <option value="">Select Character</option>
-                                                    {CHARACTERS.map(char => (
-                                                        <option key={char} value={char} className="capitalize">
+                                                    items={TEKKEN_8_CHARACTERS.filter(c => c.toLowerCase().includes(player.character.toLowerCase()))}
+                                                    placeholder="Select Character"
+                                                    inputClassName="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm capitalize focus:outline-none focus:border-blue-500"
+                                                    onChangeText={(text) => updateTop8Player(idx, 'character', text)}
+                                                    onSelect={(char) => updateTop8Player(idx, 'character', char)}
+                                                    keyExtractor={(char) => char}
+                                                    renderItem={(char, isHighlighted) => (
+                                                        <div className={`w-full text-left px-3 py-2 text-sm transition-colors capitalize ${isHighlighted ? 'bg-blue-500/20 text-white' : 'text-gray-300 hover:bg-gray-600 hover:text-white'}`}>
                                                             {char}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                        </div>
+                                                    )}
+                                                />
                                             </div>
 
                                             {/* Character Preview */}

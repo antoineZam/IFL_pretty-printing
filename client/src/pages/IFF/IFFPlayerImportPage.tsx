@@ -44,49 +44,6 @@ interface IFFPlayer {
     experience_rating: number;
 }
 
-// Available Tekken 8 characters
-const characters: Record<string, string> = {
-    '': '-- Select Character --',
-    'alisa': 'Alisa',
-    'anna': 'Anna',
-    'armor king': 'Armor King',
-    'asuka': 'Asuka',
-    'azucena': 'Azucena',
-    'bryan': 'Bryan',
-    'claudio': 'Claudio',
-    'devil jin': 'Devil Jin',
-    'dragunov': 'Dragunov',
-    'eddy': 'Eddy',
-    'feng': 'Feng',
-    'heihachi': 'Heihachi',
-    'hwoarang': 'Hwoarang',
-    'jack-8': 'Jack-8',
-    'jin': 'Jin',
-    'jun': 'Jun',
-    'kazuya': 'Kazuya',
-    'king': 'King',
-    'kuma': 'Kuma',
-    'lars': 'Lars',
-    'law': 'Law',
-    'lee': 'Lee',
-    'leo': 'Leo',
-    'leroy': 'Leroy',
-    'lidia': 'Lidia',
-    'lili': 'Lili',
-    'nina': 'Nina',
-    'miary_zo': 'Miary Zo',
-    'panda': 'Panda',
-    'paul': 'Paul',
-    'raven': 'Raven',
-    'reina': 'Reina',
-    'shaheen': 'Shaheen',
-    'steve': 'Steve',
-    'victor': 'Victor',
-    'xiaoyu': 'Xiaoyu',
-    'yoshimitsu': 'Yoshimitsu',
-    'zafina': 'Zafina'
-};
-
 const emptyPlayer: Omit<IFFPlayer, 'id'> = {
     name: '',
     polaris_id: null,
@@ -112,6 +69,9 @@ const emptyPlayer: Omit<IFFPlayer, 'id'> = {
     clutch_rating: 50,
     experience_rating: 50
 };
+
+import { TEKKEN_8_CHARACTERS } from '../../utils/characters';
+import { Autocomplete } from '../../components/ui/Autocomplete';
 
 export default function IFFPlayerImportPage() {
     const navigate = useNavigate();
@@ -307,15 +267,20 @@ export default function IFFPlayerImportPage() {
                                     </div>
                                     <div>
                                         <label className="block text-xs text-[#34d399]/70 mb-1 font-mono tracking-widest uppercase">Character</label>
-                                        <select
+                                        <Autocomplete
                                             value={editingPlayer.character_name || ''}
-                                            onChange={(e) => updateField('character_name', e.target.value)}
-                                            className="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
-                                        >
-                                            {Object.entries(characters).map(([value, label]) => (
-                                                <option key={value} value={value}>{label}</option>
-                                            ))}
-                                        </select>
+                                            items={TEKKEN_8_CHARACTERS.filter(c => c.toLowerCase().includes((editingPlayer.character_name || '').toLowerCase()))}
+                                            placeholder="Select Character"
+                                            inputClassName="w-full bg-[#020617]/50 border border-[#10b981]/20 rounded-none px-3 py-2 text-[#34d399] focus:outline-none focus:border-[#10b981] focus:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all font-mono text-sm"
+                                            onChangeText={(text) => updateField('character_name', text)}
+                                            onSelect={(char) => updateField('character_name', char)}
+                                            keyExtractor={(char) => char}
+                                            renderItem={(char, isHighlighted) => (
+                                                <div className={`w-full text-left px-3 py-2 text-sm transition-colors ${isHighlighted ? 'bg-[#10b981]/20 text-white' : 'text-[#34d399] hover:bg-[#10b981]/10 hover:text-white'}`}>
+                                                    {char}
+                                                </div>
+                                            )}
+                                        />
                                     </div>
                                 </div>
 

@@ -39,6 +39,9 @@ const OVERLAY_PREFIXES = [
   '/iff/love-and-war/overlay',
   '/iff/love-and-war/match-overlay',
   '/iff/love-and-war/unified-overlay',
+  '/iff/iff-9/match-overlay',
+  '/iff/iff-9/match-cards',
+  '/iff/iff-9/unified-overlay',
 ];
 
 function isIFFPage(pathname: string): boolean {

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
     Menu, X, Home, Settings, Monitor, Tv, Users, Trophy, 
     Heart, Swords, LayoutDashboard, UserCircle, Layers,
-    ChevronDown, ChevronRight, ExternalLink
+    ChevronDown, ChevronRight, ExternalLink, Gamepad2
 } from 'lucide-react';
 
 interface NavSection {
@@ -22,7 +22,7 @@ interface NavItem {
 
 const IFFBurgerMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [expandedSections, setExpandedSections] = useState<string[]>(['main', 'rib', 'lnw']);
+    const [expandedSections, setExpandedSections] = useState<string[]>(['main', 'iff9', 'rib', 'lnw']);
     const location = useLocation();
 
     // Close menu on route change
@@ -62,6 +62,18 @@ const IFFBurgerMenu = () => {
             items: [
                 { name: 'IFF Dashboard', path: '/dashboard/iff', icon: <Home size={16} /> },
                 { name: 'Player Management', path: '/iff/player-import', icon: <UserCircle size={16} /> },
+            ]
+        },
+        {
+            title: 'IFF9',
+            icon: <Gamepad2 size={18} />,
+            defaultOpen: true,
+            items: [
+                { name: 'IFF9 Dashboard', path: '/iff/iff-9', icon: <LayoutDashboard size={16} /> },
+                { name: 'Match Control', path: '/iff/iff-9/match-control', icon: <Settings size={16} /> },
+                { name: 'Unified Overlay', path: '/iff/iff-9/unified-overlay', icon: <Tv size={16} />, isOverlay: true },
+                { name: 'Match Overlay', path: '/iff/iff-9/match-overlay', icon: <Tv size={16} />, isOverlay: true },
+                { name: 'Match Cards', path: '/iff/iff-9/match-cards', icon: <Tv size={16} />, isOverlay: true },
             ]
         },
         {
