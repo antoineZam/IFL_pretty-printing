@@ -909,6 +909,37 @@ async function removeTeamFromTournament(tournamentId, teamId) {
   }
 }
 
+/**
+ * Rebuilds wins/losses for every team in a tournament from the match rows.
+ *
+ * Derived rather than incremented, so it is safe to call after any match write:
+ * re-saving a completed match, correcting a score, or flipping a winner all
+ * converge on the same totals instead of drifting upward.
+ */
+async function recalculateLnWTeamRecords(tournamentId) {
+  if (!tournamentId) return;
+  await pool.execute(
+    `UPDATE iff_lnw_tournament_teams tt
+     SET
+       wins = (
+         SELECT COUNT(*) FROM iff_lnw_matches m
+         WHERE m.tournament_id = tt.tournament_id
+           AND m.is_complete = 1
+           AND m.winner_team_id = tt.team_id
+       ),
+       losses = (
+         SELECT COUNT(*) FROM iff_lnw_matches m
+         WHERE m.tournament_id = tt.tournament_id
+           AND m.is_complete = 1
+           AND m.winner_team_id IS NOT NULL
+           AND m.winner_team_id <> tt.team_id
+           AND (m.team_1_id = tt.team_id OR m.team_2_id = tt.team_id)
+       )
+     WHERE tt.tournament_id = ?`,
+    [tournamentId]
+  );
+}
+
 async function saveLnWMatch(match) {
   try {
     const { 
@@ -928,27 +959,16 @@ async function saveLnWMatch(match) {
          winner_team_id || null, is_complete || false, next_match_id || null, group_id || null, id]
       );
       
-      // Update team records if match is complete
-      if (is_complete && winner_team_id) {
-        const loserTeamId = winner_team_id === team_1_id ? team_2_id : team_1_id;
-        
-        await pool.execute(
-          `UPDATE iff_lnw_tournament_teams 
-           SET wins = wins + 1 
-           WHERE tournament_id = ? AND team_id = ?`,
-          [tournament_id, winner_team_id]
-        );
-        
-        if (loserTeamId) {
-          await pool.execute(
-            `UPDATE iff_lnw_tournament_teams 
-             SET losses = losses + 1 
-             WHERE tournament_id = ? AND team_id = ?`,
-            [tournament_id, loserTeamId]
-          );
-        }
-      }
-      
+      // Recompute the standings from the match table rather than incrementing.
+      //
+      // The counters used to be bumped with `wins = wins + 1` on every save of a
+      // complete match, with no idempotency guard -- while the bracket page
+      // re-PUTs the same completed match on score corrections and again on
+      // winner advancement. Every one of those added a phantom win and loss.
+      // Deriving the totals makes a re-save a no-op and also fixes a score
+      // correction that flips the winner.
+      await recalculateLnWTeamRecords(tournament_id);
+
       return { id, ...match };
     } else {
       // Insert new match
@@ -961,6 +981,8 @@ async function saveLnWMatch(match) {
          team_1_id || null, team_2_id || null, team_1_score || 0, team_2_score || 0,
          winner_team_id || null, next_match_id || null, is_complete || false, bracket_position || null]
       );
+      // A match can be inserted already complete (e.g. a bye), so recompute here too.
+      await recalculateLnWTeamRecords(tournament_id);
       return { id: result.insertId, ...match };
     }
   } catch (error) {
