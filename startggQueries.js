@@ -434,11 +434,14 @@ const queries = {
       }
     `,
 
+    // Server-side name filter. This is the query the search route uses: the
+    // unfiltered `tournaments` query below can only fetch the most recent N
+    // tournaments on all of start.gg, which almost never contains the target.
     tournamentsByName: `
-      query SearchTerm($term: String!) {
+      query SearchTerm($term: String!, $perPage: Int!) {
         tournaments(query: {
           page: 1
-          perPage: 50
+          perPage: $perPage
           filter: {
             name: $term
           }
@@ -450,6 +453,12 @@ const queries = {
             startAt
             endAt
             numAttendees
+            events {
+              id
+              name
+              slug
+              numEntrants
+            }
           }
         }
       }

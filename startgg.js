@@ -181,27 +181,37 @@ async function getTournamentSeries(slug, upcoming = true, past = true) {
   return await queryStartGG(queries.tournament.series, { slug });
 }
 
-// Search for tournaments by name/term
+// Search for tournaments by name/term.
+//
+// This used to run the unfiltered `search.tournaments` query -- which accepts
+// only perPage and carries no name filter -- and then filter the result locally.
+// That fetched the 50 most recent tournaments on all of start.gg, so the target
+// was virtually never in the window and the search returned nothing for almost
+// any term. `tournamentsByName` pushes the filter to the server.
+//
+// The local pass is kept as a widening step only: start.gg's filter matches on
+// name, so a slug-shaped term ("iron-fist-league-2") is normalized to spaces and
+// also matched against the slug of whatever the server did return.
 async function searchTournaments(searchTerm, perPage = 50) {
   try {
-    const data = await queryStartGG(queries.search.tournaments, { perPage });
-    
-    if (!data || !data.tournaments || !data.tournaments.nodes) {
-      return { tournaments: { nodes: [] } };
+    const term = searchTerm.trim();
+    if (!term) return { tournaments: { nodes: [] } };
+
+    // start.gg's name filter does not understand hyphenated slugs; try the term
+    // as typed first, then its spaced form.
+    const spacedTerm = term.replace(/-/g, ' ');
+    const attempts = spacedTerm === term ? [term] : [term, spacedTerm];
+
+    const byId = new Map();
+    for (const attempt of attempts) {
+      const data = await queryStartGG(queries.search.tournamentsByName, { term: attempt, perPage });
+      for (const node of data?.tournaments?.nodes ?? []) {
+        byId.set(node.id, node);
+      }
+      if (byId.size > 0) break;
     }
 
-    // Filter tournaments that match the search term (case-insensitive)
-    // This handles patterns like "iron-fist-league-1", "iron-fist-league-2-finals", etc.
-    const searchLower = searchTerm.toLowerCase().replace(/-/g, ' ');
-    const filtered = data.tournaments.nodes.filter(t => {
-      const nameLower = t.name.toLowerCase();
-      const slugLower = t.slug.toLowerCase().replace(/-/g, ' ');
-      return nameLower.includes(searchLower) || 
-             slugLower.includes(searchLower) ||
-             slugLower.includes(searchTerm.toLowerCase());
-    });
-
-    return { tournaments: { nodes: filtered } };
+    return { tournaments: { nodes: [...byId.values()] } };
   } catch (error) {
     console.error('Error in searchTournaments:', error);
     throw error;
