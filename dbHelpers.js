@@ -346,137 +346,153 @@ async function savePlayerHistory(players) {
   }
 }
 
-// Tag Team Data Functions (stored as JSON in a special table or matches)
-// For now, we'll create a simple approach using a settings/state table
-async function loadTagTeamData() {
+// ============================================================
+// JSON STATE PERSISTENCE  —  app_state table
+//
+// The Run It Back and tag-team state is JSON-shaped and does not map onto the
+// relational tables. These six functions used to be stubs: the save* variants
+// logged a line and returned, and the load* variants ignored the database and
+// returned hardcoded literals -- so the API reported a successful save while
+// the data lived only in server memory and reverted on every restart.
+//
+// They now read and write migrations/app_state.sql. The hardcoded literals are
+// kept, but only as the seed value used when no row exists yet.
+// ============================================================
+
+const STATE_KEYS = {
+  iflExtras:     'ifl_scoreboard_extras',
+  tagTeam:       'tag_team_data',
+  ribMatchCards: 'rib_match_cards',
+  ribPlayerStats:'rib_player_stats',
+  ribStreamData: 'rib_stream_data',
+};
+
+/**
+ * Reads one JSON state row. Returns `fallback` when the row does not exist yet.
+ *
+ * A missing app_state table is treated as "not provisioned yet" rather than a
+ * hard failure, so an operator who has not run the migration still gets a
+ * working (if non-persistent) server instead of a boot loop -- but it is logged
+ * loudly, because in that state nothing is being saved.
+ */
+async function loadJsonState(key, fallback) {
   try {
-    // Try to get from a settings table (we'll create this if needed)
-    // For now, return default
-    return {
-      team1: {
-        name: 'Team 1',
-        tag: 'T1',
-        players: [
-          { name: 'Omnis', sponsor: 'IFF', active: true },
-          { name: 'Kuro', sponsor: 'IFF', active: false }
-        ],
-        score: 0
-      },
-      team2: {
-        name: 'Team 2',
-        tag: 'T2',
-        players: [
-          { name: 'Challenger 1', sponsor: '', active: true },
-          { name: 'Challenger 2', sponsor: '', active: false }
-        ],
-        score: 0
-      },
-      round: 'Winners Round 1'
-    };
+    const [rows] = await pool.execute('SELECT value FROM app_state WHERE state_key = ?', [key]);
+    if (rows.length === 0) return fallback;
+    return JSON.parse(rows[0].value);
   } catch (error) {
-    console.error('Error loading tag team data:', error);
-    return {
-      team1: {
-        name: 'Team 1',
-        tag: 'T1',
-        players: [
-          { name: 'Omnis', sponsor: 'IFF', active: true },
-          { name: 'Kuro', sponsor: 'IFF', active: false }
-        ],
-        score: 0
-      },
-      team2: {
-        name: 'Team 2',
-        tag: 'T2',
-        players: [
-          { name: 'Challenger 1', sponsor: '', active: true },
-          { name: 'Challenger 2', sponsor: '', active: false }
-        ],
-        score: 0
-      },
-      round: 'Winners Round 1'
-    };
+    if (error && error.code === 'ER_NO_SUCH_TABLE') {
+      console.error(
+        `[app_state] Table missing — "${key}" cannot be persisted. ` +
+        'Run: mysql -u <user> -p <database> < migrations/app_state.sql'
+      );
+      return fallback;
+    }
+    if (error instanceof SyntaxError) {
+      console.error(`[app_state] Stored value for "${key}" is not valid JSON; using defaults.`, error);
+      return fallback;
+    }
+    console.error(`[app_state] Error loading "${key}":`, error);
+    return fallback;
   }
+}
+
+/** Writes one JSON state row. Throws, so a failed save is never reported as success. */
+async function saveJsonState(key, value) {
+  const json = JSON.stringify(value);
+  try {
+    await pool.execute(
+      `INSERT INTO app_state (state_key, value) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE value = VALUES(value)`,
+      [key, json]
+    );
+  } catch (error) {
+    if (error && error.code === 'ER_NO_SUCH_TABLE') {
+      console.error(
+        `[app_state] Table missing — "${key}" was NOT saved. ` +
+        'Run: mysql -u <user> -p <database> < migrations/app_state.sql'
+      );
+    }
+    throw error;
+  }
+}
+
+// Tag team ------------------------------------------------------------------
+
+const DEFAULT_TAG_TEAM_DATA = {
+  team1: {
+    name: 'Team 1',
+    tag: 'T1',
+    players: [
+      { name: 'Omnis', sponsor: 'IFF', active: true },
+      { name: 'Kuro', sponsor: 'IFF', active: false }
+    ],
+    score: 0
+  },
+  team2: {
+    name: 'Team 2',
+    tag: 'T2',
+    players: [
+      { name: 'Challenger 1', sponsor: '', active: true },
+      { name: 'Challenger 2', sponsor: '', active: false }
+    ],
+    score: 0
+  },
+  round: 'Winners Round 1'
+};
+
+async function loadTagTeamData() {
+  return loadJsonState(STATE_KEYS.tagTeam, DEFAULT_TAG_TEAM_DATA);
 }
 
 async function saveTagTeamData(data) {
-  try {
-    // Tag team data is complex, for now we'll store it as JSON
-    // This would require a settings table - for now just log
-    console.log('Tag team data saved (not yet fully implemented in DB)');
-  } catch (error) {
-    console.error('Error saving tag team data:', error);
-  }
+  await saveJsonState(STATE_KEYS.tagTeam, data);
 }
 
-// RIB Data Functions (stored as JSON)
+// Run It Back: match cards --------------------------------------------------
+
+const DEFAULT_RIB_MATCH_CARDS = {
+  eventTitle: "THE RUNBACK",
+  eventSubtitle: "THE FINAL CHAPTER",
+  partNumber: "01",
+  mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
+  matches: [],
+  singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
+  sponsors: { presenter: "", association: "" }
+};
+
 async function loadRIBMatchCards() {
-  try {
-    // RIB data is complex JSON, we'll need a settings table
-    // For now return default
-    return {
-      eventTitle: "THE RUNBACK",
-      eventSubtitle: "THE FINAL CHAPTER",
-      partNumber: "01",
-      mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-      matches: [],
-      singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-      sponsors: { presenter: "", association: "" }
-    };
-  } catch (error) {
-    console.error('Error loading RIB match cards:', error);
-    return {
-      eventTitle: "THE RUNBACK",
-      eventSubtitle: "THE FINAL CHAPTER",
-      partNumber: "01",
-      mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-      matches: [],
-      singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-      sponsors: { presenter: "", association: "" }
-    };
-  }
+  return loadJsonState(STATE_KEYS.ribMatchCards, DEFAULT_RIB_MATCH_CARDS);
 }
 
 async function saveRIBMatchCards(data) {
-  try {
-    console.log('RIB match cards saved (not yet fully implemented in DB)');
-  } catch (error) {
-    console.error('Error saving RIB match cards:', error);
-  }
+  await saveJsonState(STATE_KEYS.ribMatchCards, data);
 }
 
+// Run It Back: player stats -------------------------------------------------
+
+const DEFAULT_RIB_PLAYER_STATS = { players: [] };
+
 async function loadRIBPlayerStats() {
-  try {
-    return { players: [] };
-  } catch (error) {
-    console.error('Error loading RIB player stats:', error);
-    return { players: [] };
-  }
+  return loadJsonState(STATE_KEYS.ribPlayerStats, DEFAULT_RIB_PLAYER_STATS);
 }
 
 async function saveRIBPlayerStats(data) {
-  try {
-    console.log('RIB player stats saved (not yet fully implemented in DB)');
-  } catch (error) {
-    console.error('Error saving RIB player stats:', error);
-  }
+  await saveJsonState(STATE_KEYS.ribPlayerStats, data);
 }
 
+// Run It Back: stream data --------------------------------------------------
+
+const DEFAULT_RIB_STREAM_DATA = {
+  matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0
+};
+
 async function loadRIBStreamData() {
-  try {
-    return { matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0 };
-  } catch (error) {
-    console.error('Error loading RIB stream data:', error);
-    return { matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0 };
-  }
+  return loadJsonState(STATE_KEYS.ribStreamData, DEFAULT_RIB_STREAM_DATA);
 }
 
 async function saveRIBStreamData(data) {
-  try {
-    console.log('RIB stream data saved (not yet fully implemented in DB)');
-  } catch (error) {
-    console.error('Error saving RIB stream data:', error);
-  }
+  await saveJsonState(STATE_KEYS.ribStreamData, data);
 }
 
 // --- IFF Player Data Functions (iff_players table) ---

@@ -214,6 +214,27 @@ const asyncRoute = fn => async (req, res) => {
 };
 
 /**
+ * Fires a persistence write without blocking the broadcast, and tells the
+ * operator if it failed.
+ *
+ * These writes were stubs that logged and returned, so nothing ever surfaced a
+ * failure. Now that they hit the database, a failed save must be visible --
+ * otherwise the control page still shows a green light while the data is lost
+ * on the next restart, which is the exact failure this replaced.
+ */
+function persistState(label, socket, write) {
+    Promise.resolve()
+        .then(write)
+        .catch(err => {
+            console.error(`Error persisting ${label}:`, err);
+            socket.emit('persist-error', {
+                what: label,
+                message: 'Change is live on the overlay but was NOT saved — it will be lost on restart.',
+            });
+        });
+}
+
+/**
  * Merges a patch into a state object, updating only the keys
  * already present in `current`. Extra keys in `patch` are silently
  * dropped, preventing clients from injecting arbitrary state.
@@ -1055,12 +1076,14 @@ io.on('connection', (socket) => {
         queueOverlayPersist(data);
     });
 
-    socket.on('tag-team-update', async (data) => {
-        try {
-            tagTeamData = data;
-            await dbHelpers.saveTagTeamData(tagTeamData);
-            io.emit('tag-team-data', tagTeamData);
-        } catch (err) { console.error('Error handling tag-team-update:', err); }
+    // Broadcast first, persist after. A database hiccup must never hold up what
+    // is on screen -- and now that these saves are real (they used to be stubs)
+    // an await here would put a MySQL round-trip in front of every operator
+    // action. Persistence failures are logged and surfaced to the operator.
+    socket.on('tag-team-update', (data) => {
+        tagTeamData = data;
+        io.emit('tag-team-data', tagTeamData);
+        persistState('tag-team', socket, () => dbHelpers.saveTagTeamData(tagTeamData));
     });
 
     // Pass-through relay events — no persistence needed.
@@ -1068,28 +1091,22 @@ io.on('connection', (socket) => {
     socket.on('top8-refresh',        data => io.emit('top8-refresh', data));
     socket.on('top8-standings-data', data => io.emit('top8-standings-data', data));
 
-    socket.on('rib-match-cards-update', async (data) => {
-        try {
-            ribMatchCards = data;
-            await dbHelpers.saveRIBMatchCards(ribMatchCards);
-            io.emit('rib-match-cards-update', ribMatchCards);
-        } catch (err) { console.error('Error handling rib-match-cards-update:', err); }
+    socket.on('rib-match-cards-update', (data) => {
+        ribMatchCards = data;
+        io.emit('rib-match-cards-update', ribMatchCards);
+        persistState('rib-match-cards-update', socket, () => dbHelpers.saveRIBMatchCards(ribMatchCards));
     });
 
-    socket.on('rib-player-stats-update', async (data) => {
-        try {
-            ribPlayerStats = data;
-            await dbHelpers.saveRIBPlayerStats(ribPlayerStats);
-            io.emit('rib-player-stats-update', ribPlayerStats);
-        } catch (err) { console.error('Error handling rib-player-stats-update:', err); }
+    socket.on('rib-player-stats-update', (data) => {
+        ribPlayerStats = data;
+        io.emit('rib-player-stats-update', ribPlayerStats);
+        persistState('rib-player-stats-update', socket, () => dbHelpers.saveRIBPlayerStats(ribPlayerStats));
     });
 
-    socket.on('rib-stream-data-update', async (data) => {
-        try {
-            ribStreamData = data;
-            await dbHelpers.saveRIBStreamData(ribStreamData);
-            io.emit('rib-stream-data-update', ribStreamData);
-        } catch (err) { console.error('Error handling rib-stream-data-update:', err); }
+    socket.on('rib-stream-data-update', (data) => {
+        ribStreamData = data;
+        io.emit('rib-stream-data-update', ribStreamData);
+        persistState('rib-stream-data-update', socket, () => dbHelpers.saveRIBStreamData(ribStreamData));
     });
 
     socket.on('rib-overlay-state-update', data => {
