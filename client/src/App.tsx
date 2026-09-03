@@ -10,6 +10,7 @@ import { isOverlayRoute, isTDEURoute } from './utils/routes';
 // Eager load only critical pages for initial render
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 // TDEULayout pulls in three.js / @react-three (~900 kB). Lazy-loading it keeps
 // that chunk off the critical path of every other route -- most importantly the
@@ -147,6 +148,10 @@ function App() {
           <Route path="/iff/iff-9/match-overlay" element={<IFF9MatchOverlay />} />
           <Route path="/iff/iff-9/match-cards" element={<IFF9MatchCardsPage />} />
           <Route path="/iff/iff-9/unified-overlay" element={<IFF9UnifiedOverlay />} />
+
+          {/* Catch-all. Without this, a link to a removed page rendered a blank
+              screen with nothing to say what had happened. */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
       </RouteErrorBoundary>

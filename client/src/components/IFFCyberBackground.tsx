@@ -25,7 +25,6 @@ const CYBER_NODES: CyberNode[] = [
   // Love & War (Archived events)
   { id: 'lnw',             path: '/iff/love-and-war',                    label: 'Love & War',      archived: true },
   { id: 'lnw-control',     path: '/iff/love-and-war/control',            label: 'Team Mgmt',       archived: true },
-  { id: 'lnw-display',     path: '/iff/love-and-war/display',            label: 'Display Core',    archived: true },
   { id: 'lnw-tournaments', path: '/iff/love-and-war/tournaments',        label: 'Tourneys',        archived: true },
   { id: 'lnw-overlay',     path: '/iff/love-and-war/overlay',            label: 'Team Stats',      archived: true },
 ];
