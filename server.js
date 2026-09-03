@@ -42,6 +42,26 @@ const app    = express();
 const server = http.createServer(app);
 const io     = socketIo(server);
 
+// ------------------------------------------------------------
+// Security headers
+//
+// Nothing was sent before: no nosniff, no referrer policy, no framing policy.
+// Set by hand rather than via helmet to keep the dependency count down and to
+// stay explicit about the one header that needs care here -- a strict CSP would
+// break the overlay pages, which load artwork from /source and fonts from
+// Google, so it is deliberately not set. HSTS is only meaningful behind TLS.
+// ------------------------------------------------------------
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'same-origin');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+});
+
 // gzip everything text-shaped. The client bundle and the JSON payloads that
 // overlays poll compress to roughly a quarter of their size.
 app.use(compression());
@@ -75,6 +95,22 @@ console.log(`Serving client bundle built ${clientBuildTime}.`);
 // Mounted ahead of the dist handler on purpose: the vite build also copies
 // public/ into dist/, so with the old ordering /source/* was answered by the
 // dist handler instead and picked up its default no-cache headers.
+// This mount is deliberately public: OBS browser sources cannot send an auth
+// header, so overlay artwork has to be reachable without one. That makes it the
+// wrong place for anything that is not artwork -- and it was holding the
+// orphaned data JSONs (one carrying real competitor tags) and a 42 MB
+// overlay_archive.zip that no code references. Serve images, fonts and media
+// only; everything else under the tree is refused.
+const SOURCE_SERVABLE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm|mov|woff2?|ttf|otf|eot|css)$/i;
+
+app.use('/source', (req, res, next) => {
+    // `req.path` here is already relative to the mount point.
+    if (!SOURCE_SERVABLE.test(req.path)) {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    next();
+});
+
 app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source'), {
     maxAge: '1d',
 }));
