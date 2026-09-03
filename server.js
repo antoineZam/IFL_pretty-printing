@@ -320,6 +320,10 @@ historyRouter.delete('/', asyncRoute(async (req, res) => {
     const { name } = req.body;
     const [result] = await pool.execute('DELETE FROM users WHERE username = ?', [name]);
     dbHelpers.invalidatePlayerCaches();
+    // Also invalidate the tournament cache, as the delete-by-id route does.
+    // Deleting a player can remove the match the live scoreboard is writing to,
+    // and the cached match id would otherwise keep pointing at a dead row.
+    dbHelpers.invalidateTournamentCache();
     if (result.affectedRows > 0) return res.json({ success: true, message: 'Player deleted.' });
     res.status(404).json({ success: false, message: 'Player not found.' });
 }));

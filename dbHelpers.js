@@ -269,14 +269,36 @@ async function saveIFLData(data) {
 
     if (matchId != null) {
       // Update existing match
-      await pool.execute(
+      const [updateResult] = await pool.execute(
         `UPDATE matches 
          SET player1_id = ?, player2_id = ?, score_p1 = ?, score_p2 = ?, 
              round_name = ?, match_time = NOW()
          WHERE match_id = ?`,
         [p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1', matchId]
       );
-    } else {
+
+      // The cached match id is resolved once and kept for the process lifetime,
+      // so if that row is deleted (e.g. by a player delete) every later score
+      // press updated zero rows and reported no error -- the overlay kept
+      // working while nothing was being saved. Detect it and re-resolve.
+      if (updateResult.affectedRows === 0) {
+        console.warn(`saveIFLData: match ${matchId} no longer exists — re-resolving the current match.`);
+        currentMatchIdPromise = null;
+        matchId = await resolveCurrentMatchId(tournamentId);
+        currentMatchIdPromise = Promise.resolve(matchId);
+        if (matchId != null) {
+          await pool.execute(
+            `UPDATE matches
+             SET player1_id = ?, player2_id = ?, score_p1 = ?, score_p2 = ?,
+                 round_name = ?, match_time = NOW()
+             WHERE match_id = ?`,
+            [p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1', matchId]
+          );
+        }
+      }
+    }
+
+    if (matchId == null) {
       // Create new match
       const [result] = await pool.execute(
         `INSERT INTO matches (tournament_id, player1_id, player2_id, score_p1, score_p2, round_name, match_time)
