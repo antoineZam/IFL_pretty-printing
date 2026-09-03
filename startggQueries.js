@@ -57,18 +57,26 @@ const queries = {
       }
     `,
 
+    // Paginated: $page/$perPage are driven by a loop in getTournamentParticipants.
+    // These were hardcoded to page 1 / perPage 100 with no loop, so in any event
+    // above 100 entrants every player past the first page never received a
+    // sponsor or a country and their overlay flag stayed blank.
     participants: `
-      query TournamentParticipantsQuery($slug: String!) {
+      query TournamentParticipantsQuery($slug: String!, $page: Int!, $perPage: Int!) {
         tournament(slug: $slug) {
           id
           name
           events {
             id
             name
+            slug
             entrants(query: {
-              page: 1
-              perPage: 100
+              page: $page
+              perPage: $perPage
             }) {
+              pageInfo {
+                totalPages
+              }
               nodes {
                 id
                 name

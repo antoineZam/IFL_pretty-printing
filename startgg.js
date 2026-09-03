@@ -202,9 +202,65 @@ async function getPlayerInfo(playerSlug) {
   return await queryStartGG(queries.player.info, { slug: playerSlug });
 }
 
-// Get tournament participants/entrants with full player info
-async function getTournamentParticipants(slug) {
-  return await queryStartGG(queries.tournament.participants, { slug });
+/**
+ * Get tournament participants/entrants with full player info.
+ *
+ * Walks every page of entrants. The query used to hardcode page 1 / perPage 100
+ * with no loop here, so in any event above 100 entrants everybody past the first
+ * page never received a sponsor or country and their overlay flag stayed blank.
+ *
+ * `eventSlug` narrows the returned events -- the underlying query declares only
+ * $slug, so that filter is applied to the response rather than pushed down.
+ */
+const PARTICIPANTS_PER_PAGE = 100;
+const PARTICIPANTS_MAX_PAGES = 50;   // 5,000 entrants; a guard, not an expected limit
+
+async function getTournamentParticipants(slug, eventSlug = null) {
+  const first = await queryStartGG(queries.tournament.participants, {
+    slug, page: 1, perPage: PARTICIPANTS_PER_PAGE,
+  });
+
+  if (!first || !first.tournament || !Array.isArray(first.tournament.events)) {
+    return first;
+  }
+
+  if (eventSlug) {
+    first.tournament.events = filterEventsBySlug(first.tournament.events, eventSlug);
+  }
+
+  // Entrants paginate per event, and every event shares one page cursor in this
+  // query -- so walk until no event reports another page, merging by entrant id.
+  const maxTotalPages = Math.max(
+    1,
+    ...first.tournament.events.map(e => e.entrants?.pageInfo?.totalPages || 1)
+  );
+  const pagesToFetch = Math.min(maxTotalPages, PARTICIPANTS_MAX_PAGES);
+  if (maxTotalPages > PARTICIPANTS_MAX_PAGES) {
+    console.warn(`start.gg: ${slug} has ${maxTotalPages} entrant pages; stopping at ${PARTICIPANTS_MAX_PAGES}.`);
+  }
+
+  for (let page = 2; page <= pagesToFetch; page++) {
+    const next = await queryStartGG(queries.tournament.participants, {
+      slug, page, perPage: PARTICIPANTS_PER_PAGE,
+    });
+    const nextEvents = next?.tournament?.events ?? [];
+
+    for (const event of first.tournament.events) {
+      const match = nextEvents.find(e => e.id === event.id);
+      const nodes = match?.entrants?.nodes ?? [];
+      if (nodes.length === 0) continue;
+
+      const seen = new Set(event.entrants.nodes.map(n => n.id));
+      for (const node of nodes) {
+        if (!seen.has(node.id)) {
+          event.entrants.nodes.push(node);
+          seen.add(node.id);
+        }
+      }
+    }
+  }
+
+  return first;
 }
 
 // Get upcoming/past tournaments for a tournament series (like "iron-fist-league")
