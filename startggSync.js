@@ -66,10 +66,21 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     const tournament = tournamentData.tournament;
     console.log(`  ✓ Found: ${tournament.name}`);
     
-    // Find or create tournament in database
+    // Find or create tournament in database.
+    //
+    // Keyed on the start.gg slug, which is unique and stable. Looking up by
+    // `name` alone merged two genuinely distinct start.gg tournaments that
+    // happened to share a display name. The name lookup is kept as a fallback so
+    // rows created before startgg_slug existed are adopted rather than
+    // duplicated -- and backfilled below.
+    const cleanSlug = String(slug).replace(/^tournament\//, '');
     let [tournamentRows] = await pool.execute(
-      'SELECT tournament_id FROM tournaments WHERE name = ? ORDER BY tournament_id DESC LIMIT 1',
-      [tournament.name]
+      `SELECT tournament_id FROM tournaments
+       WHERE startgg_slug = ?
+          OR (startgg_slug IS NULL AND name = ?)
+       ORDER BY (startgg_slug = ?) DESC, tournament_id DESC
+       LIMIT 1`,
+      [cleanSlug, tournament.name, cleanSlug]
     );
 
     let tournamentId;
@@ -88,8 +99,8 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
       }
       
       const [result] = await pool.execute(
-        'INSERT INTO tournaments (name, season, start_date, status, game_version) VALUES (?, ?, ?, ?, ?)',
-        [tournament.name, 'Season 1', startDate, status, 'Tekken 8']
+        'INSERT INTO tournaments (name, startgg_slug, season, start_date, status, game_version) VALUES (?, ?, ?, ?, ?, ?)',
+        [tournament.name, cleanSlug, 'Season 1', startDate, status, 'Tekken 8']
       );
       tournamentId = result.insertId;
       console.log(`  Created tournament with status: ${status}`);
@@ -107,9 +118,11 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
         status = 'active';
       }
       
+      // Backfill startgg_slug on rows that predate the column, so the next sync
+      // matches on the slug rather than on the name.
       await pool.execute(
-        'UPDATE tournaments SET status = ? WHERE tournament_id = ?',
-        [status, tournamentId]
+        'UPDATE tournaments SET status = ?, startgg_slug = ? WHERE tournament_id = ?',
+        [status, cleanSlug, tournamentId]
       );
     }
 
@@ -221,6 +234,13 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     // Process each event
     for (const event of events) {
       console.log(`  Processing event: ${event.name}`);
+
+      // Part of the per-set dedupe key -- see the lookup below.
+      const eventName = event.name || null;
+
+      if (event.setsIncomplete) {
+        warnings.push(`Event "${event.name}": set list is incomplete (${event.setsError}). Some matches were not synced.`);
+      }
       
       if (!event.sets || !event.sets.nodes) {
         console.log(`    ✗ No sets/matches in this event`);
@@ -262,30 +282,27 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
         
         processedSets++;
 
-        // Get or create players
-        let [p1Rows] = await pool.execute('SELECT user_id FROM users WHERE username = ?', [p1Name]);
-        let p1Id;
-        if (p1Rows.length === 0) {
-          const [p1Result] = await pool.execute(
-            'INSERT INTO users (username) VALUES (?)',
-            [p1Name]
-          );
-          p1Id = p1Result.insertId;
-        } else {
-          p1Id = p1Rows[0].user_id;
-        }
+        // Everything this set writes -- both player rows and the match row --
+        // commits together or not at all. See withTransaction.
+        const setResult = await withTransaction(async (db) => {
+          // Get or create players. Uses the same tolerant lookup as the participant
+          // sync above -- an exact-match-only lookup here created a second row for
+          // any player already stored in the legacy "SPONSOR | tag" form.
+          // Sequential rather than parallel: they share one transaction connection.
+          const p1Id = await findOrCreateUserId(p1Name, db);
+          const p2Id = await findOrCreateUserId(p2Name, db);
 
-        let [p2Rows] = await pool.execute('SELECT user_id FROM users WHERE username = ?', [p2Name]);
-        let p2Id;
-        if (p2Rows.length === 0) {
-          const [p2Result] = await pool.execute(
-            'INSERT INTO users (username) VALUES (?)',
-            [p2Name]
-          );
-          p2Id = p2Result.insertId;
-        } else {
-          p2Id = p2Rows[0].user_id;
-        }
+          // Parse scores from displayScore.
+          //
+          // start.gg formats this as "PlayerName 2 - PlayerName 3", or "PlayerName
+          // DQ" / "DQ" for a disqualification, or a bare "-" when the set has not
+          // been reported. The separator " - " is therefore present in EVERY real
+          // score string -- the previous `displayScore.includes('-')` test flagged
+          // all of them as DQ and left the score-extraction branch unreachable, so
+          // every synced match was stored 0-0.
+          let scoreP1 = 0;
+          let scoreP2 = 0;
+          let isDQ = false;
 
           const displayScore = (set.displayScore || '').trim();
           if (displayScore) {
@@ -303,72 +320,85 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
             }
           }
 
-        // Determine winner - use start.gg winnerId first
-        let winnerId = null;
-        if (set.winnerId) {
-          // Convert to number for comparison since IDs might be strings or numbers
-          const winnerIdNum = parseInt(set.winnerId);
-          const slot1IdNum = parseInt(slot1.entrant.id);
-          const slot2IdNum = parseInt(slot2.entrant.id);
+          // Determine winner - use start.gg winnerId first
+          let winnerId = null;
+          if (set.winnerId) {
+            // Convert to number for comparison since IDs might be strings or numbers
+            const winnerIdNum = parseInt(set.winnerId);
+            const slot1IdNum = parseInt(slot1.entrant.id);
+            const slot2IdNum = parseInt(slot2.entrant.id);
           
-          if (winnerIdNum === slot1IdNum) {
-            winnerId = p1Id;
-          } else if (winnerIdNum === slot2IdNum) {
-            winnerId = p2Id;
+            if (winnerIdNum === slot1IdNum) {
+              winnerId = p1Id;
+            } else if (winnerIdNum === slot2IdNum) {
+              winnerId = p2Id;
+            }
           }
-        }
         
-        // Fallback: determine winner from scores if winnerId didn't match
-        if (!winnerId && !isDQ && (scoreP1 > 0 || scoreP2 > 0)) {
-          if (scoreP1 > scoreP2) {
-            winnerId = p1Id;
-          } else if (scoreP2 > scoreP1) {
-            winnerId = p2Id;
+          // Fallback: determine winner from scores if winnerId didn't match
+          if (!winnerId && !isDQ && (scoreP1 > 0 || scoreP2 > 0)) {
+            if (scoreP1 > scoreP2) {
+              winnerId = p1Id;
+            } else if (scoreP2 > scoreP1) {
+              winnerId = p2Id;
+            }
           }
-        }
 
 
         // Check if match already exists
         const matchTime = set.completedAt ? new Date(set.completedAt * 1000) : new Date();
         const roundName = set.fullRoundText || set.round || 'Unknown Round';
 
-        const [existingMatches] = await pool.execute(
-          'SELECT match_id, score_p1, score_p2, winner_id FROM matches WHERE tournament_id = ? AND player1_id = ? AND player2_id = ? AND round_name = ?',
-          [tournamentId, p1Id, p2Id, roundName]
-        );
-
-        if (existingMatches.length === 0) {
-          // Insert new match
-          await pool.execute(
-            `INSERT INTO matches (tournament_id, player1_id, player2_id, winner_id, round_name, score_p1, score_p2, match_time)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [tournamentId, p1Id, p2Id, winnerId, roundName, scoreP1, scoreP2, matchTime]
+          // The event is part of the identity of a set. Without it, the same pair
+          // meeting in a same-named round ("Winners Round 1") of a second event of
+          // the same tournament was treated as a duplicate and silently dropped.
+          // The NULL branch adopts rows written before event_name existed.
+          const [existingMatches] = await db.execute(
+            `SELECT match_id, score_p1, score_p2, winner_id FROM matches
+             WHERE tournament_id = ? AND player1_id = ? AND player2_id = ? AND round_name = ?
+               AND (event_name = ? OR event_name IS NULL)
+             ORDER BY (event_name = ?) DESC
+             LIMIT 1`,
+            [tournamentId, p1Id, p2Id, roundName, eventName, eventName]
           );
-          matchesSynced++;
-        } else {
-          // Match exists - update if we have better data (actual scores instead of 0-0)
-          const existingMatch = existingMatches[0];
-          const existingHasScores = (existingMatch.score_p1 > 0 || existingMatch.score_p2 > 0);
-          const newHasScores = (scoreP1 > 0 || scoreP2 > 0);
-          const existingHasWinner = existingMatch.winner_id !== null;
-          const newHasWinner = winnerId !== null;
-          
-          // Update if: new data has scores and existing doesn't, OR new data has winner and existing doesn't
-          if ((newHasScores && !existingHasScores) || (newHasWinner && !existingHasWinner)) {
-            await pool.execute(
-              `UPDATE matches SET score_p1 = ?, score_p2 = ?, winner_id = ?, match_time = ? WHERE match_id = ?`,
-              [
-                newHasScores ? scoreP1 : existingMatch.score_p1,
-                newHasScores ? scoreP2 : existingMatch.score_p2,
-                newHasWinner ? winnerId : existingMatch.winner_id,
-                matchTime,
-                existingMatch.match_id
-              ]
+
+          if (existingMatches.length === 0) {
+            // Insert new match
+            await db.execute(
+              `INSERT INTO matches (tournament_id, player1_id, player2_id, winner_id, round_name, event_name, score_p1, score_p2, match_time)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [tournamentId, p1Id, p2Id, winnerId, roundName, eventName, scoreP1, scoreP2, matchTime]
             );
-            matchesUpdated++;
-            matchesUpdatedInEvent++;
+            return { inserted: true, updated: false };
+          } else {
+            // Match exists - update if we have better data (actual scores instead of 0-0)
+            const existingMatch = existingMatches[0];
+            const existingHasScores = (existingMatch.score_p1 > 0 || existingMatch.score_p2 > 0);
+            const newHasScores = (scoreP1 > 0 || scoreP2 > 0);
+            const existingHasWinner = existingMatch.winner_id !== null;
+            const newHasWinner = winnerId !== null;
+          
+            // Update if: new data has scores and existing doesn't, OR new data has winner and existing doesn't
+            if ((newHasScores && !existingHasScores) || (newHasWinner && !existingHasWinner)) {
+              await db.execute(
+                `UPDATE matches SET score_p1 = ?, score_p2 = ?, winner_id = ?, match_time = ?, event_name = ? WHERE match_id = ?`,
+                [
+                  newHasScores ? scoreP1 : existingMatch.score_p1,
+                  newHasScores ? scoreP2 : existingMatch.score_p2,
+                  newHasWinner ? winnerId : existingMatch.winner_id,
+                  matchTime,
+                  eventName,
+                  existingMatch.match_id
+                ]
+              );
+              return { inserted: false, updated: true };
+            }
+            return { inserted: false, updated: false };
           }
-        }
+        });
+
+        if (setResult.inserted) matchesSynced++;
+        if (setResult.updated) { matchesUpdated++; matchesUpdatedInEvent++; }
       }
       
       // Debug logging
@@ -389,6 +419,64 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     console.error('✗ Error syncing tournament from start.gg:', error.message);
     throw error;
   }
+}
+
+/**
+ * Runs `fn` inside a transaction on a single pooled connection.
+ *
+ * The sync had no transactions at all: every write was a standalone
+ * pool.execute on an arbitrary pooled connection, so a failure part-way through
+ * left the tournament row plus some users and some matches committed, with no
+ * rollback and no way to tell how far it got.
+ *
+ * The unit of work is one set, not the whole sync -- a sync interleaves hundreds
+ * of start.gg round-trips and can run for minutes, and holding a transaction
+ * open across those would lock rows for the duration for no benefit. Per-set is
+ * the boundary that matters: a match never lands without the player rows it
+ * references.
+ */
+async function withTransaction(fn) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const result = await fn(connection);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch (rollbackError) {
+      console.error('  ✗ Rollback failed:', rollbackError.message);
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+/**
+ * Resolves a gamer tag to a user_id, creating the row if it does not exist.
+ *
+ * The lookup deliberately accepts three stored shapes: the bare tag, the legacy
+ * "SPONSOR | tag" display form, and any row whose username ends in " | tag".
+ * An exact-match-only lookup silently created duplicates for every player whose
+ * row predates the sponsor-column split.
+ *
+ * `db` is a pooled connection when called inside a transaction, the pool itself
+ * otherwise.
+ */
+async function findOrCreateUserId(gamerTag, db = pool) {
+  const [rows] = await db.execute(
+    `SELECT user_id FROM users
+     WHERE username = ? OR username LIKE ?
+     ORDER BY (username = ?) DESC
+     LIMIT 1`,
+    [gamerTag, `% | ${gamerTag}`, gamerTag]
+  );
+  if (rows.length > 0) return rows[0].user_id;
+
+  const [result] = await db.execute('INSERT INTO users (username) VALUES (?)', [gamerTag]);
+  return result.insertId;
 }
 
 // Sync player information from start.gg
