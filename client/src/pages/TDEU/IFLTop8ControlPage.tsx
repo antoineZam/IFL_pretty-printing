@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { debugLog } from '../../utils/debug';
 import { io, Socket } from 'socket.io-client';
+import { apiGet, asArray, errorMessage } from '../../utils/api';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
 import { RefreshCw, Eye, Search, Trophy, LayoutGrid, List, Zap, Upload, Users } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import { CyberInput } from '../../components/ui/CyberInput';
@@ -71,8 +74,7 @@ interface Top8Player {
 }
 
 const IFLTop8ControlPage = () => {
-    const [searchParams] = useSearchParams();
-    const key = searchParams.get('key') || localStorage.getItem('connectionKey');
+    const key = useConnectionKey();
 
     const [socket, setSocket] = useState<Socket | null>(null);
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -108,7 +110,7 @@ const IFLTop8ControlPage = () => {
         setSocket(newSocket);
 
         newSocket.on('connect', () => {
-            console.log('[Top8 Control] Socket connected');
+            debugLog('[Top8 Control] Socket connected');
         });
 
         return () => {
@@ -124,12 +126,14 @@ const IFLTop8ControlPage = () => {
     const loadIFLTournaments = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/startgg/ifl/tournaments');
-            const data = await response.json();
-            setTournaments(data || []);
+            setError(null);
+            // asArray: a 401 body is an object, and this state is rendered with .map()
+            const data = await apiGet<unknown>('/api/startgg/ifl/tournaments');
+            setTournaments(asArray<Tournament>(data));
         } catch (err) {
             console.error('Error loading tournaments:', err);
-            setError('Failed to load IFL tournaments');
+            setTournaments([]);
+            setError(errorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -170,7 +174,8 @@ const IFLTop8ControlPage = () => {
                         id: e.id,
                         name: e.name,
                         slug: e.slug,
-                        numEntrants: e.numEntrants
+                        // numEntrants is not selected by the events query; treat as unknown
+                        numEntrants: e.numEntrants ?? 0
                     })));
                 }
             }
@@ -197,7 +202,8 @@ const IFLTop8ControlPage = () => {
                     id: e.id,
                     name: e.name,
                     slug: e.slug,
-                    numEntrants: e.numEntrants
+                    // numEntrants is not selected by the events query; treat as unknown
+                    numEntrants: e.numEntrants ?? 0
                 })));
             }
         } catch (err) {
@@ -277,7 +283,15 @@ const IFLTop8ControlPage = () => {
     };
 
     const pushToOverlay = () => {
-        if (!socket || !selectedEvent) return;
+        if (!socket) {
+            setError('Not connected: no connection key. Open this page with ?key=... or sign in again.');
+            return;
+        }
+        if (!selectedEvent) {
+            setError('Select an event before pushing to the overlay.');
+            return;
+        }
+        setError(null);
 
         socket.emit('top8-data', {
             eventSlug: selectedEvent.slug,
@@ -309,7 +323,7 @@ const IFLTop8ControlPage = () => {
             lastUpdated: new Date().toISOString()
         };
         
-        console.log('[Top8] Pushing standings data:', data);
+        debugLog('[Top8] Pushing standings data:', data);
         socket.emit('top8-standings-data', data);
 
         setPushed(true);
