@@ -137,6 +137,11 @@ const queries = {
             nodes {
               id
               fullRoundText
+              # Signed round number, used when fullRoundText is absent. The
+              # sync's fallback chain reads it, but it was never selected here,
+              # so the value was permanently undefined and every such set
+              # degraded straight to the literal "Unknown Round".
+              round
               displayScore
               winnerId
               completedAt

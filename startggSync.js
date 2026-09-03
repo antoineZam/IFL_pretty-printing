@@ -345,9 +345,16 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
           }
 
 
-        // Check if match already exists
-        const matchTime = set.completedAt ? new Date(set.completedAt * 1000) : new Date();
-        const roundName = set.fullRoundText || set.round || 'Unknown Round';
+          // Check if match already exists
+          const matchTime = set.completedAt ? new Date(set.completedAt * 1000) : new Date();
+          // start.gg's `round` is a signed integer (negative = losers side), so
+          // render it rather than dropping a bare number into the column.
+          const roundName =
+            set.fullRoundText ||
+            (Number.isInteger(set.round)
+              ? (set.round < 0 ? `Losers Round ${Math.abs(set.round)}` : `Winners Round ${set.round}`)
+              : null) ||
+            'Unknown Round';
 
           // The event is part of the identity of a set. Without it, the same pair
           // meeting in a same-named round ("Winners Round 1") of a second event of
