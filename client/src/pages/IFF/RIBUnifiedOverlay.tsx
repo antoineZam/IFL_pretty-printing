@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
 
 import RIBSingleMatchOverlay from './RIBSingleMatchOverlay';
 import RIBPartOneOverlay from './RIBPartOneOverlay';
@@ -95,7 +95,7 @@ const DEFAULT_OVERLAY_STATE: OverlayState = {
 };
 
 export default function RIBUnifiedOverlay() {
-    const [searchParams] = useSearchParams();
+    const connectionKey = useConnectionKey();
 
     const [overlayState, setOverlayState] = useState<OverlayState>(DEFAULT_OVERLAY_STATE);
     const [matchCards, setMatchCards] = useState<MatchCardData | null>(null);
@@ -105,8 +105,6 @@ export default function RIBUnifiedOverlay() {
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
         document.documentElement.style.backgroundColor = 'transparent';
-
-        const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
 
         const socket = io({ auth: { token: connectionKey || '' } });
 
@@ -118,7 +116,7 @@ export default function RIBUnifiedOverlay() {
         return () => {
             socket.disconnect();
         };
-    }, [searchParams]);
+    }, [connectionKey]);
 
     const anyOverlayActive =
         overlayState.showMatchCard ||
@@ -138,12 +136,22 @@ export default function RIBUnifiedOverlay() {
                     pointerEvents: anyOverlayActive ? 'none' : 'auto',
                 }}
             >
-                <img
-                    src={`/source/overlay/main_page/Runitback_main_page_part-${matchCards?.partNumber}.png`}
-                    alt="Run It Back Main Page"
-                    className="w-full h-full object-cover"
-                />
-                <SnowEffect />
+                {/* A12: matchCards is null until the first rib-match-cards-update
+                    lands, and interpolating that produced
+                    "..._part-undefined.png" -- a 404 and a blank main page. Wait
+                    for a real part number. */}
+                {matchCards?.partNumber && (
+                    <img
+                        src={`/source/overlay/main_page/Runitback_main_page_part-${matchCards.partNumber}.png`}
+                        alt="Run It Back Main Page"
+                        className="w-full h-full object-cover"
+                    />
+                )}
+                {/* A8: unmounted rather than merely faded out. The wrapper only
+                    animates opacity, so leaving this mounted kept 800
+                    infinitely-animated nodes running style recalc and paint on
+                    the broadcast machine for the whole event, invisibly. */}
+                {!anyOverlayActive && <SnowEffect />}
             </div>
 
             {/* Match Card Overlay */}
