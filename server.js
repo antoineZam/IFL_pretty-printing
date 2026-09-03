@@ -4,6 +4,7 @@ const compression = require('compression');
 const http    = require('http');
 const socketIo = require('socket.io');
 const fs   = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const pool       = require('./db');
 const dbHelpers  = require('./dbHelpers');
@@ -274,15 +275,98 @@ function requireRibAuth(req, res, next) {
     return res.status(403).json({ error: 'Forbidden' });
 }
 
+// ------------------------------------------------------------
+// Auth endpoint hardening
+//
+// Both endpoints compared a submitted key against an environment variable and
+// returned immediately, with no delay, lockout or logging, and with a
+// short-circuiting === comparison. A strong random key already makes brute force
+// impractical, so this is defence in depth -- but nothing stopped an unbounded
+// guessing loop, and nothing recorded that one had happened.
+// ------------------------------------------------------------
+
+/**
+ * Comparison whose duration does not depend on how many leading characters
+ * matched. `===` on strings bails at the first difference.
+ */
+function safeEqual(a, b) {
+    const bufA = Buffer.from(String(a ?? ''), 'utf8');
+    const bufB = Buffer.from(String(b ?? ''), 'utf8');
+    // timingSafeEqual requires equal lengths; hash first so length is constant.
+    const hashA = crypto.createHash('sha256').update(bufA).digest();
+    const hashB = crypto.createHash('sha256').update(bufB).digest();
+    return crypto.timingSafeEqual(hashA, hashB);
+}
+
+const AUTH_WINDOW_MS   = 15 * 60 * 1000;
+const AUTH_MAX_ATTEMPTS = 10;
+const authAttempts = new Map();   // ip -> { count, firstAt, blockedUntil }
+
+// Bounded so a spray across many source addresses cannot grow this without limit.
+const AUTH_TRACKER_MAX = 5000;
+
+function authRateLimit(req, res, next) {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    let entry = authAttempts.get(ip);
+
+    if (entry && now - entry.firstAt > AUTH_WINDOW_MS) {
+        entry = undefined;
+        authAttempts.delete(ip);
+    }
+
+    if (entry?.blockedUntil && now < entry.blockedUntil) {
+        const retryAfter = Math.ceil((entry.blockedUntil - now) / 1000);
+        res.setHeader('Retry-After', String(retryAfter));
+        return res.status(429).json({
+            success: false,
+            message: `Too many failed attempts. Try again in ${retryAfter}s.`,
+        });
+    }
+
+    if (authAttempts.size > AUTH_TRACKER_MAX) {
+        for (const [key, value] of authAttempts) {
+            if (now - value.firstAt > AUTH_WINDOW_MS) authAttempts.delete(key);
+        }
+    }
+
+    // Handed to the route so it can record the outcome.
+    req.recordAuthResult = (ok) => {
+        if (ok) {
+            authAttempts.delete(ip);
+            return;
+        }
+        const current = authAttempts.get(ip) ?? { count: 0, firstAt: now };
+        current.count += 1;
+        if (current.count >= AUTH_MAX_ATTEMPTS) {
+            current.blockedUntil = now + AUTH_WINDOW_MS;
+            console.warn(`[auth] ${ip} blocked after ${current.count} failed attempts.`);
+        } else {
+            console.warn(`[auth] Failed attempt ${current.count}/${AUTH_MAX_ATTEMPTS} from ${ip}.`);
+        }
+        authAttempts.set(ip, current);
+    };
+
+    next();
+}
+
 // Public auth endpoints — must be registered before the requireAuth middleware.
-app.post('/api/auth', (req, res) => {
-    if (req.body.key === CONNECTION_KEY) return res.json({ success: true });
+app.post('/api/auth', authRateLimit, (req, res) => {
+    if (safeEqual(req.body.key, CONNECTION_KEY)) {
+        req.recordAuthResult(true);
+        return res.json({ success: true });
+    }
+    req.recordAuthResult(false);
     res.status(401).json({ success: false, message: 'Invalid connection key' });
 });
 
-app.post('/api/rib-auth', (req, res) => {
+app.post('/api/rib-auth', authRateLimit, (req, res) => {
     if (!IFF_ACCESS_KEY) return res.json({ success: true, message: 'No RIB key required' });
-    if (req.body.key === IFF_ACCESS_KEY) return res.json({ success: true });
+    if (safeEqual(req.body.key, IFF_ACCESS_KEY)) {
+        req.recordAuthResult(true);
+        return res.json({ success: true });
+    }
+    req.recordAuthResult(false);
     res.status(401).json({ success: false, message: 'Invalid RIB access key' });
 });
 
