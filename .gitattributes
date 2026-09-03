@@ -1,0 +1,46 @@
+# Tell git these are binary, so it never attempts a diff or a three-way merge on
+# them. Deliberately no `text` / `text=auto` rules: adding those renormalizes
+# line endings across the whole repository and turns every tracked file into a
+# full rewrite in the next diff, which buries real changes.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.mp4   binary
+*.webm  binary
+*.mov   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.zip   binary
+
+# ---------------------------------------------------------------------------
+# git-lfs
+#
+# 420 of the tracked files are binary artwork, and they account for ~263 MB of
+# the ~286 MB of history -- for ~15 MB of code. Without LFS, every re-export of
+# an overlay appends another full copy, forever.
+#
+# LFS is NOT enabled here, deliberately: turning it on converts these files on
+# the next commit that touches them, and anyone cloning without git-lfs
+# installed then gets pointer text files instead of images -- which means blank
+# overlays on stream. It also does nothing about the ~263 MB already in history,
+# which needs a separate, coordinated history rewrite.
+#
+# To adopt it, on a day with no event scheduled:
+#   1. Confirm git-lfs is installed everywhere the repo is cloned, including the
+#      broadcast machine.
+#   2. `git lfs install`
+#   3. Uncomment the lines below and commit them.
+#   4. Optionally rewrite history with `git lfs migrate import --include="*.png"`
+#      -- this changes every commit hash and requires a force-push and a fresh
+#      clone everywhere.
+#
+# *.png  filter=lfs diff=lfs merge=lfs -text
+# *.jpg  filter=lfs diff=lfs merge=lfs -text
+# *.zip  filter=lfs diff=lfs merge=lfs -text
+# *.mp4  filter=lfs diff=lfs merge=lfs -text
+# ---------------------------------------------------------------------------
