@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { apiGet, asArray, errorMessage } from '../../utils/api';
 import { countries } from '../../utils/countries';
 import { Swords, RotateCcw, Trash2, Users } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
@@ -50,6 +51,7 @@ const IFLMatchControlPage = () => {
     });
     const [playerHistory, setPlayerHistory] = useState<PlayerHistoryItem[]>([]);
     const [standings, setStandings] = useState<StandingEntry[]>([]);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const findPlayerRank = (username: string): number | null => {
         const normalizedName = username.toLowerCase().trim();
@@ -62,23 +64,22 @@ const IFLMatchControlPage = () => {
     useEffect(() => {
         const fetchPlayerHistory = async () => {
             try {
-                const response = await fetch('/api/history');
-                const historyData = await response.json();
-                setPlayerHistory(historyData);
+                // asArray: a 401 body is an object, and this state is rendered with .filter()
+                const historyData = await apiGet<unknown>('/api/history');
+                setPlayerHistory(asArray(historyData));
             } catch (error) {
                 console.error("Failed to fetch player history:", error);
+                setLoadError(errorMessage(error));
             }
         };
 
         const fetchStandings = async () => {
             try {
-                const response = await fetch('/api/db/league/standings?limit=64');
-                const standingsData = await response.json();
-                if (standingsData.standings) {
-                    setStandings(standingsData.standings);
-                }
+                const standingsData = await apiGet<{ standings?: unknown }>('/api/db/league/standings?limit=64');
+                setStandings(asArray(standingsData?.standings));
             } catch (error) {
                 console.error("Failed to fetch league standings:", error);
+                setLoadError(errorMessage(error));
             }
         };
 
@@ -213,6 +214,18 @@ const IFLMatchControlPage = () => {
     return (
         <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px]">
             <TDEUBurgerMenu />
+            {loadError && (
+                <div className="mb-6 border border-red-500/40 bg-red-500/10 rounded-lg px-4 py-3 text-sm text-red-300 flex items-center justify-between gap-4">
+                    <span>Could not load data from the server: {loadError}</span>
+                    <button
+                        type="button"
+                        onClick={() => { localStorage.removeItem('connectionKey'); window.location.href = '/auth'; }}
+                        className="shrink-0 underline underline-offset-4 hover:text-red-200"
+                    >
+                        Re-enter key
+                    </button>
+                </div>
+            )}
             {/* Top Bar */}
             <div className="flex justify-between items-end mb-8">
                 <h1 className="text-2xl font-archivo-expanded-bold text-white/80">MATCH CONTROLLER</h1>

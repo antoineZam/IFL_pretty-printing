@@ -1,9 +1,11 @@
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import IFFAccessGuard from './components/IFFAccessGuard';
 import ReturnHomeButton from './components/ReturnHomeButton';
 import GlitchTransition from './components/GlitchTransition';
 import IFFCyberBackground from './components/IFFCyberBackground';
+import ErrorBoundary from './components/ErrorBoundary';
+import { isOverlayRoute, isTDEURoute } from './utils/routes';
 
 // Eager load only critical pages for initial render
 import AuthPage from './pages/AuthPage';
@@ -60,9 +62,8 @@ const IFF9UnifiedOverlay = lazy(() => import('./pages/IFF/IFF9UnifiedOverlay'));
 
 const PageLoader = () => {
   const location = useLocation();
-  const isTDEU = location.pathname.includes('/tdeu') || location.pathname.includes('/ifl/') || location.pathname.includes('/tag/');
-
-  if (isTDEU) {
+  // No loader chrome on TDEU pages (own transitions) or on any OBS overlay.
+  if (isTDEURoute(location.pathname) || isOverlayRoute(location.pathname)) {
       return null;
   }
 
@@ -77,12 +78,27 @@ const PageLoader = () => {
   );
 };
 
+/**
+ * Wraps the route tree so a throw during render shows a readable error instead
+ * of unmounting the app into a blank page. Overlay routes get the silent
+ * variant: an error card must never be composited into the broadcast.
+ */
+const RouteErrorBoundary = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  return (
+    <ErrorBoundary key={location.pathname} silent={isOverlayRoute(location.pathname)}>
+      {children}
+    </ErrorBoundary>
+  );
+};
+
 function App() {
   return (
     <BrowserRouter>
       <GlitchTransition />
       <IFFCyberBackground />
       <ReturnHomeButton />
+      <RouteErrorBoundary>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
@@ -133,6 +149,7 @@ function App() {
           <Route path="/iff/iff-9/unified-overlay" element={<IFF9UnifiedOverlay />} />
         </Routes>
       </Suspense>
+      </RouteErrorBoundary>
     </BrowserRouter>
   );
 }
