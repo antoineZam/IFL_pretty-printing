@@ -1370,6 +1370,13 @@ io.on('connection', (socket) => {
     });
 });
 
+// An /api path that matched no router is a mistyped or removed endpoint. Without
+// this it fell through to the SPA catch-all below and answered 200 with
+// index.html, so the caller got a JSON parse error instead of a clean 404.
+app.use('/api', (req, res) => {
+    res.status(404).json({ error: `No such API route: ${req.method} ${req.originalUrl}` });
+});
+
 // Catch-all: serve the React SPA for any non-API route.
 app.get('*', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
