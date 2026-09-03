@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { isOverlayRoute, isTDEURoute, isIFFRoute } from '../utils/routes';
 
 export default function GlitchTransition() {
     const location = useLocation();
     const [isTransitioning, setIsTransitioning] = useState(false);
 
     useEffect(() => {
-        // Exclude overlay pages from the glitch transition to not mess up broadcasts
-        if (location.pathname.includes('overlay') || location.pathname.includes('match-cards')) return;
-
-        // Exclude TDEU pages to keep their smooth holographic transitions
-        const isTDEU = location.pathname.includes('/tdeu') || location.pathname.includes('/ifl/') || location.pathname.includes('/tag/');
-        if (isTDEU) return;
+        // Exclude overlay pages from the glitch transition to not mess up broadcasts,
+        // and TDEU pages to keep their smooth holographic transitions.
+        if (isOverlayRoute(location.pathname) || isTDEURoute(location.pathname)) return;
 
         setIsTransitioning(true);
         const timer = setTimeout(() => {
@@ -24,7 +22,7 @@ export default function GlitchTransition() {
     if (!isTransitioning) return null;
 
     // Check if the destination is an IFF route to apply green-ish cyber colors
-    const isIFF = location.pathname.includes('/iff') || location.pathname.includes('/rib');
+    const isIFF = isIFFRoute(location.pathname);
     // Otherwise use TDEU/Main colors (cyan/white)
     const glitchColor1 = isIFF ? '#10b981' : '#06b6d4';
     const glitchColor2 = isIFF ? '#ef4444' : '#3b82f6';

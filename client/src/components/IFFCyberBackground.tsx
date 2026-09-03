@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { isOverlayRoute, isIFFRoute } from '../utils/routes';
 
 interface CyberNode {
   id: string;
@@ -29,27 +30,13 @@ const CYBER_NODES: CyberNode[] = [
   { id: 'lnw-overlay',     path: '/iff/love-and-war/overlay',            label: 'Team Stats',      archived: true },
 ];
 
-// Overlay routes rendered in OBS — no UI decoration
-const OVERLAY_PREFIXES = [
-  '/iff/unified-overlay',
-  '/iff/single-match-overlay',
-  '/iff/player-stats-overlay',
-  '/iff/part-one-overlay',
-  '/iff/stream-overlay',
-  '/iff/love-and-war/overlay',
-  '/iff/love-and-war/match-overlay',
-  '/iff/love-and-war/unified-overlay',
-  '/iff/iff-9/match-overlay',
-  '/iff/iff-9/match-cards',
-  '/iff/iff-9/unified-overlay',
-];
-
+// Overlay routes rendered in OBS get no UI decoration at all. The list lives in
+// utils/routes.ts so it cannot drift from the route table again -- the local
+// copy of it here missed /iff/player-stats/:polarisId and painted an opaque
+// black field over the player-radar overlay on stream.
 function isIFFPage(pathname: string): boolean {
-  if (OVERLAY_PREFIXES.some(p => pathname.startsWith(p))) return false;
-  return (
-    pathname.startsWith('/dashboard/iff') ||
-    pathname.startsWith('/iff/')
-  );
+  if (isOverlayRoute(pathname)) return false;
+  return isIFFRoute(pathname);
 }
 
 function findActiveNode(pathname: string): CyberNode | undefined {
