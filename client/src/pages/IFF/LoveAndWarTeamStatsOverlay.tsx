@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { debugLog } from '../../utils/debug';
+import { apiGet } from '../../utils/api';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
 import LoveAndWarTextureOverlay from '../../components/LoveAndWarTextureOverlay';
 
 interface TeamData {
@@ -72,11 +74,21 @@ const StatRowRight = ({ label, value }: { label: string; value: string }) => (
 );
 
 const LoveAndWarTeamStatsOverlay = ({ teamId: propTeamId, embedded = false }: Props) => {
-    const [searchParams] = useSearchParams();
+    const connectionKey = useConnectionKey();
     const [team, setTeam] = useState<TeamData | null>(null);
     const [isVisible, setIsVisible] = useState(embedded); // If embedded, start visible
     const [animKey, setAnimKey] = useState(0);
     const [currentTeamId, setCurrentTeamId] = useState<number | null>(null);
+
+    // Read by the socket handlers below. They must NOT be effect dependencies:
+    // the handlers themselves set both, so listing them tore the socket down and
+    // rebuilt it on every message -- a handler could be mid-fetch when its own
+    // socket was destroyed, and the fresh socket got no state replay, so team
+    // stat updates dropped intermittently on air.
+    const teamRef = useRef<TeamData | null>(null);
+    const currentTeamIdRef = useRef<number | null>(null);
+    useEffect(() => { teamRef.current = team; }, [team]);
+    useEffect(() => { currentTeamIdRef.current = currentTeamId; }, [currentTeamId]);
 
     // Embedded mode: fetch team directly when propTeamId changes
     useEffect(() => {
@@ -108,25 +120,22 @@ const LoveAndWarTeamStatsOverlay = ({ teamId: propTeamId, embedded = false }: Pr
         document.body.style.backgroundColor = 'transparent';
         document.documentElement.style.backgroundColor = 'transparent';
 
-        const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
-        
         const socket: Socket = io({
             auth: { token: connectionKey || '' }
         });
 
         socket.on('connect', () => {
-            console.log('[LnW Team Stats] Socket connected');
+            debugLog('[LnW Team Stats] Socket connected');
         });
 
         socket.on('love-and-war-display-update', async (state: DisplayState) => {
-            console.log('[LnW Team Stats] Display update:', state);
+            debugLog('[LnW Team Stats] Display update:', state);
 
             if (state.teamId && state.visible) {
                 try {
-                    const response = await fetch(`/api/iff/love-and-war/team/${state.teamId}`);
-                    const data = await response.json();
-                    if (data.team) {
-                        if (state.teamId !== currentTeamId) {
+                    const data = await apiGet<{ team?: TeamData }>(`/api/iff/love-and-war/team/${state.teamId}`);
+                    if (data?.team) {
+                        if (state.teamId !== currentTeamIdRef.current) {
                             setAnimKey(k => k + 1);
                             setCurrentTeamId(state.teamId);
                         }
@@ -142,7 +151,7 @@ const LoveAndWarTeamStatsOverlay = ({ teamId: propTeamId, embedded = false }: Pr
         });
 
         socket.on('love-and-war-team-update', (updatedTeam: TeamData) => {
-            if (team && updatedTeam.id === team.id) {
+            if (teamRef.current && updatedTeam.id === teamRef.current.id) {
                 setTeam(updatedTeam);
             }
         });
@@ -150,7 +159,8 @@ const LoveAndWarTeamStatsOverlay = ({ teamId: propTeamId, embedded = false }: Pr
         return () => {
             socket.disconnect();
         };
-    }, [searchParams, team, currentTeamId, embedded]);
+        // Deliberately only the connection identity: see the refs above.
+    }, [connectionKey, embedded]);
 
     // If not visible or no team, show default image (standalone mode only)
     if (!isVisible || !team) {
