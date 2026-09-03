@@ -235,8 +235,16 @@ const asyncRoute = fn => async (req, res) => {
     try {
         await fn(req, res);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message || 'Internal server error' });
+        // Full detail to the server log, a generic message to the client: raw
+        // err.message from mysql2 carries table names, column names and SQL
+        // fragments. The id lets an operator find the matching log line.
+        const errorId = Math.random().toString(36).slice(2, 10);
+        console.error(`[${errorId}] ${req.method} ${req.originalUrl}`, err);
+        res.status(500).json({
+            error: 'Internal server error',
+            errorId,
+            ...(process.env.NODE_ENV !== 'production' ? { detail: err.message } : {}),
+        });
     }
 };
 
