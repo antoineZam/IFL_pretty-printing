@@ -377,29 +377,51 @@ async function syncPlayerFromStartGG(playerSlug) {
 
     const player = playerData.player;
     const gamerTag = player.gamerTag || playerSlug;
+    const sponsor = player.prefix || null;
 
-    // Find or create user
+    // Find or create user.
+    //
+    // The sponsor prefix belongs in its own column -- it must NOT be folded into
+    // `username`. Previously this row was found by `username = gamerTag` and then
+    // immediately overwritten with `${prefix} ${gamerTag}` (a space separator,
+    // where the rest of the codebase uses ' | '), so the next sync's exact-match
+    // lookup missed and the ' | ' LIKE fallback could not match either -- every
+    // sync inserted a fresh duplicate.
+    //
+    // The lookup mirrors getOrCreateUser in dbHelpers: exact tag, the legacy
+    // "SPONSOR | tag" display form, and the space-separated rows this function
+    // used to create.
     let [userRows] = await pool.execute(
-      'SELECT user_id FROM users WHERE username = ?',
-      [gamerTag]
+      `SELECT user_id, sponsor FROM users
+       WHERE username = ?
+       OR username = ?
+       OR username LIKE ?
+       OR username = ?
+       ORDER BY (username = ?) DESC
+       LIMIT 1`,
+      [
+        gamerTag,
+        sponsor ? `${sponsor} | ${gamerTag}` : gamerTag,
+        `% | ${gamerTag}`,
+        sponsor ? `${sponsor} ${gamerTag}` : gamerTag,
+        gamerTag,
+      ]
     );
 
     let userId;
     if (userRows.length === 0) {
       const [result] = await pool.execute(
-        'INSERT INTO users (username, main_character) VALUES (?, ?)',
-        [gamerTag, null]
+        'INSERT INTO users (username, sponsor, main_character) VALUES (?, ?, ?)',
+        [gamerTag, sponsor, null]
       );
       userId = result.insertId;
     } else {
       userId = userRows[0].user_id;
-    }
-
-    // Update with additional info if available
-    if (player.prefix) {
+      // Normalize any row that carries the prefix inside the username, and fill
+      // in the sponsor column. Keeps repeat syncs idempotent.
       await pool.execute(
-        'UPDATE users SET username = ? WHERE user_id = ?',
-        [`${player.prefix} ${gamerTag}`, userId]
+        'UPDATE users SET username = ?, sponsor = ? WHERE user_id = ?',
+        [gamerTag, sponsor || userRows[0].sponsor || null, userId]
       );
     }
 
