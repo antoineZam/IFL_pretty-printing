@@ -47,6 +47,26 @@ app.use(compression());
 
 const CLIENT_DIST = path.join(__dirname, 'client', 'dist');
 
+// Timestamp of the bundle this server is serving, so a stale dist is visible
+// rather than something you discover on air.
+let clientBuildTime = 'unknown';
+try {
+    clientBuildTime = fs.statSync(path.join(CLIENT_DIST, 'index.html')).mtime.toISOString();
+} catch {
+    /* reported by the guard below */
+}
+
+// client/dist is gitignored build output, so a fresh clone has no bundle to
+// serve -- previously that produced a silent nothing on every page. Say so at
+// boot instead of at the first request.
+if (!fs.existsSync(path.join(CLIENT_DIST, 'index.html'))) {
+    console.error('FATAL: client/dist/index.html not found -- the client has not been built.');
+    console.error('Run "npm run build" (or "npm run setup" on a fresh clone) and restart.');
+    console.error('For local development with hot reload, use "npm run dev" and open http://localhost:5173.');
+    process.exit(1);
+}
+console.log(`Serving client bundle built ${clientBuildTime}.`);
+
 // Overlay artwork and fonts are large and effectively static. Caching them for a
 // day stops every OBS scene reload from re-fetching hundreds of megabytes;
 // revalidation still happens via ETag once the window lapses.
