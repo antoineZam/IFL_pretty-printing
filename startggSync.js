@@ -267,27 +267,21 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
           p2Id = p2Rows[0].user_id;
         }
 
-        // Parse scores from displayScore
-        // Format: "PlayerName 2 - PlayerName 3" or "DQ" or similar
-        let scoreP1 = 0;
-        let scoreP2 = 0;
-        let isDQ = false;
-        
-        if (set.displayScore) {
-          if (set.displayScore === '-' || set.displayScore.includes('-')) {
-            isDQ = true;
-          } else {
-            // Try to extract scores - format is usually "Name 2 - Name 3"
-            const parts = set.displayScore.split(' - ');
-            if (parts.length === 2) {
-              // Extract last number from each part (the score is at the end)
-              const p1Match = parts[0].match(/(\d+)$/);
-              const p2Match = parts[1].match(/(\d+)$/);
-              if (p1Match) scoreP1 = parseInt(p1Match[1]) || 0;
-              if (p2Match) scoreP2 = parseInt(p2Match[1]) || 0;
+          const displayScore = (set.displayScore || '').trim();
+          if (displayScore) {
+            if (/(^|\s)DQ(\s|$)/i.test(displayScore)) {
+              isDQ = true;
+            } else if (displayScore !== '-') {
+              // "Name 2 - Name 3": take the trailing integer from each side.
+              const parts = displayScore.split(' - ');
+              if (parts.length === 2) {
+                const p1Match = parts[0].match(/(\d+)\s*$/);
+                const p2Match = parts[1].match(/(\d+)\s*$/);
+                if (p1Match) scoreP1 = parseInt(p1Match[1], 10) || 0;
+                if (p2Match) scoreP2 = parseInt(p2Match[1], 10) || 0;
+              }
             }
           }
-        }
 
         // Determine winner - use start.gg winnerId first
         let winnerId = null;
