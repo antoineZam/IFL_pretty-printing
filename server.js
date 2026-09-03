@@ -388,8 +388,9 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
     for (const t of tournaments) {
         try {
             const r = await startggSync.syncTournamentFromStartGG(t.slug);
-            console.log(`[Sync] ✓ ${t.name}`);
-            results.push({ slug: t.slug, name: t.name, success: true, ...r });
+            const ok = r.complete !== false;
+            console.log(`[Sync] ${ok ? '✓' : '⚠'} ${t.name}${ok ? '' : ` (${r.warnings.length} warning(s))`}`);
+            results.push({ slug: t.slug, name: t.name, success: ok, ...r });
         } catch (e) {
             console.error(`[Sync] ✗ ${t.name}: ${e.message}`);
             results.push({ slug: t.slug, name: t.name, success: false, error: e.message });
@@ -495,7 +496,18 @@ startggRouter.post('/sync/tournament/:slug', asyncRoute(async (req, res) => {
     const playersRemoved = cleaned.affectedRows || 0;
     if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
 
-    res.json({ success: true, message: 'Tournament synced successfully', ...result, playersRemoved });
+    // "success" now means the sync actually completed. A run that lost a page of
+    // sets or failed participant lookup used to answer an unqualified
+    // "Tournament synced successfully" -- indistinguishable from a clean run.
+    const complete = result.complete !== false;
+    res.json({
+        success: complete,
+        message: complete
+            ? 'Tournament synced successfully'
+            : `Tournament synced with ${result.warnings.length} problem(s) — data may be incomplete.`,
+        ...result,
+        playersRemoved,
+    });
 }));
 
 startggRouter.post('/sync/player/:slug', asyncRoute(async (req, res) => {

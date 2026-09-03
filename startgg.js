@@ -212,12 +212,17 @@ async function getTournamentEvents(slug, options = {}) {
             hasMore = false;
           }
         } catch (e) {
+          // Stop paginating, but record that this event's set list is INCOMPLETE.
+          // Returning partial data with no marker made a failed fetch
+          // indistinguishable from an event that simply has fewer sets.
           console.log(`    ⚠ Error fetching page ${page}: ${e.message}`);
+          event.setsIncomplete = true;
+          event.setsError = e.message;
           hasMore = false;
         }
       }
       
-      console.log(`    ✓ Fetched ${event.sets.nodes.length} matches for ${event.name}`);
+      console.log(`    ${event.setsIncomplete ? '⚠' : '✓'} Fetched ${event.sets.nodes.length} matches for ${event.name}${event.setsIncomplete ? ' (INCOMPLETE)' : ''}`);
     }
   }
   

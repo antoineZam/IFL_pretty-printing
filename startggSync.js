@@ -125,7 +125,11 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     if (!eventsData || !eventsData.tournament || !eventsData.tournament.events) {
       console.log('  ✗ No events found for tournament');
       console.log('  Response:', JSON.stringify(eventsData, null, 2).substring(0, 500));
-      return { tournamentId, playersSynced: 0, matchesSynced: 0 };
+      return {
+        tournamentId, playersSynced: 0, matchesSynced: 0,
+        complete: false,
+        warnings: ['No events found for this tournament — nothing was synced.'],
+      };
     }
 
     const events = eventsData.tournament.events;
@@ -138,6 +142,10 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     let playersUpdated = 0;
     let matchesSynced = 0;
     let matchesUpdated = 0;
+    // Non-fatal problems that still leave the sync incomplete. Reported back so
+    // the caller can tell a partial sync from a clean one -- previously every
+    // one of these was swallowed and the response was an unqualified success.
+    const warnings = [];
 
     // Fetch and sync participant data once for the whole tournament
     try {
@@ -203,7 +211,11 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
         }
       }
     } catch (participantError) {
+      // Recorded, not swallowed: a failure here means sponsors and country flags
+      // are missing for this tournament, which is invisible until an overlay
+      // renders a blank flag mid-broadcast.
       console.log(`  ⚠ Could not sync participants: ${participantError.message}`);
+      warnings.push(`Participant sync failed: ${participantError.message}`);
     }
 
     // Process each event
@@ -367,7 +379,12 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
 
     console.log(`  ✓ Sync complete: ${playersSynced} players added, ${playersUpdated} players updated, ${matchesSynced} matches added, ${matchesUpdated} matches updated`);
     console.log(`========================================\n`);
-    return { tournamentId, playersSynced, playersUpdated, matchesSynced, matchesUpdated };
+    return {
+      tournamentId, playersSynced, playersUpdated, matchesSynced, matchesUpdated,
+      // `complete: false` means some data is missing; see `warnings`.
+      complete: warnings.length === 0,
+      warnings,
+    };
   } catch (error) {
     console.error('✗ Error syncing tournament from start.gg:', error.message);
     throw error;
