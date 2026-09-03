@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
+import OverlayKeyMissing from '../../components/OverlayKeyMissing';
 import IFF9MatchOverlay from './IFF9MatchOverlay';
 import IFF9MatchCardsPage from './IFF9MatchCardsPage';
 import type { IFF9DisplayMode, IFF9DisplayState, IFF9MatchData, IFF9Lineup } from '../../types/iff9';
@@ -29,7 +30,8 @@ const GlitchBurst = () => (
 );
 
 const IFF9UnifiedOverlay = () => {
-    const [searchParams] = useSearchParams();
+    const connectionKey = useConnectionKey();
+    const [keyMissing, setKeyMissing] = useState(false);
     const [displayMode, setDisplayMode] = useState<IFF9DisplayMode>('idle');
     const [isVisible, setIsVisible] = useState(false);
     const [socket, setSocket] = useState<Socket | null>(null);
@@ -50,8 +52,16 @@ const IFF9UnifiedOverlay = () => {
     }, []);
 
     useEffect(() => {
-        const key = searchParams.get('key');
-        if (!key) return;
+        // Query string first, then the stored key -- see useConnectionKey.
+        const key = connectionKey;
+        if (!key) {
+            // Was a bare `return`: no socket, no state, no diagnostic. The source
+            // just stayed blank forever with nothing to explain why.
+            console.error('IFF9 unified overlay: no connection key (?key= or localStorage).');
+            setKeyMissing(true);
+            return;
+        }
+        setKeyMissing(false);
 
         const newSocket: Socket = io({ auth: { token: key } });
         setSocket(newSocket);
@@ -65,7 +75,7 @@ const IFF9UnifiedOverlay = () => {
         newSocket.on('iff9-refresh-overlay', () => setRefreshKey(prev => prev + 1));
 
         return () => { newSocket.disconnect(); };
-    }, [searchParams]);
+    }, [connectionKey]);
 
     // Play a glitch burst whenever the display mode changes.
     useEffect(() => {
@@ -108,6 +118,7 @@ const IFF9UnifiedOverlay = () => {
 
     return (
         <div className="w-[1920px] h-[1080px] text-white overflow-hidden" style={{ backgroundColor: containerBg }}>
+            {keyMissing && <OverlayKeyMissing source="IFF9 unified overlay" />}
             <div key={refreshKey} className="w-full h-full">
                 {renderContent()}
             </div>

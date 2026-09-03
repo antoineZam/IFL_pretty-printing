@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
+import OverlayKeyMissing from '../../components/OverlayKeyMissing';
 import type { IFF9Lineup, IFF9Match, IFF9MatchType } from '../../types/iff9';
 
 // NOTE: Fonts and final art are intentionally deferred for IFF9. This page only
@@ -97,7 +98,8 @@ const MatchCard = ({ match, glitch }: { match: IFF9Match; glitch: boolean }) => 
 };
 
 const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineup = null, active = true }: Props) => {
-    const [searchParams] = useSearchParams();
+    const connectionKey = useConnectionKey();
+    const [keyMissing, setKeyMissing] = useState(false);
     const [lineup, setLineup] = useState<IFF9Lineup | null>(initialLineup);
     const [visibleCount, setVisibleCount] = useState(0);
     const [glitchIndex, setGlitchIndex] = useState<number | null>(null);
@@ -126,14 +128,22 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
     // Create own socket (standalone mode)
     useEffect(() => {
         if (embedded || propSocket) return;
-        const key = searchParams.get('key');
-        if (!key) return;
+        // Query string first, then the stored key -- see useConnectionKey.
+        const key = connectionKey;
+        if (!key) {
+            // Was a bare `return`: no socket, no state, no diagnostic. The source
+            // just stayed blank forever with nothing to explain why.
+            console.error('IFF9 match cards: no connection key (?key= or localStorage).');
+            setKeyMissing(true);
+            return;
+        }
+        setKeyMissing(false);
         const socket: Socket = io({ auth: { token: key } });
         socket.on('iff9-lineup', (data: IFF9Lineup) => {
             setLineup(data);
         });
         return () => { socket.disconnect(); };
-    }, [searchParams, embedded, propSocket]);
+    }, [connectionKey, embedded, propSocket]);
 
     const matches = useMemo(
         () => (lineup?.matches || []).slice().sort((a, b) => a.match_order - b.match_order),
@@ -182,6 +192,7 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
 
     return (
         <div className={`${containerClass} relative overflow-hidden text-white uppercase`} style={{ backgroundColor: '#0a0f0d' }}>
+            {keyMissing && !embedded && <OverlayKeyMissing source="IFF9 match cards" />}
             {/* Background art */}
             <img
                 src="/source/overlay/iff_9/match_card/match_card_background.png"
