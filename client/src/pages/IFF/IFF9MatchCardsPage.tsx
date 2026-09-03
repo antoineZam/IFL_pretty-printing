@@ -176,6 +176,10 @@ const IFF9MatchCardsPage = ({ socket: propSocket, embedded = false, initialLineu
             if (i >= orderedMatches.length) clearInterval(timer);
         }, REVEAL_INTERVAL_MS);
         return () => clearInterval(timer);
+        // orderedMatches is intentionally omitted: lineupOrderKey already encodes
+        // the lineup's identity, and depending on the array would restart the
+        // reveal animation on every socket payload.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lineupOrderKey, active]);
 
     // Clear the transient glitch class shortly after each reveal.
