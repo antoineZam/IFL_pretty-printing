@@ -323,11 +323,27 @@ function persistState(label, socket, write) {
  * dropped, preventing clients from injecting arbitrary state.
  * A patch value of `undefined` is treated as "no change".
  */
-function patchState(current, patch) {
+function patchState(current, patch, label = 'state') {
     const result = {};
     for (const key of Object.keys(current)) {
         result[key] = (patch != null && patch[key] !== undefined) ? patch[key] : current[key];
     }
+
+    // Dropping unknown keys is the point -- it stops a client injecting arbitrary
+    // state. But it used to be silent, so the day someone added a field to the
+    // client's TypeScript interface it was discarded with no error and no log,
+    // and the only symptom was a value that never arrived. Say so.
+    if (patch != null && typeof patch === 'object') {
+        const unknown = Object.keys(patch).filter(key => !(key in current));
+        if (unknown.length > 0) {
+            console.warn(
+                `[${label}] Ignored unknown field(s): ${unknown.join(', ')}. ` +
+                'The server state object has no such key -- add it there (and to the ' +
+                'client type) if it is meant to be part of this payload.'
+            );
+        }
+    }
+
     return result;
 }
 
@@ -536,7 +552,7 @@ ribRouter.post('/stream-data', asyncRoute(async (req, res) => {
 
 ribRouter.get('/overlay-state', (req, res) => res.json(ribOverlayState));
 ribRouter.post('/overlay-state', (req, res) => {
-    ribOverlayState = patchState(ribOverlayState, req.body);
+    ribOverlayState = patchState(ribOverlayState, req.body, 'ribOverlayState');
     io.emit('rib-overlay-state-update', ribOverlayState);
     res.json(ribOverlayState);
 });
@@ -980,14 +996,14 @@ iffRouter.delete('/love-and-war/team/:id', asyncRoute(async (req, res) => {
 
 iffRouter.get('/love-and-war/display-state', (req, res) => res.json(loveAndWarDisplayState));
 iffRouter.post('/love-and-war/display-state', (req, res) => {
-    loveAndWarDisplayState = patchState(loveAndWarDisplayState, req.body);
+    loveAndWarDisplayState = patchState(loveAndWarDisplayState, req.body, 'loveAndWarDisplayState');
     io.emit('love-and-war-display-update', loveAndWarDisplayState);
     res.json(loveAndWarDisplayState);
 });
 
 iffRouter.get('/love-and-war/match-data', (req, res) => res.json(lnwMatchData));
 iffRouter.post('/love-and-war/match-data', (req, res) => {
-    lnwMatchData = patchState(lnwMatchData, req.body);
+    lnwMatchData = patchState(lnwMatchData, req.body, 'lnwMatchData');
     io.emit('lnw-match-data', lnwMatchData);
     res.json(lnwMatchData);
 });
@@ -999,7 +1015,7 @@ iffRouter.post('/love-and-war/match-data', (req, res) => {
 // --- IFF9 Live overlay state (in-memory) ---
 iffRouter.get('/iff-9/match-data', (req, res) => res.json(iff9MatchData));
 iffRouter.post('/iff-9/match-data', (req, res) => {
-    iff9MatchData = patchState(iff9MatchData, req.body);
+    iff9MatchData = patchState(iff9MatchData, req.body, 'iff9MatchData');
     io.emit('iff9-match-data', iff9MatchData);
     res.json(iff9MatchData);
 });
@@ -1317,22 +1333,22 @@ io.on('connection', (socket) => {
     });
 
     socket.on('rib-overlay-state-update', data => {
-        ribOverlayState = patchState(ribOverlayState, data);
+        ribOverlayState = patchState(ribOverlayState, data, 'ribOverlayState');
         io.emit('rib-overlay-state-update', ribOverlayState);
     });
 
     socket.on('love-and-war-display-select', data => {
-        loveAndWarDisplayState = patchState(loveAndWarDisplayState, data);
+        loveAndWarDisplayState = patchState(loveAndWarDisplayState, data, 'loveAndWarDisplayState');
         io.emit('love-and-war-display-update', loveAndWarDisplayState);
     });
 
     socket.on('lnw-match-update', data => {
-        lnwMatchData = patchState(lnwMatchData, data);
+        lnwMatchData = patchState(lnwMatchData, data, 'lnwMatchData');
         io.emit('lnw-match-data', lnwMatchData);
     });
 
     socket.on('lnw-display-mode', data => {
-        lnwDisplayMode = patchState(lnwDisplayMode, data);
+        lnwDisplayMode = patchState(lnwDisplayMode, data, 'lnwDisplayMode');
         io.emit('lnw-display-mode', lnwDisplayMode);
     });
 
@@ -1346,7 +1362,7 @@ io.on('connection', (socket) => {
 
     // --- IFF9 ---
     socket.on('iff9-match-update', data => {
-        iff9MatchData = patchState(iff9MatchData, data);
+        iff9MatchData = patchState(iff9MatchData, data, 'iff9MatchData');
         io.emit('iff9-match-data', iff9MatchData);
     });
 
@@ -1356,7 +1372,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('iff9-display-mode', data => {
-        iff9DisplayMode = patchState(iff9DisplayMode, data);
+        iff9DisplayMode = patchState(iff9DisplayMode, data, 'iff9DisplayMode');
         io.emit('iff9-display-mode', iff9DisplayMode);
     });
 
