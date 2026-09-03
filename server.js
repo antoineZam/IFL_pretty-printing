@@ -575,11 +575,32 @@ startggRouter.get('/ifl/tournaments', asyncRoute(async (req, res) => {
     res.json(await startgg.searchIronFistLeagueTournaments(50));
 }));
 
+// Long-running by nature: each tournament is a few thousand sequential queries
+// over the SSH tunnel this deployment uses, multiplied by up to 50 tournaments,
+// all inside one HTTP request. Node's default 2-minute socket timeout would cut
+// the response off long before it finished -- the sync itself kept running, so
+// the caller saw a failure while the work continued invisibly.
+//
+// The timeout is lifted for this route only, and a deadline stops the loop
+// cleanly rather than letting it run unbounded. Partial results are returned.
+const SYNC_ALL_DEADLINE_MS = 30 * 60 * 1000;
+
 startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
+    req.setTimeout(0);
+    res.setTimeout(0);
+    const deadline = Date.now() + SYNC_ALL_DEADLINE_MS;
+
     const tournaments = await startgg.searchIronFistLeagueTournaments(50);
     console.log(`[Sync] sync-all starting: ${tournaments.length} tournaments found.`);
     const results = [];
+    let timedOut = false;
     for (const t of tournaments) {
+        if (Date.now() > deadline) {
+            timedOut = true;
+            console.warn(`[Sync] sync-all hit its ${SYNC_ALL_DEADLINE_MS / 60000}-minute deadline; stopping.`);
+            results.push({ slug: t.slug, name: t.name, success: false, error: 'Skipped: sync-all deadline reached' });
+            continue;
+        }
         try {
             const r = await startggSync.syncTournamentFromStartGG(t.slug);
             const ok = r.complete !== false;
@@ -607,7 +628,14 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
     const playersRemoved = cleaned.affectedRows || 0;
     if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
 
-    res.json({ totalFound: tournaments.length, synced, failed: tournaments.length - synced, results, playersRemoved });
+    res.json({
+        totalFound: tournaments.length,
+        synced,
+        failed: tournaments.length - synced,
+        timedOut,
+        results,
+        playersRemoved,
+    });
 }));
 
 startggRouter.get('/ifl/:number', asyncRoute(async (req, res) => {
