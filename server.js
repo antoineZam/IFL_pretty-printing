@@ -223,6 +223,54 @@ initializeData()
     .catch(err => { console.error('Fatal: could not initialize data:', err); process.exit(1); });
 
 // ============================================================
+// GRACEFUL SHUTDOWN
+// ============================================================
+//
+// Without this, a restart dropped every socket without notice, abandoned the
+// coalesced scoreboard write still pending in memory and never drained the
+// MySQL pool. On a machine that also runs OBS that restart tends to happen at
+// the worst possible moment.
+let shuttingDown = false;
+async function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`
+${signal} received — shutting down.`);
+
+    // Hard deadline: never hang a restart waiting on a stuck connection.
+    const forceExit = setTimeout(() => {
+        console.error('Shutdown timed out after 10s — forcing exit.');
+        process.exit(1);
+    }, 10000);
+    forceExit.unref();
+
+    try {
+        // 1. Tell overlays the server is going away so they show a reconnect state
+        //    rather than freezing on the last frame they received.
+        io.emit('server-shutdown');
+        io.close();
+
+        // 2. Stop accepting new requests.
+        await new Promise(resolve => server.close(resolve));
+
+        // 3. Flush the scoreboard write that may still be coalescing in memory.
+        await flushOverlayPersist();
+
+        // 4. Drain the connection pool.
+        await pool.end();
+        console.log('Shutdown complete.');
+        clearTimeout(forceExit);
+        process.exit(0);
+    } catch (err) {
+        console.error('Error during shutdown:', err);
+        process.exit(1);
+    }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
+
+// ============================================================
 // UTILITIES
 // ============================================================
 
@@ -1149,13 +1197,25 @@ app.use('/api/iff', requireRibAuth, iffRouter);
 
 let persistInFlight = false;
 let persistPending  = null;
+// Held so shutdown can wait for a write that is queued or already running.
+let persistPromise  = Promise.resolve();
 
 function queueOverlayPersist(data) {
     persistPending = data;
     if (persistInFlight) return;
     persistInFlight = true;
     // Defer past the current tick so a rapid burst collapses into one write.
-    setImmediate(runOverlayPersist);
+    persistPromise = new Promise(resolve => {
+        setImmediate(() => { runOverlayPersist().then(resolve, resolve); });
+    });
+}
+
+/**
+ * Resolves once every queued scoreboard write has hit the database.
+ * Called on shutdown so a restart does not drop the last score press.
+ */
+function flushOverlayPersist() {
+    return persistPromise;
 }
 
 async function runOverlayPersist() {
