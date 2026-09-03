@@ -88,11 +88,14 @@ export default function IFLAccessGuard({ children }: IFLAccessGuardProps) {
 
     return (
         <div className="min-h-screen bg-transparent relative flex items-center justify-center">
-            {/* Blurred background preview */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div className="w-full h-full filter blur-lg opacity-30 pointer-events-none">
-                    {children}
-                </div>
+            {/*
+                Decorative backdrop only. The guarded children are deliberately NOT
+                rendered here: mounting them would open their sockets and fire their
+                /api requests before clearance, and two of them navigate away on mount.
+            */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+                <div className="w-full h-full bg-[#020617] opacity-90" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(16,185,129,0.10),transparent_60%)]" />
             </div>
 
             {/* Overlay */}
