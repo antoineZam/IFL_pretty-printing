@@ -1,10 +1,11 @@
 -- ============================================================
 -- Performance indexes for the core tournament tables
 --
--- The iff_* tables ship their indexes with their own migrations, but `users`,
--- `matches` and `tournaments` were created outside this repo and every query
--- against them currently falls back to a full table scan. These are the columns
--- the application actually filters, joins and sorts on.
+-- The iff_* tables ship their indexes with their own migrations. `users`,
+-- `matches` and `tournaments` are now defined in migrations/core_tables.sql,
+-- which creates them with these indexes already in place -- this file exists to
+-- bring an EXISTING database (created before that file did) up to the same set.
+-- These are the columns the application actually filters, joins and sorts on.
 --
 -- Safe to re-run: each index is added only if it is not already present.
 --
@@ -54,6 +55,11 @@ CALL add_index_if_missing('matches', 'idx_matches_winner', 'winner_id');
 -- ORDER BY m.match_time DESC on the player match history.
 CALL add_index_if_missing('matches', 'idx_matches_time', 'match_time');
 
+-- The start.gg sync's per-set dedupe filters on all four of these columns, once
+-- per set. Without this it scans every match of the tournament each time, so the
+-- cost of a sync grows with the square of the event size.
+CALL add_index_if_missing('matches', 'idx_matches_dedupe', 'tournament_id, player1_id, player2_id, round_name');
+
 -- users -------------------------------------------------------------------
 -- getOrCreateUser looks players up by exact username on every scoreboard write
 -- that misses the in-process cache; loadPlayerHistory sorts the whole table by it.
@@ -65,5 +71,8 @@ CALL add_index_if_missing('tournaments', 'idx_tournaments_status', 'status, tour
 
 -- dbRouter /tournaments: ORDER BY start_date DESC.
 CALL add_index_if_missing('tournaments', 'idx_tournaments_start_date', 'start_date');
+
+-- The start.gg sync finds or creates a tournament by name on every run.
+CALL add_index_if_missing('tournaments', 'idx_tournaments_name', 'name');
 
 DROP PROCEDURE IF EXISTS add_index_if_missing;
