@@ -1,5 +1,17 @@
 # start.gg API Integration Guide
 
+> **Every request below needs the connection key.** All `/api` routes are behind
+> `requireAuth`, so a call without the header returns 401. Add it to each
+> example:
+>
+> ```sh
+> -H "x-connection-key: $CONNECTION_KEY"
+> ```
+>
+> The examples show the bare URL for readability; they will not work as written
+> without that header.
+
+
 This application integrates with the start.gg API to fetch tournament data, player information, and match history.
 
 ## Setup
@@ -118,7 +130,7 @@ GET /api/startgg/player/:playerId/matches
 Get all tournaments stored in your database:
 
 ```
-GET /api/startgg/tournaments
+GET /api/db/tournaments
 ```
 
 ### Get Tournament Matches (from Database)
@@ -145,7 +157,7 @@ GET /api/startgg/tournament/:tournamentId/matches
 
 3. **Get synced tournament data:**
    ```bash
-   curl http://localhost:3000/api/startgg/tournaments
+   curl http://localhost:3000/api/db/tournaments
    ```
 
 ### Fetching Match History
@@ -157,8 +169,8 @@ GET /api/startgg/tournament/:tournamentId/matches
 
 2. **Get matches from database (after syncing):**
    ```bash
-   # First, get tournament ID from /api/startgg/tournaments
-   curl http://localhost:3000/api/startgg/tournament/1/matches
+   # First, get tournament ID from /api/db/tournaments
+   curl http://localhost:3000/api/db/tournament/1/matches
    ```
 
 ### Getting Player Information

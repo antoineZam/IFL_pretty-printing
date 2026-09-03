@@ -1,5 +1,17 @@
 # start.gg Integration Usage Examples
 
+> **Every request below needs the connection key.** All `/api` routes are behind
+> `requireAuth`, so a call without the header returns 401. Add it to each
+> example:
+>
+> ```sh
+> -H "x-connection-key: $CONNECTION_KEY"
+> ```
+>
+> The examples show the bare URL for readability; they will not work as written
+> without that header.
+
+
 ## Quick Start: Finding and Syncing "iron-fist-league" Tournaments
 
 ### Step 1: Search for Tournaments
@@ -57,10 +69,10 @@ This will:
 
 ```bash
 # Get all tournaments from your database
-curl "http://localhost:3000/api/startgg/tournaments"
+curl "http://localhost:3000/api/db/tournaments"
 
 # Get matches for a specific tournament (use tournament_id from above)
-curl "http://localhost:3000/api/startgg/tournament/1/matches"
+curl "http://localhost:3000/api/db/tournament/1/matches"
 ```
 
 ## Getting Player Information
@@ -102,10 +114,10 @@ curl "http://localhost:3000/api/startgg/tournament/iron-fist-league-2024/matches
 
 ```bash
 # Get all tournaments
-curl "http://localhost:3000/api/startgg/tournaments"
+curl "http://localhost:3000/api/db/tournaments"
 
 # Get matches for tournament (use tournament_id from response)
-curl "http://localhost:3000/api/startgg/tournament/1/matches"
+curl "http://localhost:3000/api/db/tournament/1/matches"
 ```
 
 ## JavaScript/Node.js Examples
