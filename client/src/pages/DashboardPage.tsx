@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Trophy, Menu, X, ChevronRight, Zap, Gamepad2, Database, Flame } from 'lucide-react';
 import { useRoutePreloader } from '../utils/routePreloader';
+import { apiPost } from '../utils/api';
 
 
 const DashboardPage = () => {
@@ -11,12 +12,37 @@ const DashboardPage = () => {
     const { onMouseEnter, onTouchStart } = useRoutePreloader();
 
     useEffect(() => {
-        const connectionKey = searchParams.get('key') || localStorage.getItem('connectionKey');
-        
-        if (!connectionKey) {
-            navigate('/auth');
-            return;
-        }
+        // A key in the query string used to be treated as sufficient on its own:
+        // it was never validated and never stored, so /?key=anything produced a
+        // dashboard that looked signed in while every request behind it returned
+        // 401. Validate it the way the auth page does, and store it on success so
+        // the rest of the app can use it.
+        let cancelled = false;
+
+        const check = async () => {
+            const urlKey = searchParams.get('key');
+            const storedKey = localStorage.getItem('connectionKey');
+
+            if (urlKey && urlKey !== storedKey) {
+                try {
+                    await apiPost('/api/auth', { key: urlKey });
+                    if (cancelled) return;
+                    localStorage.setItem('connectionKey', urlKey);
+                    return;
+                } catch {
+                    if (cancelled) return;
+                    navigate('/auth');
+                    return;
+                }
+            }
+
+            if (!urlKey && !storedKey) {
+                navigate('/auth');
+            }
+        };
+
+        check();
+        return () => { cancelled = true; };
     }, [searchParams, navigate]);
 
     return (
