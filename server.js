@@ -426,7 +426,18 @@ startggRouter.get('/tournament/:slug', asyncRoute(async (req, res) => {
 }));
 
 startggRouter.get('/tournament/:slug/events', asyncRoute(async (req, res) => {
-    res.json(await startgg.getTournamentEvents(req.params.slug, req.query.eventSlug || null));
+    // Returns { events: [...] }, not the raw GraphQL envelope. The standings
+    // control page reads data.events; answering {tournament:{events}} made that
+    // permanently undefined, so its event list was always empty and standings
+    // could never be loaded from that page.
+    const data = await startgg.getTournamentEvents(req.params.slug, {
+        eventSlug: req.query.eventSlug || null,
+        includeSets: false,
+    });
+    res.json({
+        tournament: data?.tournament ?? null,
+        events: data?.tournament?.events ?? [],
+    });
 }));
 
 startggRouter.get('/tournament/:slug/matches', asyncRoute(async (req, res) => {

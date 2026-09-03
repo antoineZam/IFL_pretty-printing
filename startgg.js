@@ -109,12 +109,50 @@ async function getTournamentBySlug(slug) {
   return await queryStartGG(queries.tournament.bySlug, { slug });
 }
 
-// Get tournament events (without sets - just to get event IDs)
-async function getTournamentEvents(slug) {
+/**
+ * Narrows a list of start.gg events to one, by slug.
+ *
+ * start.gg event slugs are full paths ("tournament/x/event/y"), but callers pass
+ * either that or the bare event segment, so both are accepted. Returns the list
+ * unchanged when no filter is given, and an empty list when the filter matches
+ * nothing -- never silently "all events", which is what the old code did by
+ * dropping the argument entirely.
+ */
+function filterEventsBySlug(events, eventSlug) {
+  if (!eventSlug) return events;
+  const wanted = String(eventSlug).replace(/^\/+|\/+$/g, '').toLowerCase();
+  return events.filter(e => {
+    const full = String(e.slug || '').toLowerCase();
+    return full === wanted || full.endsWith(`/${wanted}`) || full.split('/').pop() === wanted;
+  });
+}
+
+/**
+ * Get a tournament's events.
+ *
+ * @param {string} slug        tournament slug
+ * @param {object} [options]
+ * @param {string} [options.eventSlug]   restrict to a single event
+ * @param {boolean} [options.includeSets] also paginate every set of every event
+ *
+ * `includeSets` defaults to false. It used to be unconditional, so listing a
+ * tournament's event names fired hundreds of start.gg calls with 100 ms sleeps
+ * between them and could take minutes -- for a caller that only wanted names.
+ * Only the sync needs the sets.
+ */
+async function getTournamentEvents(slug, options = {}) {
+  const { eventSlug = null, includeSets = false } = typeof options === 'string'
+    ? { eventSlug: options }   // tolerate the old positional call shape
+    : options;
+
   const data = await queryStartGG(queries.tournament.events, { slug });
-  
+
+  if (data && data.tournament && Array.isArray(data.tournament.events)) {
+    data.tournament.events = filterEventsBySlug(data.tournament.events, eventSlug);
+  }
+
   // Now fetch all sets for each event with pagination
-  if (data && data.tournament && data.tournament.events) {
+  if (includeSets && data && data.tournament && data.tournament.events) {
     for (const event of data.tournament.events) {
       console.log(`    Fetching all matches for event: ${event.name}...`);
       event.sets = { nodes: [] };
@@ -157,11 +195,6 @@ async function getTournamentEvents(slug) {
 // Get sets by event ID with match details
 async function getEventSetsByEventId(eventId, page = 1, perPage = 20) {
   return await queryStartGG(queries.event.sets, { eventId, page, perPage });
-}
-
-// Legacy function for compatibility
-async function getEventSets(tournamentSlug, eventId, page = 1, perPage = 50) {
-  return getEventSetsByEventId(eventId, page, perPage);
 }
 
 // Get player information from start.gg
@@ -290,8 +323,10 @@ async function getIFLTournamentByNumber(identifier, suffix = '') {
   return null;
 }
 
-// Get all sets (matches) for a tournament with full pagination
-async function getAllTournamentSets(slug) {
+// Get all sets (matches) for a tournament with full pagination.
+// `eventSlug` restricts the walk to one event -- previously this parameter was
+// accepted by the route and then dropped on the floor here.
+async function getAllTournamentSets(slug, eventSlug = null) {
   // First get the tournament events
   const eventsData = await queryStartGG(queries.tournament.eventsBasic, { slug });
   
@@ -300,9 +335,10 @@ async function getAllTournamentSets(slug) {
   }
   
   let allSets = [];
+  const events = filterEventsBySlug(eventsData.tournament.events, eventSlug);
   
   // Fetch all sets for each event
-  for (const event of eventsData.tournament.events) {
+  for (const event of events) {
     let page = 1;
     let hasMore = true;
     
@@ -671,7 +707,6 @@ module.exports = {
   // Functions
   getTournamentBySlug,
   getTournamentEvents,
-  getEventSets,
   getEventSetsByEventId,
   getPlayerInfo,
   getTournamentParticipants,

@@ -113,10 +113,15 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
       );
     }
 
-    // Get events data
-    console.log('  Fetching events and matches...');
-    const eventsData = await startgg.getTournamentEvents(slug);
-    
+    // Get events data.
+    //
+    // eventSlug is now actually forwarded. It used to appear exactly once in this
+    // whole file -- as the parameter declaration itself -- so req.body.eventSlug
+    // was silently dropped and a request to sync one event always synced the
+    // entire tournament.
+    console.log(`  Fetching events and matches${eventSlug ? ` (event: ${eventSlug})` : ''}...`);
+    const eventsData = await startgg.getTournamentEvents(slug, { eventSlug, includeSets: true });
+
     if (!eventsData || !eventsData.tournament || !eventsData.tournament.events) {
       console.log('  ✗ No events found for tournament');
       console.log('  Response:', JSON.stringify(eventsData, null, 2).substring(0, 500));
@@ -124,6 +129,9 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     }
 
     const events = eventsData.tournament.events;
+    if (events.length === 0 && eventSlug) {
+      throw new Error(`No event matching "${eventSlug}" in tournament "${slug}".`);
+    }
     console.log(`  ✓ Found ${events.length} event(s)`);
     
     let playersSynced = 0;
