@@ -37,7 +37,7 @@ console.log('Connection key loaded. Navigate to /auth to sign in.');
 // APP SETUP
 // ============================================================
 
-const port   = 3000;
+const port   = Number(process.env.PORT) || 3000;
 const app    = express();
 const server = http.createServer(app);
 const io     = socketIo(server);
