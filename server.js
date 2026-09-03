@@ -1422,7 +1422,16 @@ app.use('/api', (req, res) => {
 });
 
 // Catch-all: serve the React SPA for any non-API route.
+//
+// A header records which server answered and when its bundle was built. During
+// development Vite (5173) serves current source while this server (3000) serves
+// whatever stale client/dist happens to be on disk -- both answer the same
+// overlay URLs, so an OBS source pointed at the wrong one silently renders the
+// last build instead of the running code, with nothing to say which you are
+// looking at. Check the response header, or the banner it drives below.
 app.get('*', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Served-By', `express:${port}`);
+    res.setHeader('X-Bundle-Built', clientBuildTime);
     res.sendFile(path.join(CLIENT_DIST, 'index.html'));
 });
