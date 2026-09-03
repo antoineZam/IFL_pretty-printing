@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { debugLog } from '../../utils/debug';
 import { io, Socket } from 'socket.io-client';
 import { Swords, RotateCcw, Users, Trash2 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
@@ -90,7 +91,7 @@ const TagTeamControlPage = () => {
         setSocket(newSocket);
         
         newSocket.on('connect', () => {
-            console.log('Connected to server (Tag Team)');
+            debugLog('Connected to server (Tag Team)');
         });
 
         newSocket.on('connect_error', (err) => {
@@ -127,7 +128,7 @@ const TagTeamControlPage = () => {
 
     const sendUpdate = (updatedData: TagTeamData) => {
         if (socket) {
-            console.log('Sending tag-team-update:', updatedData);
+            debugLog('Sending tag-team-update:', updatedData);
             socket.emit('tag-team-update', updatedData);
         } else {
             console.error('Socket not connected - cannot send update');

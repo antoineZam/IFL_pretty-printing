@@ -137,8 +137,10 @@ const MatchSlot = ({
         }
     }
     
-    // Debug log for troubleshooting (always log for now)
-    console.log(`[Match] ${set.roundText}: ${set.player1?.name} vs ${set.player2?.name} | displayScore: "${set.displayScore}" | p1Score: ${p1Score}, p2Score: ${p2Score}`);
+    // (A per-slot console.log used to sit here, commented "always log for now".
+    // It ran for every slot on every render, and the 20-second poll re-rendered
+    // the whole bracket -- so the console grew without bound in a source that
+    // stays open all event. Use ?debug=1 and debugLog if you need it back.)
 
     const renderFlag = (player: Player | null, isBottomPlayer: boolean) => {
         const countryCode = getCountryCode(player?.country);
