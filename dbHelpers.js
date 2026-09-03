@@ -181,6 +181,23 @@ async function resolveUser(displayName, team = null, flag = null) {
 }
 
 // IFL Match Data Functions
+
+/**
+ * The canonical shape of the live scoreboard payload.
+ *
+ * Exported so the server's database-outage fallback uses this exact object
+ * rather than its own hand-maintained copy -- the two had drifted apart: the
+ * fallback carried p1Loser/p2Loser while this path omitted them, and the two
+ * disagreed on what `eventNumber` meant (an operator-entered event number here,
+ * the tournament row id there).
+ */
+const DEFAULT_IFL_DATA = {
+  p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null, p1Loser: false,
+  p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null, p2Loser: false,
+  p1Score: 0, p2Score: 0,
+  round: 'Winners Round 1', eventNumber: '1',
+};
+
 async function loadIFLData() {
   try {
     const tournamentId = await getOrCreateCurrentTournament();
@@ -201,40 +218,33 @@ async function loadIFLData() {
       [tournamentId]
     );
 
+    // The `matches` row carries names, flags and scores. The rest of the
+    // scoreboard -- team labels, ranks, the loser flags and the operator's event
+    // number -- has no column on that table, so it is kept alongside in
+    // app_state. Previously those fields were hardcoded on the way out
+    // (`p1Team: 'Team 1'`, `p1Rank: null`) and silently lost on every restart,
+    // and `eventNumber` was overwritten with the tournament row id.
+    const extras = await loadJsonState(STATE_KEYS.iflExtras, {});
+
     if (matches.length === 0) {
-      // Return default data
-      return {
-        p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null,
-        p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null,
-        p1Score: 0, p2Score: 0,
-        round: 'Winners Round 1', eventNumber: '1'
-      };
+      return { ...DEFAULT_IFL_DATA, ...extras };
     }
 
     const match = matches[0];
     return {
-      p1Flag: match.p1Flag || 'fr',
-      p1Team: 'Team 1', // Teams not in DB schema, keeping default
-      p1Name: match.p1Name || 'Player 1',
-      p1Rank: null, // Rank not persisted to DB
-      p2Flag: match.p2Flag || 'rn',
-      p2Team: 'Team 2',
-      p2Name: match.p2Name || 'Player 2',
-      p2Rank: null, // Rank not persisted to DB
+      ...DEFAULT_IFL_DATA,
+      ...extras,
+      p1Flag: match.p1Flag || extras.p1Flag || DEFAULT_IFL_DATA.p1Flag,
+      p1Name: match.p1Name || extras.p1Name || DEFAULT_IFL_DATA.p1Name,
+      p2Flag: match.p2Flag || extras.p2Flag || DEFAULT_IFL_DATA.p2Flag,
+      p2Name: match.p2Name || extras.p2Name || DEFAULT_IFL_DATA.p2Name,
       p1Score: match.score_p1 || 0,
       p2Score: match.score_p2 || 0,
-      round: match.round_name || 'Winners Round 1',
-      eventNumber: tournamentId.toString()
+      round: match.round_name || DEFAULT_IFL_DATA.round,
     };
   } catch (error) {
     console.error('Error loading IFL data:', error);
-    // Return default data on error
-    return {
-      p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1',
-      p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2',
-      p1Score: 0, p2Score: 0,
-      round: 'Winners Round 1', eventNumber: '1'
-    };
+    return { ...DEFAULT_IFL_DATA };
   }
 }
 
@@ -307,6 +317,18 @@ async function saveIFLData(data) {
       );
       currentMatchIdPromise = Promise.resolve(result.insertId);
     }
+
+    // Persist the scoreboard fields the `matches` table has no column for, so
+    // they survive a restart instead of reverting to hardcoded defaults.
+    await saveJsonState(STATE_KEYS.iflExtras, {
+      p1Team: data.p1Team ?? DEFAULT_IFL_DATA.p1Team,
+      p2Team: data.p2Team ?? DEFAULT_IFL_DATA.p2Team,
+      p1Rank: data.p1Rank ?? null,
+      p2Rank: data.p2Rank ?? null,
+      p1Loser: data.p1Loser ?? false,
+      p2Loser: data.p2Loser ?? false,
+      eventNumber: data.eventNumber ?? DEFAULT_IFL_DATA.eventNumber,
+    });
 
     return { p1Id, p2Id };
   } catch (error) {
@@ -1394,6 +1416,12 @@ async function reorderIFF9Matches(order) {
 }
 
 module.exports = {
+  // Canonical default shapes, so callers stop maintaining their own copies.
+  DEFAULT_IFL_DATA,
+  DEFAULT_TAG_TEAM_DATA,
+  DEFAULT_RIB_MATCH_CARDS,
+  DEFAULT_RIB_PLAYER_STATS,
+  DEFAULT_RIB_STREAM_DATA,
   loadIFLData,
   // Cache control -- call after any write that touches users/tournaments outside
   // of getOrCreateUser / saveIFLData (start.gg sync, manual edits, deletes).

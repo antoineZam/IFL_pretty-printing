@@ -168,26 +168,16 @@ async function initializeData() {
         console.log('Data loaded from database successfully.');
     } catch (err) {
         console.error('Error initializing data from database:', err);
-        overlayData = {
-            p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null, p1Loser: false,
-            p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null, p2Loser: false,
-            p1Score: 0, p2Score: 0, round: 'Winners Round 1', eventNumber: '1',
-        };
-        tagTeamData = {
-            team1: { name: 'Team 1', tag: 'T1', players: [], score: 0 },
-            team2: { name: 'Team 2', tag: 'T2', players: [], score: 0 },
-            round: 'Winners Round 1',
-        };
+        // Reuse the canonical defaults rather than a second hand-maintained copy.
+        // The two used to disagree: this one carried p1Loser/p2Loser while the
+        // database path omitted them, and they meant different things by
+        // `eventNumber`.
+        overlayData    = { ...dbHelpers.DEFAULT_IFL_DATA };
+        tagTeamData    = { ...dbHelpers.DEFAULT_TAG_TEAM_DATA };
         playerHistory  = [];
-        ribMatchCards  = {
-            eventTitle: 'THE RUNBACK', eventSubtitle: 'THE FINAL CHAPTER', partNumber: '01',
-            mainEvent: { p1Name: '', p1Title: '', p1Character: '', p2Name: '', p2Title: '', p2Character: '' },
-            matches: [],
-            singleMatch: { matchTitle: '', format: '', p1Name: '', p1Title: '', p1Character: '', p2Name: '', p2Title: '', p2Character: '' },
-            sponsors: { presenter: '', association: '' },
-        };
-        ribPlayerStats = { players: [] };
-        ribStreamData  = { matchTitle: '', p1Name: '', p1Flag: '', p1Score: 0, p2Name: '', p2Flag: '', p2Score: 0 };
+        ribMatchCards  = { ...dbHelpers.DEFAULT_RIB_MATCH_CARDS };
+        ribPlayerStats = { ...dbHelpers.DEFAULT_RIB_PLAYER_STATS };
+        ribStreamData  = { ...dbHelpers.DEFAULT_RIB_STREAM_DATA };
     }
 }
 
