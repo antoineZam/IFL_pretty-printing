@@ -1313,8 +1313,13 @@ async function getIFF9Matches(weekId) {
   try {
     const [matches] = await pool.execute(
       `      SELECT m.*, 
-              p1.name as db_p1_name, p1.user_id as p1_uid, p1.iff8_ranking as db_p1_rank_raw,
-              p2.name as db_p2_name, p2.user_id as p2_uid, p2.iff8_ranking as db_p2_rank_raw
+              -- p1_uid/p2_uid (iff_players.user_id) used to be selected here and
+              -- read nowhere. That column is also never written: the save
+              -- function does not destructure it and the field whitelist omits
+              -- it, so it is permanently NULL. Dropped rather than left as a
+              -- misleading always-null field.
+              p1.name as db_p1_name, p1.iff8_ranking as db_p1_rank_raw,
+              p2.name as db_p2_name, p2.iff8_ranking as db_p2_rank_raw
        FROM iff9_matches m
        LEFT JOIN iff_players p1 ON m.player_1_id = p1.id
        LEFT JOIN iff_players p2 ON m.player_2_id = p2.id

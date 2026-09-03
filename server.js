@@ -324,11 +324,17 @@ app.use('/api/history', historyRouter);
 // RUN IT BACK ROUTES  —  /api/rib
 // ============================================================
 
+// No page in the client uses these -- every Run It Back page talks over sockets
+// -- but they are kept as the REST surface for the same state, so an operator or
+// a script can read and set it without a socket.
+//
+// The GETs serve the in-memory state rather than re-reading the database. That
+// state is loaded from the database at boot and is what the sockets broadcast,
+// so a REST reader and an overlay now always agree. (They previously returned
+// hardcoded defaults, contradicting what was on air.)
 const ribRouter = express.Router();
 
-ribRouter.get('/match-cards', asyncRoute(async (req, res) => {
-    res.json(await dbHelpers.loadRIBMatchCards());
-}));
+ribRouter.get('/match-cards', (req, res) => res.json(ribMatchCards));
 ribRouter.post('/match-cards', asyncRoute(async (req, res) => {
     ribMatchCards = req.body;
     await dbHelpers.saveRIBMatchCards(ribMatchCards);
@@ -336,9 +342,7 @@ ribRouter.post('/match-cards', asyncRoute(async (req, res) => {
     res.json(ribMatchCards);
 }));
 
-ribRouter.get('/player-stats', asyncRoute(async (req, res) => {
-    res.json(await dbHelpers.loadRIBPlayerStats());
-}));
+ribRouter.get('/player-stats', (req, res) => res.json(ribPlayerStats));
 ribRouter.post('/player-stats', asyncRoute(async (req, res) => {
     ribPlayerStats = req.body;
     await dbHelpers.saveRIBPlayerStats(ribPlayerStats);
@@ -346,9 +350,7 @@ ribRouter.post('/player-stats', asyncRoute(async (req, res) => {
     res.json(ribPlayerStats);
 }));
 
-ribRouter.get('/stream-data', asyncRoute(async (req, res) => {
-    res.json(await dbHelpers.loadRIBStreamData());
-}));
+ribRouter.get('/stream-data', (req, res) => res.json(ribStreamData));
 ribRouter.post('/stream-data', asyncRoute(async (req, res) => {
     ribStreamData = req.body;
     await dbHelpers.saveRIBStreamData(ribStreamData);
