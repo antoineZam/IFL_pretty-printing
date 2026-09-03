@@ -74,34 +74,66 @@ function queryStartGG(query, variables = {}) {
   return promise;
 }
 
+// start.gg documents a cap near 80 requests/minute. The pagination loops sleep
+// 100 ms between pages, which works out to roughly 600/min, so hitting the limit
+// during a large sync is expected rather than exceptional -- and without this,
+// the resulting failure landed in a swallowed-error path and looked like an
+// event with no sets.
+const RATE_LIMIT_MAX_RETRIES = 4;
+const RATE_LIMIT_BASE_DELAY_MS = 1000;
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 async function executeStartGGQuery(query, variables) {
-  try {
-    const response = await axios.post(
-      STARTGG_API_URL,
-      {
-        query,
-        variables
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${STARTGG_API_KEY}`
+  let lastError;
+
+  for (let attempt = 0; attempt <= RATE_LIMIT_MAX_RETRIES; attempt++) {
+    try {
+      const response = await axios.post(
+        STARTGG_API_URL,
+        {
+          query,
+          variables
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${STARTGG_API_KEY}`
+          },
+          timeout: 30000,
         }
+      );
+
+      if (response.data.errors) {
+        throw new Error(`start.gg GraphQL errors: ${JSON.stringify(response.data.errors)}`);
       }
-    );
 
-    if (response.data.errors) {
-      throw new Error(`start.gg GraphQL errors: ${JSON.stringify(response.data.errors)}`);
-    }
+      return response.data.data;
+    } catch (error) {
+      const status = error.response?.status;
+      const retryable = status === 429 || (status >= 500 && status < 600);
 
-    return response.data.data;
-  } catch (error) {
-    if (error.response) {
-      throw new Error(`start.gg API error: ${error.response.status} ${error.response.statusText}`);
+      if (!retryable || attempt === RATE_LIMIT_MAX_RETRIES) {
+        if (error.response) {
+          throw new Error(`start.gg API error: ${status} ${error.response.statusText}`);
+        }
+        console.error('Error querying start.gg API:', error);
+        throw error;
+      }
+
+      // Honour Retry-After when start.gg sends it; otherwise exponential backoff.
+      const retryAfter = Number(error.response?.headers?.['retry-after']);
+      const delay = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : RATE_LIMIT_BASE_DELAY_MS * Math.pow(2, attempt);
+
+      console.warn(`start.gg ${status} — retrying in ${delay} ms (attempt ${attempt + 1}/${RATE_LIMIT_MAX_RETRIES}).`);
+      lastError = error;
+      await sleep(delay);
     }
-    console.error('Error querying start.gg API:', error);
-    throw error;
   }
+
+  throw lastError;
 }
 
 // Get tournament by slug
