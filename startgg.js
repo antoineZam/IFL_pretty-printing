@@ -26,7 +26,10 @@ if (!STARTGG_API_KEY) {
 // ============================================================
 
 const TTL = {
-  LIVE:       5 * 1000,        // bracket sets / standings mid-tournament
+  // Sits just above the overlay's 30 s fallback poll, so several open OBS
+  // sources polling out of phase share one upstream fan-out. At 5 s every poll
+  // was a guaranteed miss and re-walked up to five pages of start.gg, per source.
+  LIVE:      15 * 1000,        // bracket sets / standings mid-tournament
   STRUCTURE: 10 * 60 * 1000,   // phase groups, event layout
   LISTING:    5 * 60 * 1000,   // league + tournament listings
 };

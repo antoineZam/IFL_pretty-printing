@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { debugLog } from '../../utils/debug';
 import { io } from 'socket.io-client';
 import { getCountryCode } from '../../utils/countries';
 import WarmParticles from '../../components/WarmParticles';
@@ -249,6 +250,13 @@ const IFLTop8OverlayPage = () => {
     const [data, setData] = useState<Top8Data | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // When the operator pushes from the control page, THAT is the truth on air:
+    // it carries their standings and view mode, which the raw bracket poll does
+    // not. The poll used to overwrite it on the next tick. It now stands down
+    // while a push is recent, and resumes if the control page goes quiet.
+    const lastPushRef = useRef<number>(0);
+    const PUSH_OWNERSHIP_MS = 90_000;
+
     const fetchBracket = useCallback(async (eventSlug: string) => {
         try {
             let allSets: BracketSet[] = [];
@@ -324,7 +332,8 @@ const IFLTop8OverlayPage = () => {
             const newSocket = io({ auth: { token: key } });
 
             newSocket.on('top8-data', (newData: Top8Data) => {
-                console.log('[Overlay] Received data via socket:', newData.bracket?.sets?.length, 'sets');
+                debugLog('[Overlay] Received data via socket:', newData.bracket?.sets?.length, 'sets');
+                lastPushRef.current = Date.now();
                 setData(newData);
                 setLoading(false);
             });
@@ -335,12 +344,23 @@ const IFLTop8OverlayPage = () => {
         }
     }, [searchParams, fetchData]);
 
+    // Fallback poll, for when nobody is driving the control page.
+    //
+    // 20 s was below the server's 5 s cache window for this endpoint, so every
+    // tick was a guaranteed cache miss and up to five upstream start.gg calls --
+    // multiplied by every open browser source. 30 s sits above the (now 15 s)
+    // window, so sources that poll out of phase with each other share a
+    // response instead of each triggering their own fan-out.
     useEffect(() => {
         const eventSlug = searchParams.get('event');
         if (!eventSlug) return;
         const interval = setInterval(() => {
+            if (Date.now() - lastPushRef.current < PUSH_OWNERSHIP_MS) {
+                debugLog('[Overlay] Skipping poll — control page pushed recently.');
+                return;
+            }
             fetchData(eventSlug);
-        }, 20000);
+        }, 30000);
         return () => clearInterval(interval);
     }, [searchParams, fetchData]);
 
