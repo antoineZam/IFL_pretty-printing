@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Plus, Trash2, Play, Trophy, Check, X, Users, FolderPlus, Layers } from 'lucide-react';
 import { io } from 'socket.io-client';
+import { apiGet, asArray } from '../../utils/api';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
 
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
@@ -75,8 +77,7 @@ type BracketPosition = 'upper' | 'lower' | 'grand_finals';
 
 const LoveAndWarBracketPage = () => {
     const { id: tournamentId } = useParams();
-    const [searchParams] = useSearchParams();
-    const key = searchParams.get('key') || localStorage.getItem('connectionKey');
+    const key = useConnectionKey();
 
     const [tournament, setTournament] = useState<Tournament | null>(null);
     const [availableTeams, setAvailableTeams] = useState<AvailableTeam[]>([]);
@@ -104,18 +105,31 @@ const LoveAndWarBracketPage = () => {
         return () => {
             newSocket.disconnect();
         };
+        // loadTournament is intentionally omitted: listing it would tear down and
+        // rebuild the socket on every render. It is safe to call from a stale
+        // closure because it no longer reads any state -- see the functional
+        // setSelectedGroupId inside it.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tournamentId, key]);
 
     const loadTournament = async () => {
         try {
-            const response = await fetch(`/api/iff/love-and-war/tournament/${tournamentId}`);
-            const data = await response.json();
-            setTournament(data.tournament);
-            
-            // Auto-select first group if none selected
-            if (data.tournament?.groups?.length > 0 && !selectedGroupId) {
-                setSelectedGroupId(data.tournament.groups[0].id);
-            }
+            const data = await apiGet<{ tournament?: Tournament }>(`/api/iff/love-and-war/tournament/${tournamentId}`);
+            setTournament(data.tournament ?? null);
+
+            const groups = data.tournament?.groups ?? [];
+            // Functional update, not a read of `selectedGroupId`.
+            //
+            // The socket handler captures this function from the first render, so
+            // a captured `selectedGroupId` is permanently null -- every
+            // lnw-bracket-update then snapped the selection back to the first
+            // group, pulling the operator out of the group they were scoring.
+            setSelectedGroupId(prev => {
+                if (groups.length === 0) return null;
+                // Keep the operator's selection, unless that group is gone.
+                if (prev !== null && groups.some(g => g.id === prev)) return prev;
+                return groups[0].id;
+            });
         } catch (error) {
             console.error('Error loading tournament:', error);
         }
@@ -123,11 +137,11 @@ const LoveAndWarBracketPage = () => {
 
     const loadAvailableTeams = async () => {
         try {
-            const response = await fetch('/api/iff/love-and-war/teams');
-            const data = await response.json();
-            setAvailableTeams(data.teams || []);
+            const data = await apiGet<{ teams?: unknown }>('/api/iff/love-and-war/teams');
+            setAvailableTeams(asArray<AvailableTeam>(data?.teams));
         } catch (error) {
             console.error('Error loading teams:', error);
+            setAvailableTeams([]);
         }
     };
 
