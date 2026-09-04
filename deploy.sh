@@ -131,6 +131,9 @@ rollback() {
         rm -rf "$DIST"
         mv "$DIST_PREV" "$DIST"
     fi
+    # node_modules still reflects the rolled-forward lockfiles. Drop the stamps
+    # so the next deploy reinstalls from scratch rather than trusting them.
+    rm -f "$STATE_DIR/root.lock.sha" "$STATE_DIR/client.lock.sha"
     pm2 reload "$APP_NAME" --update-env >/dev/null 2>&1
     sleep 3
     if health_check 30 >/dev/null 2>&1; then
@@ -191,7 +194,9 @@ maybe_install() {
     fi
 
     info "$label: installing (lockfile changed or node_modules missing)"
-    ( cd "$dir" && npm ci --no-audit --no-fund "$@" )
+    # ${@+"$@"} rather than "$@": under `set -u` an empty "$@" is an error on
+    # bash before 4.4, which is still what some LTS server images ship.
+    ( cd "$dir" && npm ci --no-audit --no-fund ${@+"$@"} )
     echo "$current" > "$stamp"
 }
 
@@ -207,7 +212,20 @@ if command -v flock >/dev/null 2>&1; then
     flock -n 9 || die "another deploy is already running (lock: $LOCK_FILE)"
 fi
 
+# Keep the log bounded -- this runs unattended and nobody prunes it by hand.
+if [[ -f "$LOG_FILE" ]] && [[ $(wc -l < "$LOG_FILE") -gt 5000 ]]; then
+    tail -n 2000 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
+fi
 exec > >(tee -a "$LOG_FILE") 2>&1
+LOG_PID=$!
+
+# Without this, tee is still draining when the shell exits, so on an early
+# failure the error line lands *after* the next shell prompt. Closing the
+# descriptors gives tee its EOF; waiting lets it finish. The EXIT trap does not
+# call exit itself, so the real exit status is preserved.
+flush_log() { exec 1>&- 2>&-; wait "$LOG_PID" 2>/dev/null || true; }
+trap flush_log EXIT
+
 printf '\n%s deploy started by %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "${USER:-unknown}"
 
 # ------------------------------------------------------------------
@@ -297,7 +315,9 @@ step "Publishing bundle"
 # Swap rather than build in place. express.static resolves from disk per
 # request, so the changeover is a rename, not the length of a build.
 rm -rf "$DIST_PREV"
-[[ -d "$DIST" ]] && mv "$DIST" "$DIST_PREV"
+# A plain `[[ -d X ]] && mv ...` here would evaluate to false on a first-ever
+# deploy and hand a non-zero status to `set -e`.
+if [[ -d "$DIST" ]]; then mv "$DIST" "$DIST_PREV"; fi
 mv "$DIST_NEW" "$DIST"
 ROLLBACK_ARMED=1
 info "published (previous bundle kept at client/dist.prev for rollback)"
@@ -321,7 +341,9 @@ else
     info "no existing process -- starting a new one"
     pm2 start "$ROOT/server.js" --name "$APP_NAME" --time --cwd "$ROOT"
 fi
-pm2 save --force >/dev/null    # survive a reboot
+# Persist the process list so a reboot brings the app back (assumes `pm2
+# startup` has been run once on this host). Not worth failing a deploy over.
+pm2 save --force >/dev/null || warn "pm2 save failed -- the app may not restart after a reboot"
 
 # ------------------------------------------------------------------
 step "Verifying"
