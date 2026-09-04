@@ -4,6 +4,9 @@
 #
 # Usage:  ./deploy.sh [options]
 #
+#   -d, --dir <path>      The checkout to deploy. Defaults to the repo holding
+#                         this script; set it (or APP_DIR) when the script
+#                         lives outside the checkout, e.g. in ~
 #   -b, --branch <name>   Branch to deploy (default: the checked-out branch)
 #       --force           Discard local changes instead of refusing to deploy
 #       --skip-install    Never run npm ci, even if a lockfile changed
@@ -44,15 +47,9 @@ set -Eeuo pipefail
 # be sitting in.
 # ------------------------------------------------------------------
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-ROOT=$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR")
-cd "$ROOT"
 
-STATE_DIR="$ROOT/.deploy"
-LOCK_FILE="$STATE_DIR/deploy.lock"
-LOG_FILE="$STATE_DIR/deploy.log"
-DIST="$ROOT/client/dist"
-DIST_NEW="$ROOT/client/dist.new"
-DIST_PREV="$ROOT/client/dist.prev"
+# Resolved after argument parsing, since --dir can override it.
+APP_DIR="${APP_DIR:-}"
 
 APP_NAME="${APP_NAME:-tekken-app}"
 BUILD_HEAP_MB="${BUILD_HEAP_MB:-768}"
@@ -84,13 +81,20 @@ note()  { printf '    %s%s%s\n' "$C_DIM" "$*" "$C_RESET"; }
 warn()  { printf '%s[warn]%s %s\n' "$C_YELLOW" "$C_RESET" "$*" >&2; }
 die()   { printf '\n%s[fail]%s %s\n' "$C_RED" "$C_RESET" "$*" >&2; exit 1; }
 
-usage() { sed -n '3,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0; }
+# Prints the header block down to the design notes. Delimited by a marker
+# rather than a line number, which silently goes stale the moment an option is
+# added above it.
+usage() {
+    sed -n '3,/^# Design notes/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'
+    exit 0
+}
 
 # ------------------------------------------------------------------
 # Arguments
 # ------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        -d|--dir)      APP_DIR="${2:-}"; [[ -n "$APP_DIR" ]] || die "--dir needs a value"; shift 2 ;;
         -b|--branch)   BRANCH="${2:-}"; [[ -n "$BRANCH" ]] || die "--branch needs a value"; shift 2 ;;
         --force)       FORCE=1; shift ;;
         --skip-install) SKIP_INSTALL=1; shift ;;
@@ -100,6 +104,33 @@ while [[ $# -gt 0 ]]; do
         *)             die "unknown option: $1 (try --help)" ;;
     esac
 done
+
+# ------------------------------------------------------------------
+# Locate the checkout
+#
+# --dir wins, then APP_DIR, then the repo containing this script. Saying
+# outright that the target is not a checkout beats the old behaviour of
+# silently adopting the caller's directory and failing later on a missing
+# .env, which points at the wrong problem entirely.
+# ------------------------------------------------------------------
+if [[ -n "$APP_DIR" ]]; then
+    [[ -d "$APP_DIR" ]] || die "--dir: no such directory: $APP_DIR"
+    ROOT=$(cd -- "$APP_DIR" && pwd)
+else
+    ROOT=$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR")
+fi
+
+git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+    || die "$ROOT is not a git checkout. Keep deploy.sh inside the app, or point it at the app with --dir /path/to/app."
+
+cd "$ROOT"
+
+STATE_DIR="$ROOT/.deploy"
+LOCK_FILE="$STATE_DIR/deploy.lock"
+LOG_FILE="$STATE_DIR/deploy.log"
+DIST="$ROOT/client/dist"
+DIST_NEW="$ROOT/client/dist.new"
+DIST_PREV="$ROOT/client/dist.prev"
 
 # ------------------------------------------------------------------
 # Failure handling
