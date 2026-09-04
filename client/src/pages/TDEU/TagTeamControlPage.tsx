@@ -177,15 +177,15 @@ const TagTeamControlPage = () => {
         }));
     };
 
-    const deleteFromHistory = async (playerName: string) => {
+    const deleteFromHistory = async (username: string) => {
         try {
             const response = await fetch('/api/history', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: playerName }),
+                body: JSON.stringify({ name: username }),
             });
             if (response.ok) {
-                setPlayerHistory(prev => prev.filter(p => p.name !== playerName));
+                setPlayerHistory(prev => prev.filter(p => p.username !== username));
             } else {
                 console.error("Failed to delete player from history");
             }
@@ -497,7 +497,7 @@ const TagTeamControlPage = () => {
                                 </div>
                                 <NeonButton 
                                     variant="ghost" 
-                                    onClick={() => deleteFromHistory(p.name)} 
+                                    onClick={() => deleteFromHistory(p.username)}
                                     className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <Trash2 size={16} />
