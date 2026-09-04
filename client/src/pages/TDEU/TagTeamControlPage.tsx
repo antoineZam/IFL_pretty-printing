@@ -220,11 +220,13 @@ const TagTeamControlPage = () => {
     };
 
     const swapTeams = () => {
-        setData(prev => ({
-            ...prev,
-            team1: prev.team2,
-            team2: prev.team1
-        }));
+        const updatedData: TagTeamData = {
+            ...data,
+            team1: data.team2,
+            team2: data.team1
+        };
+        setData(updatedData);
+        sendUpdate(updatedData);
     };
 
     const updateAllInfo = () => {
