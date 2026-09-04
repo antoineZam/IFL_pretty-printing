@@ -148,7 +148,7 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
     useEffect(() => {
         if (embedded || propSocket) return;
         
-        const key = searchParams.get('key');
+        const key = searchParams.get('key') || localStorage.getItem('connectionKey');
         if (!key) {
             setError('No connection key');
             return;
