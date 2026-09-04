@@ -41,6 +41,112 @@ const EXCLUDED = ['drop_legacy_ewgf_tables.sql'];
 
 const MIGRATIONS_DIR = path.join(__dirname, '..', 'migrations');
 
+/**
+ * Split a migration file into individual statements, honouring DELIMITER.
+ *
+ * DELIMITER is a directive of the mysql command-line client, not SQL -- the
+ * server has never heard of it. Two migrations use it to declare stored
+ * procedures, whose bodies contain semicolons that would otherwise be read as
+ * statement ends. Handing such a file to the driver as one string fails with
+ * "syntax error near 'DELIMITER //'", so the runner could not apply the very
+ * files the project ships. The mysql client splits scripts itself; so do we.
+ *
+ * Quoted strings, backtick identifiers and comments are stepped over, so a
+ * delimiter appearing inside one is not mistaken for the end of a statement.
+ */
+function splitStatements(sql) {
+    const statements = [];
+    let delimiter = ';';
+    let current = '';
+    let i = 0;
+
+    const DIRECTIVE = /^DELIMITER[ \t]+(\S+)/i;
+
+    while (i < sql.length) {
+        // Only recognised at the start of a line, as the client does.
+        if (i === 0 || sql[i - 1] === '\n') {
+            const match = DIRECTIVE.exec(sql.slice(i, i + 64));
+            if (match) {
+                delimiter = match[1];
+                const nl = sql.indexOf('\n', i);
+                i = nl === -1 ? sql.length : nl + 1;
+                continue;
+            }
+        }
+
+        const pair = sql.slice(i, i + 2);
+
+        // Line comment: "-- " or "#" through end of line.
+        if ((pair === '--' && /[ \t\r\n]/.test(sql[i + 2] ?? '\n')) || sql[i] === '#') {
+            const nl = sql.indexOf('\n', i);
+            const stop = nl === -1 ? sql.length : nl + 1;
+            current += sql.slice(i, stop);
+            i = stop;
+            continue;
+        }
+
+        // Block comment.
+        if (pair === '/*') {
+            const end = sql.indexOf('*/', i + 2);
+            const stop = end === -1 ? sql.length : end + 2;
+            current += sql.slice(i, stop);
+            i = stop;
+            continue;
+        }
+
+        // Quoted string or quoted identifier.
+        const quote = sql[i];
+        if (quote === "'" || quote === '"' || quote === '`') {
+            let j = i + 1;
+            while (j < sql.length) {
+                if (quote !== '`' && sql[j] === '\\') { j += 2; continue; }   // escape
+                if (sql[j] === quote) {
+                    if (sql[j + 1] === quote) { j += 2; continue; }           // doubled
+                    break;
+                }
+                j++;
+            }
+            const stop = Math.min(j + 1, sql.length);
+            current += sql.slice(i, stop);
+            i = stop;
+            continue;
+        }
+
+        if (sql.startsWith(delimiter, i)) {
+            if (current.trim()) statements.push(current.trim());
+            current = '';
+            i += delimiter.length;
+            continue;
+        }
+
+        current += sql[i];
+        i++;
+    }
+
+    if (current.trim()) statements.push(current.trim());
+
+    // Trailing comments after the last statement split off as their own chunk.
+    // Drop anything that is only comments and whitespace.
+    return statements.filter(hasExecutableSql);
+}
+
+/** The first non-comment line of a statement, for error messages. */
+function firstLine(statement) {
+    const line = statement
+        .split('\n')
+        .map(l => l.trim())
+        .find(l => l && !l.startsWith('--') && !l.startsWith('#')) || statement.trim();
+    return line.length > 100 ? `${line.slice(0, 100)}...` : line;
+}
+
+/** True if the chunk contains anything beyond comments and whitespace. */
+function hasExecutableSql(chunk) {
+    const stripped = chunk
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')
+        .replace(/(^|\n)[ \t]*(--[ \t][^\n]*|#[^\n]*)/g, '$1');
+    return stripped.trim().length > 0;
+}
+
 async function main() {
     const listOnly = process.argv.includes('--list');
 
@@ -59,8 +165,10 @@ async function main() {
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_NAME || 'tournament_handler',
-        // Migration files contain several statements each.
-        multipleStatements: true,
+        // Off deliberately. Files are split into statements here and sent one
+        // at a time, so the server is never asked to find statement boundaries
+        // -- which is what it cannot do inside a stored procedure body.
+        multipleStatements: false,
     });
 
     try {
@@ -98,7 +206,16 @@ async function main() {
             }
             process.stdout.write(`  ${file} ... `);
             const sql = fs.readFileSync(full, 'utf8');
-            await connection.query(sql);
+            for (const statement of splitStatements(sql)) {
+                try {
+                    await connection.query(statement);
+                } catch (err) {
+                    // Without this the error names the file but not which of its
+                    // statements failed, which on a 70-line migration is a hunt.
+                    err.message = `${err.message}\n\n  in ${file}, statement:\n    ${firstLine(statement)}`;
+                    throw err;
+                }
+            }
             await connection.query(
                 'INSERT INTO schema_migrations (filename) VALUES (?)',
                 [file]
@@ -111,8 +228,13 @@ async function main() {
     }
 }
 
-main().catch(err => {
-    console.error('\nMigration failed:', err.message);
-    console.error('Nothing after the failing file was applied. Fix the cause and re-run.');
-    process.exit(1);
-});
+// Guarded so the statement splitter can be exercised without a database.
+if (require.main === module) {
+    main().catch(err => {
+        console.error('\nMigration failed:', err.message);
+        console.error('Nothing after the failing file was applied. Fix the cause and re-run.');
+        process.exit(1);
+    });
+}
+
+module.exports = { splitStatements, MIGRATIONS };
