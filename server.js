@@ -125,8 +125,8 @@ async function initializeData() {
             p1Score: 0, p2Score: 0, round: 'Winners Round 1', eventNumber: '1',
         };
         tagTeamData = {
-            team1: { name: 'Team 1', tag: 'T1', players: [], score: 0 },
-            team2: { name: 'Team 2', tag: 'T2', players: [], score: 0 },
+            team1: { name: 'Team 1', tag: 'T1', players: [{ name: 'Player 1', sponsor: '', active: true }, { name: 'Player 2', sponsor: '', active: false }], score: 0 },
+            team2: { name: 'Team 2', tag: 'T2', players: [{ name: 'Player 3', sponsor: '', active: true }, { name: 'Player 4', sponsor: '', active: false }], score: 0 },
             round: 'Winners Round 1',
         };
         playerHistory  = [];
