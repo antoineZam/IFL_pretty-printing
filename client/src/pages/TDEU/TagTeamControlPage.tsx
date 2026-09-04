@@ -210,13 +210,13 @@ const TagTeamControlPage = () => {
     };
 
     const updateScore = (team: 'team1' | 'team2', delta: number) => {
-        setData(prev => {
-            const newScore = Math.max(0, prev[team].score + delta);
-            return {
-                ...prev,
-                [team]: { ...prev[team], score: newScore }
-            };
-        });
+        const newScore = Math.max(0, data[team].score + delta);
+        const updatedData: TagTeamData = {
+            ...data,
+            [team]: { ...data[team], score: newScore }
+        };
+        setData(updatedData);
+        sendUpdate(updatedData);
     };
 
     const swapTeams = () => {
