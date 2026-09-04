@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-    Menu, X, Home, Settings, Monitor, Tv, Users, Trophy, 
+    Menu, X, Home, Settings, Tv, Users, Trophy, 
     Heart, Swords, LayoutDashboard, UserCircle, Layers,
     ChevronDown, ChevronRight, ExternalLink, Gamepad2
 } from 'lucide-react';
@@ -97,7 +97,6 @@ const IFFBurgerMenu = () => {
             items: [
                 { name: 'L&W Dashboard', path: '/iff/love-and-war', icon: <LayoutDashboard size={16} /> },
                 { name: 'Team Management', path: '/iff/love-and-war/control', icon: <Users size={16} /> },
-                { name: 'Display Control', path: '/iff/love-and-war/display', icon: <Monitor size={16} /> },
                 { name: 'Tournaments', path: '/iff/love-and-war/tournaments', icon: <Trophy size={16} /> },
                 { name: 'Team Stats Overlay', path: '/iff/love-and-war/overlay', icon: <Tv size={16} />, isOverlay: true },
             ]

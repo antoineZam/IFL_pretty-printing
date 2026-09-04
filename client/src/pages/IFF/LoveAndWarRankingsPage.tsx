@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { apiGet, asArray } from '../../utils/api';
 import { ChevronLeft, Trophy, Medal, Crown, Save, Check } from 'lucide-react';
 
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -41,13 +42,15 @@ const LoveAndWarRankingsPage = () => {
     useEffect(() => {
         loadTournament();
         loadRankings();
+        // Both loaders are stable for a given tournamentId and read no state;
+        // listing them would refetch on every render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tournamentId]);
 
     const loadTournament = async () => {
         try {
-            const response = await fetch(`/api/iff/love-and-war/tournament/${tournamentId}`);
-            const data = await response.json();
-            setTournament(data.tournament);
+            const data = await apiGet<{ tournament?: Tournament }>(`/api/iff/love-and-war/tournament/${tournamentId}`);
+            setTournament(data.tournament ?? null);
         } catch (error) {
             console.error('Error loading tournament:', error);
         }
@@ -56,13 +59,14 @@ const LoveAndWarRankingsPage = () => {
     const loadRankings = async () => {
         try {
             setIsLoading(true);
-            const response = await fetch(`/api/iff/love-and-war/tournament/${tournamentId}/rankings`);
-            const data = await response.json();
-            setRankings(data.rankings || []);
-            
+            const data = await apiGet<{ rankings?: unknown }>(`/api/iff/love-and-war/tournament/${tournamentId}/rankings`);
+            // asArray: this state is rendered with .map(); a 401 body is an object.
+            const rows = asArray<TeamRanking>(data?.rankings);
+            setRankings(rows);
+
             // Initialize editing placements
             const placements: { [teamId: number]: number | null } = {};
-            (data.rankings || []).forEach((r: TeamRanking) => {
+            rows.forEach((r) => {
                 placements[r.team_id] = r.placement;
             });
             setEditingPlacements(placements);

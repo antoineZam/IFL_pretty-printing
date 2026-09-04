@@ -1,8 +1,10 @@
 require('dotenv').config();
 const express = require('express');
+const compression = require('compression');
 const http    = require('http');
 const socketIo = require('socket.io');
 const fs   = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const pool       = require('./db');
 const dbHelpers  = require('./dbHelpers');
@@ -35,13 +37,97 @@ console.log('Connection key loaded. Navigate to /auth to sign in.');
 // APP SETUP
 // ============================================================
 
-const port   = 3000;
+const port   = Number(process.env.PORT) || 3000;
 const app    = express();
 const server = http.createServer(app);
 const io     = socketIo(server);
 
-app.use(express.static(path.join(__dirname, 'client', 'dist')));
-app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source')));
+// ------------------------------------------------------------
+// Security headers
+//
+// Nothing was sent before: no nosniff, no referrer policy, no framing policy.
+// Set by hand rather than via helmet to keep the dependency count down and to
+// stay explicit about the one header that needs care here -- a strict CSP would
+// break the overlay pages, which load artwork from /source and fonts from
+// Google, so it is deliberately not set. HSTS is only meaningful behind TLS.
+// ------------------------------------------------------------
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'same-origin');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+});
+
+// gzip everything text-shaped. The client bundle and the JSON payloads that
+// overlays poll compress to roughly a quarter of their size.
+app.use(compression());
+
+const CLIENT_DIST = path.join(__dirname, 'client', 'dist');
+
+// Timestamp of the bundle this server is serving, so a stale dist is visible
+// rather than something you discover on air.
+let clientBuildTime = 'unknown';
+try {
+    clientBuildTime = fs.statSync(path.join(CLIENT_DIST, 'index.html')).mtime.toISOString();
+} catch {
+    /* reported by the guard below */
+}
+
+// client/dist is gitignored build output, so a fresh clone has no bundle to
+// serve -- previously that produced a silent nothing on every page. Say so at
+// boot instead of at the first request.
+if (!fs.existsSync(path.join(CLIENT_DIST, 'index.html'))) {
+    console.error('FATAL: client/dist/index.html not found -- the client has not been built.');
+    console.error('Run "npm run build" (or "npm run setup" on a fresh clone) and restart.');
+    console.error('For local development with hot reload, use "npm run dev" and open http://localhost:5173.');
+    process.exit(1);
+}
+console.log(`Serving client bundle built ${clientBuildTime}.`);
+
+// Overlay artwork and fonts are large and effectively static. Caching them for a
+// day stops every OBS scene reload from re-fetching hundreds of megabytes;
+// revalidation still happens via ETag once the window lapses.
+//
+// Mounted ahead of the dist handler on purpose: the vite build also copies
+// public/ into dist/, so with the old ordering /source/* was answered by the
+// dist handler instead and picked up its default no-cache headers.
+// This mount is deliberately public: OBS browser sources cannot send an auth
+// header, so overlay artwork has to be reachable without one. That makes it the
+// wrong place for anything that is not artwork -- and it was holding the
+// orphaned data JSONs (one carrying real competitor tags) and a 42 MB
+// overlay_archive.zip that no code references. Serve images, fonts and media
+// only; everything else under the tree is refused.
+const SOURCE_SERVABLE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm|mov|woff2?|ttf|otf|eot|css)$/i;
+
+app.use('/source', (req, res, next) => {
+    // `req.path` here is already relative to the mount point.
+    if (!SOURCE_SERVABLE.test(req.path)) {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    next();
+});
+
+app.use('/source', express.static(path.join(__dirname, 'client', 'public', 'source'), {
+    maxAge: '1d',
+}));
+
+// Vite fingerprints everything under /assets, so those files can never change
+// behind a given URL -- serve them as permanently cacheable. index.html must not
+// be cached or clients would keep booting a stale bundle after a deploy.
+app.use('/assets', express.static(path.join(CLIENT_DIST, 'assets'), {
+    immutable: true,
+    maxAge: '1y',
+}));
+app.use(express.static(CLIENT_DIST, {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+    },
+}));
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -119,32 +205,70 @@ async function initializeData() {
         console.log('Data loaded from database successfully.');
     } catch (err) {
         console.error('Error initializing data from database:', err);
-        overlayData = {
-            p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null, p1Loser: false,
-            p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null, p2Loser: false,
-            p1Score: 0, p2Score: 0, round: 'Winners Round 1', eventNumber: '1',
-        };
-        tagTeamData = {
-            team1: { name: 'Team 1', tag: 'T1', players: [{ name: 'Player 1', sponsor: '', active: true }, { name: 'Player 2', sponsor: '', active: false }], score: 0 },
-            team2: { name: 'Team 2', tag: 'T2', players: [{ name: 'Player 3', sponsor: '', active: true }, { name: 'Player 4', sponsor: '', active: false }], score: 0 },
-            round: 'Winners Round 1',
-        };
+        // Reuse the canonical defaults rather than a second hand-maintained copy.
+        // The two used to disagree: this one carried p1Loser/p2Loser while the
+        // database path omitted them, and they meant different things by
+        // `eventNumber`.
+        overlayData    = { ...dbHelpers.DEFAULT_IFL_DATA };
+        tagTeamData    = { ...dbHelpers.DEFAULT_TAG_TEAM_DATA };
         playerHistory  = [];
-        ribMatchCards  = {
-            eventTitle: 'THE RUNBACK', eventSubtitle: 'THE FINAL CHAPTER', partNumber: '01',
-            mainEvent: { p1Name: '', p1Title: '', p1Character: '', p2Name: '', p2Title: '', p2Character: '' },
-            matches: [],
-            singleMatch: { matchTitle: '', format: '', p1Name: '', p1Title: '', p1Character: '', p2Name: '', p2Title: '', p2Character: '' },
-            sponsors: { presenter: '', association: '' },
-        };
-        ribPlayerStats = { players: [] };
-        ribStreamData  = { matchTitle: '', p1Name: '', p1Flag: '', p1Score: 0, p2Name: '', p2Flag: '', p2Score: 0 };
+        ribMatchCards  = { ...dbHelpers.DEFAULT_RIB_MATCH_CARDS };
+        ribPlayerStats = { ...dbHelpers.DEFAULT_RIB_PLAYER_STATS };
+        ribStreamData  = { ...dbHelpers.DEFAULT_RIB_STREAM_DATA };
     }
 }
 
 initializeData()
     .then(() => server.listen(port, () => console.log(`Server running at http://localhost:${port}`)))
     .catch(err => { console.error('Fatal: could not initialize data:', err); process.exit(1); });
+
+// ============================================================
+// GRACEFUL SHUTDOWN
+// ============================================================
+//
+// Without this, a restart dropped every socket without notice, abandoned the
+// coalesced scoreboard write still pending in memory and never drained the
+// MySQL pool. On a machine that also runs OBS that restart tends to happen at
+// the worst possible moment.
+let shuttingDown = false;
+async function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`
+${signal} received — shutting down.`);
+
+    // Hard deadline: never hang a restart waiting on a stuck connection.
+    const forceExit = setTimeout(() => {
+        console.error('Shutdown timed out after 10s — forcing exit.');
+        process.exit(1);
+    }, 10000);
+    forceExit.unref();
+
+    try {
+        // 1. Tell overlays the server is going away so they show a reconnect state
+        //    rather than freezing on the last frame they received.
+        io.emit('server-shutdown');
+        io.close();
+
+        // 2. Stop accepting new requests.
+        await new Promise(resolve => server.close(resolve));
+
+        // 3. Flush the scoreboard write that may still be coalescing in memory.
+        await flushOverlayPersist();
+
+        // 4. Drain the connection pool.
+        await pool.end();
+        console.log('Shutdown complete.');
+        clearTimeout(forceExit);
+        process.exit(0);
+    } catch (err) {
+        console.error('Error during shutdown:', err);
+        process.exit(1);
+    }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
 // ============================================================
 // UTILITIES
@@ -159,10 +283,39 @@ const asyncRoute = fn => async (req, res) => {
     try {
         await fn(req, res);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message || 'Internal server error' });
+        // Full detail to the server log, a generic message to the client: raw
+        // err.message from mysql2 carries table names, column names and SQL
+        // fragments. The id lets an operator find the matching log line.
+        const errorId = Math.random().toString(36).slice(2, 10);
+        console.error(`[${errorId}] ${req.method} ${req.originalUrl}`, err);
+        res.status(500).json({
+            error: 'Internal server error',
+            errorId,
+            ...(process.env.NODE_ENV !== 'production' ? { detail: err.message } : {}),
+        });
     }
 };
+
+/**
+ * Fires a persistence write without blocking the broadcast, and tells the
+ * operator if it failed.
+ *
+ * These writes were stubs that logged and returned, so nothing ever surfaced a
+ * failure. Now that they hit the database, a failed save must be visible --
+ * otherwise the control page still shows a green light while the data is lost
+ * on the next restart, which is the exact failure this replaced.
+ */
+function persistState(label, socket, write) {
+    Promise.resolve()
+        .then(write)
+        .catch(err => {
+            console.error(`Error persisting ${label}:`, err);
+            socket.emit('persist-error', {
+                what: label,
+                message: 'Change is live on the overlay but was NOT saved — it will be lost on restart.',
+            });
+        });
+}
 
 /**
  * Merges a patch into a state object, updating only the keys
@@ -170,11 +323,27 @@ const asyncRoute = fn => async (req, res) => {
  * dropped, preventing clients from injecting arbitrary state.
  * A patch value of `undefined` is treated as "no change".
  */
-function patchState(current, patch) {
+function patchState(current, patch, label = 'state') {
     const result = {};
     for (const key of Object.keys(current)) {
         result[key] = (patch != null && patch[key] !== undefined) ? patch[key] : current[key];
     }
+
+    // Dropping unknown keys is the point -- it stops a client injecting arbitrary
+    // state. But it used to be silent, so the day someone added a field to the
+    // client's TypeScript interface it was discarded with no error and no log,
+    // and the only symptom was a value that never arrived. Say so.
+    if (patch != null && typeof patch === 'object') {
+        const unknown = Object.keys(patch).filter(key => !(key in current));
+        if (unknown.length > 0) {
+            console.warn(
+                `[${label}] Ignored unknown field(s): ${unknown.join(', ')}. ` +
+                'The server state object has no such key -- add it there (and to the ' +
+                'client type) if it is meant to be part of this payload.'
+            );
+        }
+    }
+
     return result;
 }
 
@@ -214,15 +383,98 @@ function requireRibAuth(req, res, next) {
     return res.status(403).json({ error: 'Forbidden' });
 }
 
+// ------------------------------------------------------------
+// Auth endpoint hardening
+//
+// Both endpoints compared a submitted key against an environment variable and
+// returned immediately, with no delay, lockout or logging, and with a
+// short-circuiting === comparison. A strong random key already makes brute force
+// impractical, so this is defence in depth -- but nothing stopped an unbounded
+// guessing loop, and nothing recorded that one had happened.
+// ------------------------------------------------------------
+
+/**
+ * Comparison whose duration does not depend on how many leading characters
+ * matched. `===` on strings bails at the first difference.
+ */
+function safeEqual(a, b) {
+    const bufA = Buffer.from(String(a ?? ''), 'utf8');
+    const bufB = Buffer.from(String(b ?? ''), 'utf8');
+    // timingSafeEqual requires equal lengths; hash first so length is constant.
+    const hashA = crypto.createHash('sha256').update(bufA).digest();
+    const hashB = crypto.createHash('sha256').update(bufB).digest();
+    return crypto.timingSafeEqual(hashA, hashB);
+}
+
+const AUTH_WINDOW_MS   = 15 * 60 * 1000;
+const AUTH_MAX_ATTEMPTS = 10;
+const authAttempts = new Map();   // ip -> { count, firstAt, blockedUntil }
+
+// Bounded so a spray across many source addresses cannot grow this without limit.
+const AUTH_TRACKER_MAX = 5000;
+
+function authRateLimit(req, res, next) {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    let entry = authAttempts.get(ip);
+
+    if (entry && now - entry.firstAt > AUTH_WINDOW_MS) {
+        entry = undefined;
+        authAttempts.delete(ip);
+    }
+
+    if (entry?.blockedUntil && now < entry.blockedUntil) {
+        const retryAfter = Math.ceil((entry.blockedUntil - now) / 1000);
+        res.setHeader('Retry-After', String(retryAfter));
+        return res.status(429).json({
+            success: false,
+            message: `Too many failed attempts. Try again in ${retryAfter}s.`,
+        });
+    }
+
+    if (authAttempts.size > AUTH_TRACKER_MAX) {
+        for (const [key, value] of authAttempts) {
+            if (now - value.firstAt > AUTH_WINDOW_MS) authAttempts.delete(key);
+        }
+    }
+
+    // Handed to the route so it can record the outcome.
+    req.recordAuthResult = (ok) => {
+        if (ok) {
+            authAttempts.delete(ip);
+            return;
+        }
+        const current = authAttempts.get(ip) ?? { count: 0, firstAt: now };
+        current.count += 1;
+        if (current.count >= AUTH_MAX_ATTEMPTS) {
+            current.blockedUntil = now + AUTH_WINDOW_MS;
+            console.warn(`[auth] ${ip} blocked after ${current.count} failed attempts.`);
+        } else {
+            console.warn(`[auth] Failed attempt ${current.count}/${AUTH_MAX_ATTEMPTS} from ${ip}.`);
+        }
+        authAttempts.set(ip, current);
+    };
+
+    next();
+}
+
 // Public auth endpoints — must be registered before the requireAuth middleware.
-app.post('/api/auth', (req, res) => {
-    if (req.body.key === CONNECTION_KEY) return res.json({ success: true });
+app.post('/api/auth', authRateLimit, (req, res) => {
+    if (safeEqual(req.body.key, CONNECTION_KEY)) {
+        req.recordAuthResult(true);
+        return res.json({ success: true });
+    }
+    req.recordAuthResult(false);
     res.status(401).json({ success: false, message: 'Invalid connection key' });
 });
 
-app.post('/api/rib-auth', (req, res) => {
+app.post('/api/rib-auth', authRateLimit, (req, res) => {
     if (!IFF_ACCESS_KEY) return res.json({ success: true, message: 'No RIB key required' });
-    if (req.body.key === IFF_ACCESS_KEY) return res.json({ success: true });
+    if (safeEqual(req.body.key, IFF_ACCESS_KEY)) {
+        req.recordAuthResult(true);
+        return res.json({ success: true });
+    }
+    req.recordAuthResult(false);
     res.status(401).json({ success: false, message: 'Invalid RIB access key' });
 });
 
@@ -249,6 +501,11 @@ historyRouter.post('/', asyncRoute(async (req, res) => {
 historyRouter.delete('/', asyncRoute(async (req, res) => {
     const { name } = req.body;
     const [result] = await pool.execute('DELETE FROM users WHERE username = ?', [name]);
+    dbHelpers.invalidatePlayerCaches();
+    // Also invalidate the tournament cache, as the delete-by-id route does.
+    // Deleting a player can remove the match the live scoreboard is writing to,
+    // and the cached match id would otherwise keep pointing at a dead row.
+    dbHelpers.invalidateTournamentCache();
     if (result.affectedRows > 0) return res.json({ success: true, message: 'Player deleted.' });
     res.status(404).json({ success: false, message: 'Player not found.' });
 }));
@@ -259,11 +516,17 @@ app.use('/api/history', historyRouter);
 // RUN IT BACK ROUTES  —  /api/rib
 // ============================================================
 
+// No page in the client uses these -- every Run It Back page talks over sockets
+// -- but they are kept as the REST surface for the same state, so an operator or
+// a script can read and set it without a socket.
+//
+// The GETs serve the in-memory state rather than re-reading the database. That
+// state is loaded from the database at boot and is what the sockets broadcast,
+// so a REST reader and an overlay now always agree. (They previously returned
+// hardcoded defaults, contradicting what was on air.)
 const ribRouter = express.Router();
 
-ribRouter.get('/match-cards', asyncRoute(async (req, res) => {
-    res.json(await dbHelpers.loadRIBMatchCards());
-}));
+ribRouter.get('/match-cards', (req, res) => res.json(ribMatchCards));
 ribRouter.post('/match-cards', asyncRoute(async (req, res) => {
     ribMatchCards = req.body;
     await dbHelpers.saveRIBMatchCards(ribMatchCards);
@@ -271,9 +534,7 @@ ribRouter.post('/match-cards', asyncRoute(async (req, res) => {
     res.json(ribMatchCards);
 }));
 
-ribRouter.get('/player-stats', asyncRoute(async (req, res) => {
-    res.json(await dbHelpers.loadRIBPlayerStats());
-}));
+ribRouter.get('/player-stats', (req, res) => res.json(ribPlayerStats));
 ribRouter.post('/player-stats', asyncRoute(async (req, res) => {
     ribPlayerStats = req.body;
     await dbHelpers.saveRIBPlayerStats(ribPlayerStats);
@@ -281,9 +542,7 @@ ribRouter.post('/player-stats', asyncRoute(async (req, res) => {
     res.json(ribPlayerStats);
 }));
 
-ribRouter.get('/stream-data', asyncRoute(async (req, res) => {
-    res.json(await dbHelpers.loadRIBStreamData());
-}));
+ribRouter.get('/stream-data', (req, res) => res.json(ribStreamData));
 ribRouter.post('/stream-data', asyncRoute(async (req, res) => {
     ribStreamData = req.body;
     await dbHelpers.saveRIBStreamData(ribStreamData);
@@ -293,7 +552,7 @@ ribRouter.post('/stream-data', asyncRoute(async (req, res) => {
 
 ribRouter.get('/overlay-state', (req, res) => res.json(ribOverlayState));
 ribRouter.post('/overlay-state', (req, res) => {
-    ribOverlayState = patchState(ribOverlayState, req.body);
+    ribOverlayState = patchState(ribOverlayState, req.body, 'ribOverlayState');
     io.emit('rib-overlay-state-update', ribOverlayState);
     res.json(ribOverlayState);
 });
@@ -316,15 +575,37 @@ startggRouter.get('/ifl/tournaments', asyncRoute(async (req, res) => {
     res.json(await startgg.searchIronFistLeagueTournaments(50));
 }));
 
+// Long-running by nature: each tournament is a few thousand sequential queries
+// over the SSH tunnel this deployment uses, multiplied by up to 50 tournaments,
+// all inside one HTTP request. Node's default 2-minute socket timeout would cut
+// the response off long before it finished -- the sync itself kept running, so
+// the caller saw a failure while the work continued invisibly.
+//
+// The timeout is lifted for this route only, and a deadline stops the loop
+// cleanly rather than letting it run unbounded. Partial results are returned.
+const SYNC_ALL_DEADLINE_MS = 30 * 60 * 1000;
+
 startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
+    req.setTimeout(0);
+    res.setTimeout(0);
+    const deadline = Date.now() + SYNC_ALL_DEADLINE_MS;
+
     const tournaments = await startgg.searchIronFistLeagueTournaments(50);
     console.log(`[Sync] sync-all starting: ${tournaments.length} tournaments found.`);
     const results = [];
+    let timedOut = false;
     for (const t of tournaments) {
+        if (Date.now() > deadline) {
+            timedOut = true;
+            console.warn(`[Sync] sync-all hit its ${SYNC_ALL_DEADLINE_MS / 60000}-minute deadline; stopping.`);
+            results.push({ slug: t.slug, name: t.name, success: false, error: 'Skipped: sync-all deadline reached' });
+            continue;
+        }
         try {
             const r = await startggSync.syncTournamentFromStartGG(t.slug);
-            console.log(`[Sync] ✓ ${t.name}`);
-            results.push({ slug: t.slug, name: t.name, success: true, ...r });
+            const ok = r.complete !== false;
+            console.log(`[Sync] ${ok ? '✓' : '⚠'} ${t.name}${ok ? '' : ` (${r.warnings.length} warning(s))`}`);
+            results.push({ slug: t.slug, name: t.name, success: ok, ...r });
         } catch (e) {
             console.error(`[Sync] ✗ ${t.name}: ${e.message}`);
             results.push({ slug: t.slug, name: t.name, success: false, error: e.message });
@@ -339,10 +620,22 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
             WHERE users.user_id = matches.player1_id OR users.user_id = matches.player2_id
         ) AND EXISTS (SELECT 1 FROM matches)`
     );
+    // The sync wrote users and matches straight through the pool, so the
+    // in-memory player/match caches no longer reflect the tables.
+    dbHelpers.invalidatePlayerCaches();
+    dbHelpers.invalidateTournamentCache();
+    startgg.clearCache();
     const playersRemoved = cleaned.affectedRows || 0;
     if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
 
-    res.json({ totalFound: tournaments.length, synced, failed: tournaments.length - synced, results, playersRemoved });
+    res.json({
+        totalFound: tournaments.length,
+        synced,
+        failed: tournaments.length - synced,
+        timedOut,
+        results,
+        playersRemoved,
+    });
 }));
 
 startggRouter.get('/ifl/:number', asyncRoute(async (req, res) => {
@@ -356,7 +649,18 @@ startggRouter.get('/tournament/:slug', asyncRoute(async (req, res) => {
 }));
 
 startggRouter.get('/tournament/:slug/events', asyncRoute(async (req, res) => {
-    res.json(await startgg.getTournamentEvents(req.params.slug, req.query.eventSlug || null));
+    // Returns { events: [...] }, not the raw GraphQL envelope. The standings
+    // control page reads data.events; answering {tournament:{events}} made that
+    // permanently undefined, so its event list was always empty and standings
+    // could never be loaded from that page.
+    const data = await startgg.getTournamentEvents(req.params.slug, {
+        eventSlug: req.query.eventSlug || null,
+        includeSets: false,
+    });
+    res.json({
+        tournament: data?.tournament ?? null,
+        events: data?.tournament?.events ?? [],
+    });
 }));
 
 startggRouter.get('/tournament/:slug/matches', asyncRoute(async (req, res) => {
@@ -406,14 +710,32 @@ startggRouter.post('/sync/tournament/:slug', asyncRoute(async (req, res) => {
             WHERE users.user_id = matches.player1_id OR users.user_id = matches.player2_id
         ) AND EXISTS (SELECT 1 FROM matches)`
     );
+    // The sync wrote users and matches straight through the pool, so the
+    // in-memory player/match caches no longer reflect the tables.
+    dbHelpers.invalidatePlayerCaches();
+    dbHelpers.invalidateTournamentCache();
+    startgg.clearCache();
     const playersRemoved = cleaned.affectedRows || 0;
     if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
 
-    res.json({ success: true, message: 'Tournament synced successfully', ...result, playersRemoved });
+    // "success" now means the sync actually completed. A run that lost a page of
+    // sets or failed participant lookup used to answer an unqualified
+    // "Tournament synced successfully" -- indistinguishable from a clean run.
+    const complete = result.complete !== false;
+    res.json({
+        success: complete,
+        message: complete
+            ? 'Tournament synced successfully'
+            : `Tournament synced with ${result.warnings.length} problem(s) — data may be incomplete.`,
+        ...result,
+        playersRemoved,
+    });
 }));
 
 startggRouter.post('/sync/player/:slug', asyncRoute(async (req, res) => {
     const userId = await startggSync.syncPlayerFromStartGG(req.params.slug);
+    dbHelpers.invalidatePlayerCaches();
+    startgg.clearCache();
     res.json({ success: true, message: 'Player synced successfully', userId });
 }));
 
@@ -549,6 +871,7 @@ dbRouter.put('/player/:playerId', asyncRoute(async (req, res) => {
     if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
     values.push(playerId);
     await pool.execute(`UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`, values);
+    dbHelpers.invalidatePlayerCaches();
     const [[player]] = await pool.execute(
         `SELECT u.*, COUNT(DISTINCT m.match_id) as total_matches,
                 SUM(CASE WHEN m.winner_id = u.user_id THEN 1 ELSE 0 END) as wins
@@ -567,6 +890,8 @@ dbRouter.delete('/player/:playerId', asyncRoute(async (req, res) => {
     const { playerId } = req.params;
     await pool.execute('DELETE FROM matches WHERE player1_id = ? OR player2_id = ?', [playerId, playerId]);
     const [result] = await pool.execute('DELETE FROM users WHERE user_id = ?', [playerId]);
+    dbHelpers.invalidatePlayerCaches();
+    dbHelpers.invalidateTournamentCache();
     if (result.affectedRows === 0) {
         return res.status(404).json({ error: 'Player not found' });
     }
@@ -616,6 +941,8 @@ dbRouter.post('/players/cleanup', asyncRoute(async (req, res) => {
             console.log(`[Cleanup] Fixed: "${player.username}" → "${actualName}"`);
         }
     }
+    dbHelpers.invalidatePlayerCaches();
+    dbHelpers.invalidateTournamentCache();
     playerHistory = await dbHelpers.loadPlayerHistory();
     io.emit('history-update', playerHistory);
     res.json({ success: true, message: `Fixed ${fixed} player names, merged ${merged} duplicates`, fixed, merged });
@@ -697,14 +1024,14 @@ iffRouter.delete('/love-and-war/team/:id', asyncRoute(async (req, res) => {
 
 iffRouter.get('/love-and-war/display-state', (req, res) => res.json(loveAndWarDisplayState));
 iffRouter.post('/love-and-war/display-state', (req, res) => {
-    loveAndWarDisplayState = patchState(loveAndWarDisplayState, req.body);
+    loveAndWarDisplayState = patchState(loveAndWarDisplayState, req.body, 'loveAndWarDisplayState');
     io.emit('love-and-war-display-update', loveAndWarDisplayState);
     res.json(loveAndWarDisplayState);
 });
 
 iffRouter.get('/love-and-war/match-data', (req, res) => res.json(lnwMatchData));
 iffRouter.post('/love-and-war/match-data', (req, res) => {
-    lnwMatchData = patchState(lnwMatchData, req.body);
+    lnwMatchData = patchState(lnwMatchData, req.body, 'lnwMatchData');
     io.emit('lnw-match-data', lnwMatchData);
     res.json(lnwMatchData);
 });
@@ -716,7 +1043,7 @@ iffRouter.post('/love-and-war/match-data', (req, res) => {
 // --- IFF9 Live overlay state (in-memory) ---
 iffRouter.get('/iff-9/match-data', (req, res) => res.json(iff9MatchData));
 iffRouter.post('/iff-9/match-data', (req, res) => {
-    iff9MatchData = patchState(iff9MatchData, req.body);
+    iff9MatchData = patchState(iff9MatchData, req.body, 'iff9MatchData');
     io.emit('iff9-match-data', iff9MatchData);
     res.json(iff9MatchData);
 });
@@ -905,6 +1232,66 @@ iffRouter.delete('/love-and-war/group/:groupId/teams/:teamId', asyncRoute(async 
 app.use('/api/iff', requireRibAuth, iffRouter);
 
 // ============================================================
+// SCOREBOARD PERSISTENCE
+//
+// Score buttons fire in bursts. Writing each intermediate state to MySQL is
+// wasted work -- only the latest one matters -- so writes are coalesced behind
+// a single in-flight save and the newest pending state always wins.
+// ============================================================
+
+let persistInFlight = false;
+let persistPending  = null;
+// Held so shutdown can wait for a write that is queued or already running.
+let persistPromise  = Promise.resolve();
+
+function queueOverlayPersist(data) {
+    persistPending = data;
+    if (persistInFlight) return;
+    persistInFlight = true;
+    // Defer past the current tick so a rapid burst collapses into one write.
+    persistPromise = new Promise(resolve => {
+        setImmediate(() => { runOverlayPersist().then(resolve, resolve); });
+    });
+}
+
+/**
+ * Resolves once every queued scoreboard write has hit the database.
+ * Called on shutdown so a restart does not drop the last score press.
+ */
+function flushOverlayPersist() {
+    return persistPromise;
+}
+
+async function runOverlayPersist() {
+    try {
+        while (persistPending) {
+            const data = persistPending;
+            persistPending = null;
+            try {
+                await dbHelpers.saveIFLData(data);
+                const players = [
+                    { name: data.p1Name, team: data.p1Team, flag: data.p1Flag },
+                    { name: data.p2Name, team: data.p2Team, flag: data.p2Flag },
+                ].filter(p => p.name);
+                if (players.length > 0) {
+                    await dbHelpers.savePlayerHistory(players);
+                    // Only re-broadcast the (whole) player list when a row actually
+                    // changed; the common case is the same two players repeatedly.
+                    if (dbHelpers.isPlayerHistoryStale()) {
+                        playerHistory = await dbHelpers.loadPlayerHistory();
+                        io.emit('history-update', playerHistory);
+                    }
+                }
+            } catch (err) {
+                console.error('Error persisting overlay data:', err);
+            }
+        }
+    } finally {
+        persistInFlight = false;
+    }
+}
+
+// ============================================================
 // SOCKET.IO
 // ============================================================
 
@@ -931,28 +1318,23 @@ io.on('connection', (socket) => {
     socket.emit('iff9-lineup',               iff9Lineup);
     socket.emit('iff9-display-mode',         iff9DisplayMode);
 
-    socket.on('update-data', async (data) => {
-        try {
-            overlayData = data;
-            await dbHelpers.saveIFLData(overlayData);
-            const players = [
-                { name: data.p1Name, team: data.p1Team, flag: data.p1Flag },
-                { name: data.p2Name, team: data.p2Team, flag: data.p2Flag },
-            ].filter(p => p.name);
-            if (players.length > 0) {
-                await dbHelpers.savePlayerHistory(players);
-                io.emit('history-update', await dbHelpers.loadPlayerHistory());
-            }
-            io.emit('data-update', overlayData);
-        } catch (err) { console.error('Error handling update-data:', err); }
+    socket.on('update-data', (data) => {
+        // Overlays get the new scoreboard on this tick. Persistence used to run
+        // first, which meant every score button press waited on a chain of
+        // database round-trips before anything moved on stream.
+        overlayData = data;
+        io.emit('data-update', overlayData);
+        queueOverlayPersist(data);
     });
 
-    socket.on('tag-team-update', async (data) => {
-        try {
-            tagTeamData = data;
-            await dbHelpers.saveTagTeamData(tagTeamData);
-            io.emit('tag-team-data', tagTeamData);
-        } catch (err) { console.error('Error handling tag-team-update:', err); }
+    // Broadcast first, persist after. A database hiccup must never hold up what
+    // is on screen -- and now that these saves are real (they used to be stubs)
+    // an await here would put a MySQL round-trip in front of every operator
+    // action. Persistence failures are logged and surfaced to the operator.
+    socket.on('tag-team-update', (data) => {
+        tagTeamData = data;
+        io.emit('tag-team-data', tagTeamData);
+        persistState('tag-team', socket, () => dbHelpers.saveTagTeamData(tagTeamData));
     });
 
     // Pass-through relay events — no persistence needed.
@@ -960,47 +1342,41 @@ io.on('connection', (socket) => {
     socket.on('top8-refresh',        data => io.emit('top8-refresh', data));
     socket.on('top8-standings-data', data => io.emit('top8-standings-data', data));
 
-    socket.on('rib-match-cards-update', async (data) => {
-        try {
-            ribMatchCards = data;
-            await dbHelpers.saveRIBMatchCards(ribMatchCards);
-            io.emit('rib-match-cards-update', ribMatchCards);
-        } catch (err) { console.error('Error handling rib-match-cards-update:', err); }
+    socket.on('rib-match-cards-update', (data) => {
+        ribMatchCards = data;
+        io.emit('rib-match-cards-update', ribMatchCards);
+        persistState('rib-match-cards-update', socket, () => dbHelpers.saveRIBMatchCards(ribMatchCards));
     });
 
-    socket.on('rib-player-stats-update', async (data) => {
-        try {
-            ribPlayerStats = data;
-            await dbHelpers.saveRIBPlayerStats(ribPlayerStats);
-            io.emit('rib-player-stats-update', ribPlayerStats);
-        } catch (err) { console.error('Error handling rib-player-stats-update:', err); }
+    socket.on('rib-player-stats-update', (data) => {
+        ribPlayerStats = data;
+        io.emit('rib-player-stats-update', ribPlayerStats);
+        persistState('rib-player-stats-update', socket, () => dbHelpers.saveRIBPlayerStats(ribPlayerStats));
     });
 
-    socket.on('rib-stream-data-update', async (data) => {
-        try {
-            ribStreamData = data;
-            await dbHelpers.saveRIBStreamData(ribStreamData);
-            io.emit('rib-stream-data-update', ribStreamData);
-        } catch (err) { console.error('Error handling rib-stream-data-update:', err); }
+    socket.on('rib-stream-data-update', (data) => {
+        ribStreamData = data;
+        io.emit('rib-stream-data-update', ribStreamData);
+        persistState('rib-stream-data-update', socket, () => dbHelpers.saveRIBStreamData(ribStreamData));
     });
 
     socket.on('rib-overlay-state-update', data => {
-        ribOverlayState = patchState(ribOverlayState, data);
+        ribOverlayState = patchState(ribOverlayState, data, 'ribOverlayState');
         io.emit('rib-overlay-state-update', ribOverlayState);
     });
 
     socket.on('love-and-war-display-select', data => {
-        loveAndWarDisplayState = patchState(loveAndWarDisplayState, data);
+        loveAndWarDisplayState = patchState(loveAndWarDisplayState, data, 'loveAndWarDisplayState');
         io.emit('love-and-war-display-update', loveAndWarDisplayState);
     });
 
     socket.on('lnw-match-update', data => {
-        lnwMatchData = patchState(lnwMatchData, data);
+        lnwMatchData = patchState(lnwMatchData, data, 'lnwMatchData');
         io.emit('lnw-match-data', lnwMatchData);
     });
 
     socket.on('lnw-display-mode', data => {
-        lnwDisplayMode = patchState(lnwDisplayMode, data);
+        lnwDisplayMode = patchState(lnwDisplayMode, data, 'lnwDisplayMode');
         io.emit('lnw-display-mode', lnwDisplayMode);
     });
 
@@ -1014,7 +1390,7 @@ io.on('connection', (socket) => {
 
     // --- IFF9 ---
     socket.on('iff9-match-update', data => {
-        iff9MatchData = patchState(iff9MatchData, data);
+        iff9MatchData = patchState(iff9MatchData, data, 'iff9MatchData');
         io.emit('iff9-match-data', iff9MatchData);
     });
 
@@ -1024,7 +1400,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('iff9-display-mode', data => {
-        iff9DisplayMode = patchState(iff9DisplayMode, data);
+        iff9DisplayMode = patchState(iff9DisplayMode, data, 'iff9DisplayMode');
         io.emit('iff9-display-mode', iff9DisplayMode);
     });
 
@@ -1038,5 +1414,24 @@ io.on('connection', (socket) => {
     });
 });
 
+// An /api path that matched no router is a mistyped or removed endpoint. Without
+// this it fell through to the SPA catch-all below and answered 200 with
+// index.html, so the caller got a JSON parse error instead of a clean 404.
+app.use('/api', (req, res) => {
+    res.status(404).json({ error: `No such API route: ${req.method} ${req.originalUrl}` });
+});
+
 // Catch-all: serve the React SPA for any non-API route.
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html')));
+//
+// A header records which server answered and when its bundle was built. During
+// development Vite (5173) serves current source while this server (3000) serves
+// whatever stale client/dist happens to be on disk -- both answer the same
+// overlay URLs, so an OBS source pointed at the wrong one silently renders the
+// last build instead of the running code, with nothing to say which you are
+// looking at. Check the response header, or the banner it drives below.
+app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Served-By', `express:${port}`);
+    res.setHeader('X-Bundle-Built', clientBuildTime);
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+});

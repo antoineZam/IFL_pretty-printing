@@ -1,11 +1,17 @@
 -- Love & War Tournaments, Groups, and Matches
-DROP TABLE IF EXISTS `iff_lnw_matches`;
-DROP TABLE IF EXISTS `iff_lnw_tournament_teams`;
-DROP TABLE IF EXISTS `iff_lnw_groups`;
-DROP TABLE IF EXISTS `iff_lnw_tournaments`;
+--
+-- SAFE TO RE-RUN: no DROP, every CREATE is IF NOT EXISTS. This file used to open
+-- by dropping all four tables, so an accidental re-run wiped every Love & War
+-- tournament, group, bracket and standing.
+--
+-- Requires migrations/iff_love_n_war_teams.sql first: the team columns are real
+-- foreign keys now. A helper comment in dbHelpers.js already said "order matters
+-- due to foreign key constraints" -- the constraints just did not exist, so the
+-- manual cascades standing in for them ran as two to four unrelated statements
+-- with no transaction, and a missed one left orphaned rows behind.
 
 -- Tournaments table
-CREATE TABLE `iff_lnw_tournaments` (
+CREATE TABLE IF NOT EXISTS `iff_lnw_tournaments` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(255) NOT NULL,
     `format` VARCHAR(50) NOT NULL, -- 'single_elimination', 'double_elimination'
@@ -16,7 +22,7 @@ CREATE TABLE `iff_lnw_tournaments` (
 );
 
 -- Groups table (pools/divisions within a tournament)
-CREATE TABLE `iff_lnw_groups` (
+CREATE TABLE IF NOT EXISTS `iff_lnw_groups` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `tournament_id` INT NOT NULL,
     `name` VARCHAR(100) NOT NULL, -- 'Group A', 'Group B', 'Finals Bracket', etc.
@@ -25,11 +31,13 @@ CREATE TABLE `iff_lnw_groups` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_tournament (tournament_id),
-    UNIQUE KEY unique_tournament_group (tournament_id, name)
-);
+    UNIQUE KEY unique_tournament_group (tournament_id, name),
+    CONSTRAINT `fk_lnw_group_tournament` FOREIGN KEY (`tournament_id`)
+        REFERENCES `iff_lnw_tournaments` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Matches table
-CREATE TABLE `iff_lnw_matches` (
+CREATE TABLE IF NOT EXISTS `iff_lnw_matches` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `tournament_id` INT NOT NULL,
     `group_id` INT NULL, -- NULL for ungrouped matches, links to iff_lnw_groups
@@ -46,13 +54,27 @@ CREATE TABLE `iff_lnw_matches` (
     `bracket_position` VARCHAR(50) NULL, -- 'upper', 'lower', 'grand_finals' for double elimination
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_tournament (tournament_id),
+    -- idx_round (tournament_id, round_order) already serves lookups on
+    -- tournament_id alone, so the separate idx_tournament is redundant. The
+    -- trailing CREATE INDEX statements that duplicated these (and an unused
+    -- (team_1_id, team_2_id) index, bypassed because those joins resolve through
+    -- the teams primary key) have been removed.
     INDEX idx_group (group_id),
-    INDEX idx_round (tournament_id, round_order)
-);
+    INDEX idx_round (tournament_id, round_order),
+    CONSTRAINT `fk_lnw_match_tournament` FOREIGN KEY (`tournament_id`)
+        REFERENCES `iff_lnw_tournaments` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_lnw_match_group` FOREIGN KEY (`group_id`)
+        REFERENCES `iff_lnw_groups` (`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_lnw_match_team_1` FOREIGN KEY (`team_1_id`)
+        REFERENCES `iff_love_n_war_teams` (`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_lnw_match_team_2` FOREIGN KEY (`team_2_id`)
+        REFERENCES `iff_love_n_war_teams` (`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_lnw_match_winner` FOREIGN KEY (`winner_team_id`)
+        REFERENCES `iff_love_n_war_teams` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tournament Teams (tracks team participation and rankings)
-CREATE TABLE `iff_lnw_tournament_teams` (
+CREATE TABLE IF NOT EXISTS `iff_lnw_tournament_teams` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `tournament_id` INT NOT NULL,
     `team_id` INT NOT NULL,
@@ -63,14 +85,15 @@ CREATE TABLE `iff_lnw_tournament_teams` (
     `losses` INT DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_tournament (tournament_id),
-    INDEX idx_team (team_id),
+    -- unique_tournament_team (tournament_id, team_id) already indexes
+    -- tournament_id, so idx_tournament and idx_team were redundant with it and
+    -- with each other; the trailing CREATE INDEX duplicates are gone too.
     INDEX idx_group (group_id),
-    UNIQUE KEY unique_tournament_team (tournament_id, team_id)
-);
-
-CREATE INDEX idx_lnw_match_tournament ON iff_lnw_matches(tournament_id);
-CREATE INDEX idx_lnw_match_group ON iff_lnw_matches(group_id);
-CREATE INDEX idx_lnw_match_teams ON iff_lnw_matches(team_1_id, team_2_id);
-CREATE INDEX idx_lnw_tournament_teams ON iff_lnw_tournament_teams(tournament_id, team_id);
-CREATE INDEX idx_lnw_tournament_teams_group ON iff_lnw_tournament_teams(group_id);
+    UNIQUE KEY unique_tournament_team (tournament_id, team_id),
+    CONSTRAINT `fk_lnw_tt_tournament` FOREIGN KEY (`tournament_id`)
+        REFERENCES `iff_lnw_tournaments` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_lnw_tt_team` FOREIGN KEY (`team_id`)
+        REFERENCES `iff_love_n_war_teams` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_lnw_tt_group` FOREIGN KEY (`group_id`)
+        REFERENCES `iff_lnw_groups` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

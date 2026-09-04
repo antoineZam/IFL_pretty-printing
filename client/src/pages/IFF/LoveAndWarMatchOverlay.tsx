@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { debugLog } from '../../utils/debug';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
 import LoveAndWarTextureOverlay from '../../components/LoveAndWarTextureOverlay';
 
 // Data interfaces
@@ -113,10 +114,9 @@ const TeamPlayersRow = ({ players, getPlayerNameImagePath }: TeamPlayersRowProps
 };
 
 const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMatchCard = false, initialData = null }: Props) => {
-    const [searchParams] = useSearchParams();
+    const connectionKey = useConnectionKey();
     const [data, setData] = useState<LnWMatchData | null>(initialData);
     const [error, setError] = useState<string | null>(null);
-    const [overlayKey, setOverlayKey] = useState(0);
 
     // Set transparent background (standalone mode only)
     useEffect(() => {
@@ -134,7 +134,7 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
         if (!propSocket) return;
         
         const handleData = (serverData: LnWMatchData) => {
-            console.log('[LnW Match Overlay] Received data (embedded):', serverData);
+            debugLog('[LnW Match Overlay] Received data (embedded):', serverData);
             setData(serverData);
         };
         
@@ -148,7 +148,8 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
     useEffect(() => {
         if (embedded || propSocket) return;
         
-        const key = searchParams.get('key') || localStorage.getItem('connectionKey');
+        // Query string first, then the stored key -- see useConnectionKey.
+        const key = connectionKey;
         if (!key) {
             setError('No connection key');
             return;
@@ -157,7 +158,7 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
         const socket: Socket = io({ auth: { token: key } });
         
         socket.on('connect', () => {
-            console.log('[LnW Match Overlay] Socket connected');
+            debugLog('[LnW Match Overlay] Socket connected');
         });
         
         socket.on('connect_error', (err) => {
@@ -166,34 +167,24 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
         });
         
         socket.on('lnw-match-data', (serverData: LnWMatchData) => {
-            console.log('[LnW Match Overlay] Received data:', serverData);
+            debugLog('[LnW Match Overlay] Received data:', serverData);
             setData(serverData);
         });
 
         return () => {
             socket.disconnect();
         };
-    }, [searchParams, embedded, propSocket]);
+    }, [connectionKey, embedded, propSocket]);
 
-    // Update overlay key when overlay file changes to force reload
-    useEffect(() => {
-        if (data) {
-            const t1p1Active = data.team1.players[0]?.active || false;
-            const t1p2Active = data.team1.players[1]?.active || false;
-            const t2p1Active = data.team2.players[0]?.active || false;
-            const t2p2Active = data.team2.players[1]?.active || false;
-
-            let newOverlay: string | null = null;
-            if (t1p1Active && t2p2Active) newOverlay = 'overlay_01.png';
-            else if (t1p1Active && t2p1Active) newOverlay = 'overlay_02.png';
-            else if (t1p2Active && t2p1Active) newOverlay = 'overlay_03.png';
-            else if (t1p2Active && t2p2Active) newOverlay = 'overlay_04.png';
-
-            if (newOverlay) {
-                setOverlayKey(prev => prev + 1);
-            }
-        }
-    }, [data?.team1.players, data?.team2.players]);
+    // The <img> below is keyed on the resolved filename alone.
+    //
+    // There used to be an effect here bumping a separate `overlayKey` counter,
+    // with the img keyed on both. It depended on data?.team1.players /
+    // data?.team2.players, which are fresh array references in every socket
+    // payload, so it fired on every score change even when the active-player
+    // pair had not moved -- remounting the <img> and visibly reloading the base
+    // artwork on air. The filename already changes exactly when the artwork
+    // does, so it is the whole identity.
 
     const containerClass = embedded ? 'w-full h-full' : 'w-[1920px] h-[1080px]';
 
@@ -490,7 +481,7 @@ const LoveAndWarMatchOverlay = ({ socket: propSocket, embedded = false, showAsMa
                 {/* Stream overlay based on active players */}
                 {streamOverlayFile && (
                     <img 
-                        key={`${streamOverlayFile}-${overlayKey}`}
+                        key={streamOverlayFile}
                         src={`/source/overlay/love_and_war/stream_overlays/${streamOverlayFile}`}
                         alt="Stream Overlay"
                         className="absolute inset-0 w-full h-full object-cover z-0"

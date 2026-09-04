@@ -1,14 +1,16 @@
 -- IFF Player Data Tables
 -- Run this migration to add IFF player tracking capabilities
-
--- Drop old tables if they exist (for clean migration)
-DROP TABLE IF EXISTS ewgf_player_stats;
-DROP TABLE IF EXISTS ewgf_battles;
-DROP TABLE IF EXISTS ewgf_players;
-DROP TABLE IF EXISTS iff_players;
-
--- Table for storing IFF player profiles with all stats
-CREATE TABLE iff_players (
+--
+-- SAFE TO RE-RUN. This file used to open with four DROP TABLE statements,
+-- including `DROP TABLE iff_players` -- so an accidental re-run destroyed every
+-- IFF player profile. It also could no longer run at all: iff9_matches now
+-- carries a foreign key to iff_players, so dropping it failed with errno 3730.
+--
+-- The three ewgf_* tables that were dropped here were never created by anything
+-- and never queried; they are leftovers from an abandoned direction and the
+-- drops have simply been removed. To clear them from a database that still has
+-- them, run migrations/drop_legacy_ewgf_tables.sql once, deliberately.
+CREATE TABLE IF NOT EXISTS iff_players (
     id INT AUTO_INCREMENT PRIMARY KEY,
     
     -- Basic Info
@@ -51,9 +53,11 @@ CREATE TABLE iff_players (
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
--- Create indexes separately for better compatibility
-CREATE INDEX idx_iff_players_name ON iff_players(name);
-CREATE INDEX idx_iff_players_polaris_id ON iff_players(polaris_id);
+    -- Declared inline so this file stays re-runnable: a bare CREATE INDEX
+    -- fails on the second run.
+    --
+    -- There is deliberately no index on polaris_id: it served no query.
+    KEY idx_iff_players_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

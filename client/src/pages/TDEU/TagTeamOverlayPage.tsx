@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
 import useDynamicFontSize from '../../hooks/useDynamicFontSize';
 
 // Data interfaces
@@ -45,7 +45,7 @@ const PlayerCard = ({ player, className, cardId }: PlayerCardProps) => {
 
 
 const TagTeamOverlayPage = () => {
-    const [searchParams] = useSearchParams();
+    const connectionKey = useConnectionKey();
     const [data, setData] = useState<TagTeamData | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +57,8 @@ const TagTeamOverlayPage = () => {
     }, []);
 
     useEffect(() => {
-        const key = searchParams.get('key') || localStorage.getItem('connectionKey');
+        // Query string first, then the stored key -- see useConnectionKey.
+        const key = connectionKey;
         if (!key) {
             setError('No connection key');
             return;
@@ -70,7 +71,7 @@ const TagTeamOverlayPage = () => {
         return () => {
             socket.disconnect();
         };
-    }, [searchParams]);
+    }, [connectionKey]);
 
     const overlayImage = useMemo(() => {
         if (!data) return '';

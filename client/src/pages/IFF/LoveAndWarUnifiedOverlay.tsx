@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { debugLog } from '../../utils/debug';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
+import OverlayKeyMissing from '../../components/OverlayKeyMissing';
 
 // Import the actual overlay components (using embedded mode)
 import LoveAndWarTeamStatsOverlay from './LoveAndWarTeamStatsOverlay';
@@ -27,7 +29,8 @@ interface LnWMatchData {
 }
 
 const LoveAndWarUnifiedOverlay = () => {
-    const [searchParams] = useSearchParams();
+    const connectionKey = useConnectionKey();
+    const [keyMissing, setKeyMissing] = useState(false);
     const [displayMode, setDisplayMode] = useState<DisplayMode>('idle');
     const [teamIdForStats, setTeamIdForStats] = useState<number | null>(null);
     const [isVisible, setIsVisible] = useState(false);
@@ -47,19 +50,27 @@ const LoveAndWarUnifiedOverlay = () => {
 
     // Socket connection for display mode control
     useEffect(() => {
-        const key = searchParams.get('key') || localStorage.getItem('connectionKey');
-        if (!key) return;
+        // Query string first, then the stored key -- see useConnectionKey.
+        const key = connectionKey;
+        if (!key) {
+            // Was a bare `return`: no socket, no state, no diagnostic. The source
+            // just stayed blank forever with nothing to explain why.
+            console.error('Love & War unified overlay: no connection key (?key= or localStorage).');
+            setKeyMissing(true);
+            return;
+        }
+        setKeyMissing(false);
 
         const newSocket: Socket = io({ auth: { token: key } });
         setSocket(newSocket);
         
         newSocket.on('connect', () => {
-            console.log('[LnW Unified] Socket connected');
+            debugLog('[LnW Unified] Socket connected');
         });
 
         // Listen for display mode changes from control page
         newSocket.on('lnw-display-mode', (state: DisplayState) => {
-            console.log('[LnW Unified] Display mode change:', state);
+            debugLog('[LnW Unified] Display mode change:', state);
             setDisplayMode(state.mode);
             setIsVisible(state.visible);
             if (state.teamId) {
@@ -69,13 +80,13 @@ const LoveAndWarUnifiedOverlay = () => {
 
         // Listen for explicit refresh requests — bump key to force full remount
         newSocket.on('lnw-refresh-overlay', () => {
-            console.log('[LnW Unified] Refresh overlay requested');
+            debugLog('[LnW Unified] Refresh overlay requested');
             setRefreshKey(prev => prev + 1);
         });
 
         // Also listen for legacy team display updates
         newSocket.on('love-and-war-display-update', (state: { teamId: number | null; visible: boolean }) => {
-            console.log('[LnW Unified] Team display update:', state);
+            debugLog('[LnW Unified] Team display update:', state);
             if (state.teamId && state.visible) {
                 setDisplayMode('team-stats');
                 setTeamIdForStats(state.teamId);
@@ -87,14 +98,14 @@ const LoveAndWarUnifiedOverlay = () => {
 
         // Listen for match data updates to check for auto-switch
         newSocket.on('lnw-match-data', (data: LnWMatchData) => {
-            console.log('[LnW Unified] Match data update:', data);
+            debugLog('[LnW Unified] Match data update:', data);
             setMatchData(data);
         });
 
         return () => {
             newSocket.disconnect();
         };
-    }, [searchParams]);
+    }, [connectionKey]);
 
     // Auto-switch to matchup card when a team reaches winning score
     useEffect(() => {
@@ -107,7 +118,7 @@ const LoveAndWarUnifiedOverlay = () => {
         const team2Won = matchData.team2.score >= winScore;
         
         if (team1Won || team2Won) {
-            console.log('[LnW Unified] Auto-switching to matchup card - match complete');
+            debugLog('[LnW Unified] Auto-switching to matchup card - match complete');
             setDisplayMode('match-card');
         }
     }, [matchData, displayMode]);
@@ -172,6 +183,7 @@ const LoveAndWarUnifiedOverlay = () => {
             className="w-[1920px] h-[1080px] text-white overflow-hidden"
             style={{ fontFamily: "'ED Manteca', sans-serif", backgroundColor: containerBgColor }}
         >
+            {keyMissing && <OverlayKeyMissing source="Love &amp; War unified overlay" />}
             <div key={refreshKey} className="w-full h-full">
                 {renderContent()}
             </div>

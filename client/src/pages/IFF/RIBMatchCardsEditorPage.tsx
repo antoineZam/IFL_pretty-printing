@@ -91,26 +91,39 @@ export default function RIBMatchCardsEditorPage() {
         };
     }, [navigate]);
 
+    /**
+     * Sets one value at a dotted path, copying every object along the way.
+     *
+     * The previous version took a shallow copy of the root and then walked into
+     * the SAME nested objects the previous state still referenced, assigning
+     * into them. That corrupted the previous snapshot and left every nested
+     * object identity-equal across edits, so identity-based memoization could
+     * not see the change.
+     */
+    const setAtPath = (root: any, path: string, value: unknown): any => {
+        const keys = path.split('.');
+
+        const step = (node: any, depth: number): any => {
+            const raw = keys[depth];
+            const isLast = depth === keys.length - 1;
+
+            if (raw.includes('[')) {
+                const [key, indexStr] = raw.split('[');
+                const index = parseInt(indexStr.replace(']', ''), 10);
+                const arr = [...(node?.[key] ?? [])];
+                arr[index] = isLast ? value : step(arr[index], depth + 1);
+                return { ...node, [key]: arr };
+            }
+
+            return { ...node, [raw]: isLast ? value : step(node?.[raw], depth + 1) };
+        };
+
+        return step(root, 0);
+    };
+
     const handleChange = (path: string, value: string) => {
         setSaved(false);
-        setMatchCards(prev => {
-            const newData = { ...prev };
-            const keys = path.split('.');
-            let current: any = newData;
-            
-            for (let i = 0; i < keys.length - 1; i++) {
-                if (keys[i].includes('[')) {
-                    const [key, indexStr] = keys[i].split('[');
-                    const index = parseInt(indexStr.replace(']', ''));
-                    current = current[key][index];
-                } else {
-                    current = current[keys[i]];
-                }
-            }
-            
-            current[keys[keys.length - 1]] = value;
-            return newData;
-        });
+        setMatchCards(prev => setAtPath(prev, path, value));
     };
 
     const handleMatchChange = (index: number, field: string, value: string | boolean) => {

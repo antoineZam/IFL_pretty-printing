@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { debugLog } from '../../utils/debug';
 import { io } from 'socket.io-client';
 import { getCountryCode } from '../../utils/countries';
 
@@ -62,7 +63,7 @@ const IFLTop8StandingsOverlayPage = () => {
         const socket = io({ auth: { token: key } });
 
         socket.on('top8-standings-data', (newData: Top8StandingsData) => {
-            console.log('[Top8 Standings] Received data:', newData);
+            debugLog('[Top8 Standings] Received data:', newData);
             setData(newData);
         });
 

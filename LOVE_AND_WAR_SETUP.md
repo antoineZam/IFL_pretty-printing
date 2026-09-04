@@ -1,17 +1,32 @@
 # Love & War Tournament Setup Guide
 
 ## Overview
-The Love & War section is a complete 2v2 team tournament management system for displaying team statistics on stream. All pages are protected by the IFF Access Key and are accessible through their own dedicated dashboard.
+The Love & War section is a complete 2v2 team tournament management system for
+displaying team statistics on stream, reached through its own dashboard.
+
+The **control** pages are protected by the IFF Access Key. The **overlay** routes
+deliberately are not: an OBS browser source cannot complete a login, so putting
+them behind the gate would leave every overlay blank on stream. They are
+unlisted rather than authenticated.
 
 ## Database Setup
 
-### 1. Create the Love & War Teams Table
-Run the SQL migration:
-```sql
--- Located at: migrations/iff_love_n_war_teams.sql
+Two migrations are needed, not one. Running only the teams migration leaves you
+half-provisioned: the tournaments, bracket and rankings pages all need the four
+tables created by the second.
+
+```sh
+npm run migrate
 ```
 
-This creates the `iff_love_n_war_teams` table with foreign keys to `iff_players`.
+That applies both, in the right order, along with everything else:
+
+| File | Creates |
+|------|---------|
+| `migrations/iff_love_n_war_teams.sql` | `iff_love_n_war_teams` (foreign keys to `iff_players`) |
+| `migrations/iff_lnw_tournaments.sql` | `iff_lnw_tournaments`, `iff_lnw_groups`, `iff_lnw_matches`, `iff_lnw_tournament_teams` |
+
+Both require `migrations/ewgf_tables.sql` (`iff_players`) to have run first.
 
 ## Folder Structure
 
@@ -41,8 +56,9 @@ Main Dashboard
     ├── IFF Player Data (existing)
     └── Love & War Dashboard ← NEW
         ├── Team Management (Control Page)
-        ├── Display Control (Select which team to show)
-        └── Team Stats Overlay (OBS Source)
+        ├── Tournaments → Bracket / Rankings
+        ├── Match Control
+        └── Overlays (OBS Sources): Team Stats, Match, Unified
 ```
 
 ## Pages Created
@@ -61,13 +77,7 @@ Main Dashboard
   - Player 1 (from IFF Players)
   - Player 2 (from IFF Players)
 
-### 3. Display Control (`/iff/love-and-war/display`)
-- Select which team to display on stream
-- Toggle visibility on/off
-- Shows current selection status
-- Real-time Socket.IO updates to overlay
-
-### 4. Team Stats Overlay (`/iff/love-and-war/overlay`)
+### 3. Team Stats Overlay (`/iff/love-and-war/overlay`)
 - OBS Browser Source
 - Dimensions: 1920x1080
 - Shows:
@@ -120,7 +130,7 @@ Main Dashboard
 
 3. **Displaying on Stream:**
    - Add "Team Stats Overlay" as OBS Browser Source
-   - Navigate to "Display Control"
+   - Open the Match Control page
    - Select a team from the list
    - Team appears on stream with animations
    - Toggle visibility on/off as needed

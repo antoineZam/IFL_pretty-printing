@@ -37,12 +37,34 @@ const routePreloaders: Record<string, PreloadableRoute> = {
   '/iff/iff-9/unified-overlay': () => import('../pages/IFF/IFF9UnifiedOverlay')
 };
 
+// Routes rendered inside <TDEULayout>, which owns the three.js holographic globe.
+// That layout is lazy-loaded (see App.tsx) so it stays off every other route's
+// critical path -- warming it on hover keeps TDEU navigation instant anyway.
+const TDEU_SHELL_ROUTES = [
+  '/dashboard/tdeu',
+  '/tournament-data',
+  '/ifl/match-control',
+  '/tdeu/ifl/top8',
+  '/tdeu/ifl/top8/standings',
+  '/tag/match-control'
+];
+
+const TDEU_SHELL_KEY = '__tdeu-shell__';
+
 const preloadedRoutes = new Set<string>();
 
 export const preloadRoute = (path: string) => {
   // Don't preload if already preloaded
   if (preloadedRoutes.has(path)) return;
-  
+
+  if (TDEU_SHELL_ROUTES.includes(path) && !preloadedRoutes.has(TDEU_SHELL_KEY)) {
+    preloadedRoutes.add(TDEU_SHELL_KEY);
+    import('../components/TDEULayout').catch(err => {
+      preloadedRoutes.delete(TDEU_SHELL_KEY);
+      console.warn('[Preload] Failed to preload TDEU layout:', err);
+    });
+  }
+
   const preloader = routePreloaders[path];
   if (preloader) {
     preloader().then(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { useConnectionKey } from '../../hooks/useConnectionKey';
 import type { IFF9MatchData } from '../../types/iff9';
 
 // NOTE: Fonts are intentionally left as system defaults for IFF9 until the
@@ -14,7 +14,7 @@ interface Props {
 }
 
 const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = null }: Props) => {
-    const [searchParams] = useSearchParams();
+    const connectionKey = useConnectionKey();
     const [data, setData] = useState<IFF9MatchData | null>(initialData);
     const [error, setError] = useState<string | null>(null);
     const [glitch, setGlitch] = useState<boolean>(false);
@@ -25,6 +25,9 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
         setGlitch(true);
         const timer = setTimeout(() => setGlitch(false), 400);
         return () => clearTimeout(timer);
+        // Only the names should retrigger the glitch. Depending on `data` would
+        // fire it on every score press.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data?.player_1_name, data?.player_2_name]);
 
     // 2. Continuous random glitch loop (every 8-12 seconds)
@@ -80,7 +83,8 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
     // Create own socket (standalone mode)
     useEffect(() => {
         if (embedded || propSocket) return;
-        const key = searchParams.get('key');
+        // Query string first, then the stored key -- see useConnectionKey.
+        const key = connectionKey;
         if (!key) {
             setError('No connection key');
             return;
@@ -89,7 +93,7 @@ const IFF9MatchOverlay = ({ socket: propSocket, embedded = false, initialData = 
         socket.on('connect_error', (err) => setError(`Connection Failed: ${err.message}`));
         socket.on('iff9-match-data', (serverData: IFF9MatchData) => setData(serverData));
         return () => { socket.disconnect(); };
-    }, [searchParams, embedded, propSocket]);
+    }, [connectionKey, embedded, propSocket]);
 
     const containerClass = embedded ? 'w-full h-full' : 'w-[1920px] h-[1080px]';
 

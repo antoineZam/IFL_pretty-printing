@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { debugLog } from '../../utils/debug';
 import { io, Socket } from 'socket.io-client';
+import { apiGet, asArray, errorMessage } from '../../utils/api';
 import { Swords, RotateCcw, Users, Trash2 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import { CyberInput } from '../../components/ui/CyberInput';
@@ -66,6 +68,7 @@ const TagTeamControlPage = () => {
     const [socket, setSocket] = useState<Socket | null>(null);
     const [data, setData] = useState<TagTeamData>(initialData);
     const [playerHistory, setPlayerHistory] = useState<PlayerHistoryItem[]>([]);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
         // Get connection key from URL or localStorage
@@ -77,11 +80,12 @@ const TagTeamControlPage = () => {
         // Fetch player history from database
         const fetchPlayerHistory = async () => {
             try {
-                const response = await fetch('/api/history');
-                const historyData = await response.json();
-                setPlayerHistory(historyData);
+                // asArray: a 401 body is an object, and this state is rendered with .filter()
+                const historyData = await apiGet<unknown>('/api/history');
+                setPlayerHistory(asArray(historyData));
             } catch (error) {
                 console.error("Failed to fetch player history:", error);
+                setLoadError(errorMessage(error));
             }
         };
         fetchPlayerHistory();
@@ -90,7 +94,7 @@ const TagTeamControlPage = () => {
         setSocket(newSocket);
         
         newSocket.on('connect', () => {
-            console.log('Connected to server (Tag Team)');
+            debugLog('Connected to server (Tag Team)');
         });
 
         newSocket.on('connect_error', (err) => {
@@ -127,7 +131,7 @@ const TagTeamControlPage = () => {
 
     const sendUpdate = (updatedData: TagTeamData) => {
         if (socket) {
-            console.log('Sending tag-team-update:', updatedData);
+            debugLog('Sending tag-team-update:', updatedData);
             socket.emit('tag-team-update', updatedData);
         } else {
             console.error('Socket not connected - cannot send update');
@@ -263,6 +267,18 @@ const TagTeamControlPage = () => {
     return (
         <div className="min-h-screen p-6 pl-16 pb-24 max-w-[1600px] text-white">
             <TDEUBurgerMenu />
+            {loadError && (
+                <div className="mb-6 border border-red-500/40 bg-red-500/10 rounded-lg px-4 py-3 text-sm text-red-300 flex items-center justify-between gap-4">
+                    <span>Could not load data from the server: {loadError}</span>
+                    <button
+                        type="button"
+                        onClick={() => { localStorage.removeItem('connectionKey'); window.location.href = '/auth'; }}
+                        className="shrink-0 underline underline-offset-4 hover:text-red-200"
+                    >
+                        Re-enter key
+                    </button>
+                </div>
+            )}
             {/* Top Bar */}
             <div className="flex justify-between items-end mb-8">
                 <h1 className="text-2xl font-archivo-expanded-bold text-white/80">TAG TEAM CONTROLLER</h1>

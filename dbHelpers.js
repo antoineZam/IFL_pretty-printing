@@ -1,32 +1,109 @@
 const pool = require('./db');
 
-// Helper function to get or create a current tournament
-async function getOrCreateCurrentTournament() {
-  try {
-    // Try to get a tournament with status 'active'
-    let [rows] = await pool.execute(
-      'SELECT * FROM tournaments WHERE status = ? ORDER BY tournament_id DESC LIMIT 1',
-      ['active']
+// ============================================================
+// HOT-PATH CACHES
+//
+// The live scoreboard writes on every single score button press. Resolving the
+// active tournament, both player rows and the whole player history from MySQL
+// on each of those presses cost ~10 sequential round-trips -- painful over the
+// SSH tunnel this deployment uses. Everything below is derived from writes this
+// process performs itself, so it can be kept in memory and invalidated
+// explicitly whenever something outside that path touches the tables.
+// ============================================================
+
+let currentTournamentPromise = null;   // Promise<tournamentId>
+const userCache = new Map();           // normalized username -> { id, sponsor, country }
+const userInFlight = new Map();        // normalized username -> in-flight getOrCreateUser promise
+let playerHistoryCache = null;         // materialized /api/history payload, or null when stale
+let currentMatchIdPromise = null;      // Promise<matchId> for the active tournament's latest match
+let cacheEpoch = 0;                    // bumped on invalidation; in-flight reads check it before caching
+
+/** Drops every cached player/user row. Call after any write that bypasses getOrCreateUser. */
+function invalidatePlayerCaches() {
+  cacheEpoch++;
+  userCache.clear();
+  playerHistoryCache = null;
+}
+
+/** Drops the cached active tournament and its current match. */
+function invalidateTournamentCache() {
+  currentTournamentPromise = null;
+  currentMatchIdPromise = null;
+}
+
+function normalizeUserKey(username) {
+  return (username || '').trim().toLowerCase();
+}
+
+async function resolveCurrentTournament() {
+  // Try to get a tournament with status 'active'
+  let [rows] = await pool.execute(
+    'SELECT tournament_id FROM tournaments WHERE status = ? ORDER BY tournament_id DESC LIMIT 1',
+    ['active']
+  );
+
+  if (rows.length === 0) {
+    // Create a new active tournament
+    const [result] = await pool.execute(
+      'INSERT INTO tournaments (name, season, status, game_version) VALUES (?, ?, ?, ?)',
+      ['Current Tournament', 'Current Season', 'active', 'Tekken 8']
     );
-
-    if (rows.length === 0) {
-      // Create a new active tournament
-      const [result] = await pool.execute(
-        'INSERT INTO tournaments (name, season, status, game_version) VALUES (?, ?, ?, ?)',
-        ['Current Tournament', 'Current Season', 'active', 'Tekken 8']
-      );
-      return result.insertId;
-    }
-
-    return rows[0].tournament_id;
-  } catch (error) {
-    console.error('Error getting/creating current tournament:', error);
-    throw error;
+    return result.insertId;
   }
+
+  return rows[0].tournament_id;
+}
+
+// Helper function to get or create a current tournament.
+// The active tournament does not change while the server is running, so the
+// lookup is resolved once and shared by every subsequent caller.
+function getOrCreateCurrentTournament() {
+  if (!currentTournamentPromise) {
+    currentTournamentPromise = resolveCurrentTournament().catch(error => {
+      currentTournamentPromise = null; // never cache a failure
+      console.error('Error getting/creating current tournament:', error);
+      throw error;
+    });
+  }
+  return currentTournamentPromise;
 }
 
 // Helper function to get or create a user
-async function getOrCreateUser(displayName, team = null, flag = null) {
+//
+// The `username LIKE '% | name'` branch below cannot use an index, so every call
+// is a full scan of `users`. Once a name has been resolved its row is cached and
+// repeat calls -- which is what a live match is, the same two players over and
+// over -- cost nothing unless the sponsor or flag actually changed.
+function getOrCreateUser(displayName, team = null, flag = null) {
+  const parsedName = (displayName && displayName.includes(' | '))
+    ? displayName.split(' | ').slice(1).join(' | ')
+    : displayName;
+  const cacheKey = normalizeUserKey(parsedName);
+
+  const cached = userCache.get(cacheKey);
+  const sponsorFromName = (displayName && displayName.includes(' | ')) ? displayName.split(' | ')[0] : (team || null);
+  if (cached &&
+      !(sponsorFromName && sponsorFromName !== cached.sponsor) &&
+      !(flag && flag !== cached.country)) {
+    return Promise.resolve(cached.id);
+  }
+
+  // Callers now resolve both players concurrently; without this, two lookups for
+  // the same unknown name would race and insert the player twice.
+  const pending = userInFlight.get(cacheKey);
+  if (pending) return pending;
+
+  const promise = resolveUser(displayName, team, flag)
+    .finally(() => { userInFlight.delete(cacheKey); });
+  userInFlight.set(cacheKey, promise);
+  return promise;
+}
+
+async function resolveUser(displayName, team = null, flag = null) {
+  // A concurrent sync or delete can invalidate the caches while this read is in
+  // flight; anything resolved before that must not be written back.
+  const epoch = cacheEpoch;
+  const remember = (key, entry) => { if (epoch === cacheEpoch) userCache.set(key, entry); };
   try {
     // Parse displayName to extract sponsor and actual username
     // Format: "SPONSOR | PlayerName" or just "PlayerName"
@@ -38,13 +115,31 @@ async function getOrCreateUser(displayName, team = null, flag = null) {
       sponsor = parts[0];
       username = parts.slice(1).join(' | ');
     }
-    
+
+    const cacheKey = normalizeUserKey(username);
+    const cached = userCache.get(cacheKey);
+    if (cached) {
+      const sponsorChanged = sponsor && sponsor !== cached.sponsor;
+      const flagChanged    = flag    && flag    !== cached.country;
+      if (!sponsorChanged && !flagChanged) return cached.id;
+
+      const newSponsor = sponsor || cached.sponsor;
+      const newFlag    = flag    || cached.country;
+      await pool.execute(
+        'UPDATE users SET username = ?, sponsor = ?, country = ? WHERE user_id = ?',
+        [username, newSponsor, newFlag, cached.id]
+      );
+      remember(cacheKey, { id: cached.id, sponsor: newSponsor, country: newFlag });
+      playerHistoryCache = null;
+      return cached.id;
+    }
+
     // Search by multiple possible formats to avoid duplicates:
     // 1. Exact username match
     // 2. The full displayName (old format like "SPONSOR | Name")
     // 3. Any username ending with the player name after " | "
     let [rows] = await pool.execute(
-      `SELECT * FROM users 
+      `SELECT user_id, username, sponsor, country FROM users 
        WHERE username = ? 
        OR username = ?
        OR username LIKE ?`,
@@ -57,6 +152,8 @@ async function getOrCreateUser(displayName, team = null, flag = null) {
         'INSERT INTO users (username, sponsor, country) VALUES (?, ?, ?)',
         [username, sponsor, flag || null]
       );
+      remember(cacheKey, { id: result.insertId, sponsor: sponsor, country: flag || null });
+      playerHistoryCache = null;
       return result.insertId;
     }
 
@@ -72,8 +169,10 @@ async function getOrCreateUser(displayName, team = null, flag = null) {
         'UPDATE users SET username = ?, sponsor = ?, country = ? WHERE user_id = ?',
         [username, newSponsor, newFlag, existingUser.user_id]
       );
+      playerHistoryCache = null;
     }
 
+    remember(cacheKey, { id: existingUser.user_id, sponsor: newSponsor, country: newFlag });
     return existingUser.user_id;
   } catch (error) {
     console.error('Error getting/creating user:', error);
@@ -82,6 +181,23 @@ async function getOrCreateUser(displayName, team = null, flag = null) {
 }
 
 // IFL Match Data Functions
+
+/**
+ * The canonical shape of the live scoreboard payload.
+ *
+ * Exported so the server's database-outage fallback uses this exact object
+ * rather than its own hand-maintained copy -- the two had drifted apart: the
+ * fallback carried p1Loser/p2Loser while this path omitted them, and the two
+ * disagreed on what `eventNumber` meant (an operator-entered event number here,
+ * the tournament row id there).
+ */
+const DEFAULT_IFL_DATA = {
+  p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null, p1Loser: false,
+  p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null, p2Loser: false,
+  p1Score: 0, p2Score: 0,
+  round: 'Winners Round 1', eventNumber: '1',
+};
+
 async function loadIFLData() {
   try {
     const tournamentId = await getOrCreateCurrentTournament();
@@ -102,74 +218,119 @@ async function loadIFLData() {
       [tournamentId]
     );
 
+    // The `matches` row carries names, flags and scores. The rest of the
+    // scoreboard -- team labels, ranks, the loser flags and the operator's event
+    // number -- has no column on that table, so it is kept alongside in
+    // app_state. Previously those fields were hardcoded on the way out
+    // (`p1Team: 'Team 1'`, `p1Rank: null`) and silently lost on every restart,
+    // and `eventNumber` was overwritten with the tournament row id.
+    const extras = await loadJsonState(STATE_KEYS.iflExtras, {});
+
     if (matches.length === 0) {
-      // Return default data
-      return {
-        p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1', p1Rank: null,
-        p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2', p2Rank: null,
-        p1Score: 0, p2Score: 0,
-        round: 'Winners Round 1', eventNumber: '1'
-      };
+      return { ...DEFAULT_IFL_DATA, ...extras };
     }
 
     const match = matches[0];
     return {
-      p1Flag: match.p1Flag || 'fr',
-      p1Team: 'Team 1', // Teams not in DB schema, keeping default
-      p1Name: match.p1Name || 'Player 1',
-      p1Rank: null, // Rank not persisted to DB
-      p2Flag: match.p2Flag || 'rn',
-      p2Team: 'Team 2',
-      p2Name: match.p2Name || 'Player 2',
-      p2Rank: null, // Rank not persisted to DB
+      ...DEFAULT_IFL_DATA,
+      ...extras,
+      p1Flag: match.p1Flag || extras.p1Flag || DEFAULT_IFL_DATA.p1Flag,
+      p1Name: match.p1Name || extras.p1Name || DEFAULT_IFL_DATA.p1Name,
+      p2Flag: match.p2Flag || extras.p2Flag || DEFAULT_IFL_DATA.p2Flag,
+      p2Name: match.p2Name || extras.p2Name || DEFAULT_IFL_DATA.p2Name,
       p1Score: match.score_p1 || 0,
       p2Score: match.score_p2 || 0,
-      round: match.round_name || 'Winners Round 1',
-      eventNumber: tournamentId.toString()
+      round: match.round_name || DEFAULT_IFL_DATA.round,
     };
   } catch (error) {
     console.error('Error loading IFL data:', error);
-    // Return default data on error
-    return {
-      p1Flag: 'fr', p1Team: 'Team 1', p1Name: 'Player 1',
-      p2Flag: 'rn', p2Team: 'Team 2', p2Name: 'Player 2',
-      p1Score: 0, p2Score: 0,
-      round: 'Winners Round 1', eventNumber: '1'
-    };
+    return { ...DEFAULT_IFL_DATA };
   }
 }
 
+async function resolveCurrentMatchId(tournamentId) {
+  const [existingMatches] = await pool.execute(
+    'SELECT match_id FROM matches WHERE tournament_id = ? ORDER BY match_id DESC LIMIT 1',
+    [tournamentId]
+  );
+  return existingMatches.length > 0 ? existingMatches[0].match_id : null;
+}
+
+/** Persists the live scoreboard. Returns the resolved player ids. */
 async function saveIFLData(data) {
   try {
     const tournamentId = await getOrCreateCurrentTournament();
     
-    // Get or create players
-    const p1Id = await getOrCreateUser(data.p1Name, data.p1Team, data.p1Flag);
-    const p2Id = await getOrCreateUser(data.p2Name, data.p2Team, data.p2Flag);
+    // Get or create players -- independent lookups, so resolve them together.
+    const [p1Id, p2Id] = await Promise.all([
+      getOrCreateUser(data.p1Name, data.p1Team, data.p1Flag),
+      getOrCreateUser(data.p2Name, data.p2Team, data.p2Flag),
+    ]);
 
-    // Check if there's an existing current match
-    const [existingMatches] = await pool.execute(
-      'SELECT match_id FROM matches WHERE tournament_id = ? ORDER BY match_id DESC LIMIT 1',
-      [tournamentId]
-    );
+    // Check if there's an existing current match. The row this resolves to only
+    // changes when this process inserts one, so the id is remembered.
+    if (!currentMatchIdPromise) {
+      currentMatchIdPromise = resolveCurrentMatchId(tournamentId).catch(error => {
+        currentMatchIdPromise = null;
+        throw error;
+      });
+    }
+    let matchId = await currentMatchIdPromise;
 
-    if (existingMatches.length > 0) {
+    if (matchId != null) {
       // Update existing match
-      await pool.execute(
+      const [updateResult] = await pool.execute(
         `UPDATE matches 
          SET player1_id = ?, player2_id = ?, score_p1 = ?, score_p2 = ?, 
              round_name = ?, match_time = NOW()
          WHERE match_id = ?`,
-        [p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1', existingMatches[0].match_id]
+        [p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1', matchId]
       );
-    } else {
+
+      // The cached match id is resolved once and kept for the process lifetime,
+      // so if that row is deleted (e.g. by a player delete) every later score
+      // press updated zero rows and reported no error -- the overlay kept
+      // working while nothing was being saved. Detect it and re-resolve.
+      if (updateResult.affectedRows === 0) {
+        console.warn(`saveIFLData: match ${matchId} no longer exists — re-resolving the current match.`);
+        currentMatchIdPromise = null;
+        matchId = await resolveCurrentMatchId(tournamentId);
+        currentMatchIdPromise = Promise.resolve(matchId);
+        if (matchId != null) {
+          await pool.execute(
+            `UPDATE matches
+             SET player1_id = ?, player2_id = ?, score_p1 = ?, score_p2 = ?,
+                 round_name = ?, match_time = NOW()
+             WHERE match_id = ?`,
+            [p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1', matchId]
+          );
+        }
+      }
+    }
+
+    if (matchId == null) {
       // Create new match
-      await pool.execute(
+      const [result] = await pool.execute(
         `INSERT INTO matches (tournament_id, player1_id, player2_id, score_p1, score_p2, round_name, match_time)
          VALUES (?, ?, ?, ?, ?, ?, NOW())`,
         [tournamentId, p1Id, p2Id, data.p1Score || 0, data.p2Score || 0, data.round || 'Winners Round 1']
       );
+      currentMatchIdPromise = Promise.resolve(result.insertId);
     }
+
+    // Persist the scoreboard fields the `matches` table has no column for, so
+    // they survive a restart instead of reverting to hardcoded defaults.
+    await saveJsonState(STATE_KEYS.iflExtras, {
+      p1Team: data.p1Team ?? DEFAULT_IFL_DATA.p1Team,
+      p2Team: data.p2Team ?? DEFAULT_IFL_DATA.p2Team,
+      p1Rank: data.p1Rank ?? null,
+      p2Rank: data.p2Rank ?? null,
+      p1Loser: data.p1Loser ?? false,
+      p2Loser: data.p2Loser ?? false,
+      eventNumber: data.eventNumber ?? DEFAULT_IFL_DATA.eventNumber,
+    });
+
+    return { p1Id, p2Id };
   } catch (error) {
     console.error('Error saving IFL data:', error);
     throw error;
@@ -177,12 +338,19 @@ async function saveIFLData(data) {
 }
 
 // Player History Functions
+//
+// The history is the full `users` table, re-sent to every connected client
+// (overlays included) whenever it changes. Re-reading and re-serializing it on
+// each scoreboard write was the single largest cost in that path, so the
+// materialized payload is cached and rebuilt only after a write invalidates it.
 async function loadPlayerHistory() {
+  if (playerHistoryCache) return playerHistoryCache;
+  const epoch = cacheEpoch;
   try {
     const [rows] = await pool.execute(
       'SELECT username, sponsor, country FROM users ORDER BY username'
     );
-    return rows.map(row => {
+    const history = rows.map(row => {
       // Build display name with sponsor prefix for overlay controllers
       const username = row.username || '';
       const sponsor = row.sponsor || '';
@@ -195,156 +363,180 @@ async function loadPlayerHistory() {
         team: sponsor // Sponsor/team from dedicated column
       };
     });
+    if (epoch === cacheEpoch) playerHistoryCache = history;
+    return history;
   } catch (error) {
     console.error('Error loading player history:', error);
     return [];
   }
 }
 
+/** True when the last savePlayerHistory/getOrCreateUser call actually changed a row. */
+function isPlayerHistoryStale() {
+  return playerHistoryCache === null;
+}
+
 async function savePlayerHistory(players) {
   try {
-    for (const player of players) {
-      if (player.name) {
-        await getOrCreateUser(player.name, player.team, player.flag);
-      }
-    }
+    // Independent upserts -- no reason to serialize them.
+    await Promise.all(
+      players
+        .filter(player => player.name)
+        .map(player => getOrCreateUser(player.name, player.team, player.flag))
+    );
   } catch (error) {
     console.error('Error saving player history:', error);
     throw error;
   }
 }
 
-// Tag Team Data Functions (stored as JSON in a special table or matches)
-// For now, we'll create a simple approach using a settings/state table
-async function loadTagTeamData() {
+// ============================================================
+// JSON STATE PERSISTENCE  —  app_state table
+//
+// The Run It Back and tag-team state is JSON-shaped and does not map onto the
+// relational tables. These six functions used to be stubs: the save* variants
+// logged a line and returned, and the load* variants ignored the database and
+// returned hardcoded literals -- so the API reported a successful save while
+// the data lived only in server memory and reverted on every restart.
+//
+// They now read and write migrations/app_state.sql. The hardcoded literals are
+// kept, but only as the seed value used when no row exists yet.
+// ============================================================
+
+const STATE_KEYS = {
+  iflExtras:     'ifl_scoreboard_extras',
+  tagTeam:       'tag_team_data',
+  ribMatchCards: 'rib_match_cards',
+  ribPlayerStats:'rib_player_stats',
+  ribStreamData: 'rib_stream_data',
+};
+
+/**
+ * Reads one JSON state row. Returns `fallback` when the row does not exist yet.
+ *
+ * A missing app_state table is treated as "not provisioned yet" rather than a
+ * hard failure, so an operator who has not run the migration still gets a
+ * working (if non-persistent) server instead of a boot loop -- but it is logged
+ * loudly, because in that state nothing is being saved.
+ */
+async function loadJsonState(key, fallback) {
   try {
-    // Try to get from a settings table (we'll create this if needed)
-    // For now, return default
-    return {
-      team1: {
-        name: 'Team 1',
-        tag: 'T1',
-        players: [
-          { name: 'Omnis', sponsor: 'IFF', active: true },
-          { name: 'Kuro', sponsor: 'IFF', active: false }
-        ],
-        score: 0
-      },
-      team2: {
-        name: 'Team 2',
-        tag: 'T2',
-        players: [
-          { name: 'Challenger 1', sponsor: '', active: true },
-          { name: 'Challenger 2', sponsor: '', active: false }
-        ],
-        score: 0
-      },
-      round: 'Winners Round 1'
-    };
+    const [rows] = await pool.execute('SELECT value FROM app_state WHERE state_key = ?', [key]);
+    if (rows.length === 0) return fallback;
+    return JSON.parse(rows[0].value);
   } catch (error) {
-    console.error('Error loading tag team data:', error);
-    return {
-      team1: {
-        name: 'Team 1',
-        tag: 'T1',
-        players: [
-          { name: 'Omnis', sponsor: 'IFF', active: true },
-          { name: 'Kuro', sponsor: 'IFF', active: false }
-        ],
-        score: 0
-      },
-      team2: {
-        name: 'Team 2',
-        tag: 'T2',
-        players: [
-          { name: 'Challenger 1', sponsor: '', active: true },
-          { name: 'Challenger 2', sponsor: '', active: false }
-        ],
-        score: 0
-      },
-      round: 'Winners Round 1'
-    };
+    if (error && error.code === 'ER_NO_SUCH_TABLE') {
+      console.error(
+        `[app_state] Table missing — "${key}" cannot be persisted. ` +
+        'Run: mysql -u <user> -p <database> < migrations/app_state.sql'
+      );
+      return fallback;
+    }
+    if (error instanceof SyntaxError) {
+      console.error(`[app_state] Stored value for "${key}" is not valid JSON; using defaults.`, error);
+      return fallback;
+    }
+    console.error(`[app_state] Error loading "${key}":`, error);
+    return fallback;
   }
+}
+
+/** Writes one JSON state row. Throws, so a failed save is never reported as success. */
+async function saveJsonState(key, value) {
+  const json = JSON.stringify(value);
+  try {
+    await pool.execute(
+      `INSERT INTO app_state (state_key, value) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE value = VALUES(value)`,
+      [key, json]
+    );
+  } catch (error) {
+    if (error && error.code === 'ER_NO_SUCH_TABLE') {
+      console.error(
+        `[app_state] Table missing — "${key}" was NOT saved. ` +
+        'Run: mysql -u <user> -p <database> < migrations/app_state.sql'
+      );
+    }
+    throw error;
+  }
+}
+
+// Tag team ------------------------------------------------------------------
+
+const DEFAULT_TAG_TEAM_DATA = {
+  team1: {
+    name: 'Team 1',
+    tag: 'T1',
+    players: [
+      { name: 'Omnis', sponsor: 'IFF', active: true },
+      { name: 'Kuro', sponsor: 'IFF', active: false }
+    ],
+    score: 0
+  },
+  team2: {
+    name: 'Team 2',
+    tag: 'T2',
+    players: [
+      { name: 'Challenger 1', sponsor: '', active: true },
+      { name: 'Challenger 2', sponsor: '', active: false }
+    ],
+    score: 0
+  },
+  round: 'Winners Round 1'
+};
+
+async function loadTagTeamData() {
+  return loadJsonState(STATE_KEYS.tagTeam, DEFAULT_TAG_TEAM_DATA);
 }
 
 async function saveTagTeamData(data) {
-  try {
-    // Tag team data is complex, for now we'll store it as JSON
-    // This would require a settings table - for now just log
-    console.log('Tag team data saved (not yet fully implemented in DB)');
-  } catch (error) {
-    console.error('Error saving tag team data:', error);
-  }
+  await saveJsonState(STATE_KEYS.tagTeam, data);
 }
 
-// RIB Data Functions (stored as JSON)
+// Run It Back: match cards --------------------------------------------------
+
+const DEFAULT_RIB_MATCH_CARDS = {
+  eventTitle: "THE RUNBACK",
+  eventSubtitle: "THE FINAL CHAPTER",
+  partNumber: "01",
+  mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
+  matches: [],
+  singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
+  sponsors: { presenter: "", association: "" }
+};
+
 async function loadRIBMatchCards() {
-  try {
-    // RIB data is complex JSON, we'll need a settings table
-    // For now return default
-    return {
-      eventTitle: "THE RUNBACK",
-      eventSubtitle: "THE FINAL CHAPTER",
-      partNumber: "01",
-      mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-      matches: [],
-      singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-      sponsors: { presenter: "", association: "" }
-    };
-  } catch (error) {
-    console.error('Error loading RIB match cards:', error);
-    return {
-      eventTitle: "THE RUNBACK",
-      eventSubtitle: "THE FINAL CHAPTER",
-      partNumber: "01",
-      mainEvent: { p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-      matches: [],
-      singleMatch: { matchTitle: "", format: "", p1Name: "", p1Title: "", p1Character: "", p2Name: "", p2Title: "", p2Character: "" },
-      sponsors: { presenter: "", association: "" }
-    };
-  }
+  return loadJsonState(STATE_KEYS.ribMatchCards, DEFAULT_RIB_MATCH_CARDS);
 }
 
 async function saveRIBMatchCards(data) {
-  try {
-    console.log('RIB match cards saved (not yet fully implemented in DB)');
-  } catch (error) {
-    console.error('Error saving RIB match cards:', error);
-  }
+  await saveJsonState(STATE_KEYS.ribMatchCards, data);
 }
 
+// Run It Back: player stats -------------------------------------------------
+
+const DEFAULT_RIB_PLAYER_STATS = { players: [] };
+
 async function loadRIBPlayerStats() {
-  try {
-    return { players: [] };
-  } catch (error) {
-    console.error('Error loading RIB player stats:', error);
-    return { players: [] };
-  }
+  return loadJsonState(STATE_KEYS.ribPlayerStats, DEFAULT_RIB_PLAYER_STATS);
 }
 
 async function saveRIBPlayerStats(data) {
-  try {
-    console.log('RIB player stats saved (not yet fully implemented in DB)');
-  } catch (error) {
-    console.error('Error saving RIB player stats:', error);
-  }
+  await saveJsonState(STATE_KEYS.ribPlayerStats, data);
 }
 
+// Run It Back: stream data --------------------------------------------------
+
+const DEFAULT_RIB_STREAM_DATA = {
+  matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0
+};
+
 async function loadRIBStreamData() {
-  try {
-    return { matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0 };
-  } catch (error) {
-    console.error('Error loading RIB stream data:', error);
-    return { matchTitle: "", p1Name: "", p1Flag: "", p1Score: 0, p2Name: "", p2Flag: "", p2Score: 0 };
-  }
+  return loadJsonState(STATE_KEYS.ribStreamData, DEFAULT_RIB_STREAM_DATA);
 }
 
 async function saveRIBStreamData(data) {
-  try {
-    console.log('RIB stream data saved (not yet fully implemented in DB)');
-  } catch (error) {
-    console.error('Error saving RIB stream data:', error);
-  }
+  await saveJsonState(STATE_KEYS.ribStreamData, data);
 }
 
 // --- IFF Player Data Functions (iff_players table) ---
@@ -761,6 +953,37 @@ async function removeTeamFromTournament(tournamentId, teamId) {
   }
 }
 
+/**
+ * Rebuilds wins/losses for every team in a tournament from the match rows.
+ *
+ * Derived rather than incremented, so it is safe to call after any match write:
+ * re-saving a completed match, correcting a score, or flipping a winner all
+ * converge on the same totals instead of drifting upward.
+ */
+async function recalculateLnWTeamRecords(tournamentId) {
+  if (!tournamentId) return;
+  await pool.execute(
+    `UPDATE iff_lnw_tournament_teams tt
+     SET
+       wins = (
+         SELECT COUNT(*) FROM iff_lnw_matches m
+         WHERE m.tournament_id = tt.tournament_id
+           AND m.is_complete = 1
+           AND m.winner_team_id = tt.team_id
+       ),
+       losses = (
+         SELECT COUNT(*) FROM iff_lnw_matches m
+         WHERE m.tournament_id = tt.tournament_id
+           AND m.is_complete = 1
+           AND m.winner_team_id IS NOT NULL
+           AND m.winner_team_id <> tt.team_id
+           AND (m.team_1_id = tt.team_id OR m.team_2_id = tt.team_id)
+       )
+     WHERE tt.tournament_id = ?`,
+    [tournamentId]
+  );
+}
+
 async function saveLnWMatch(match) {
   try {
     const { 
@@ -780,27 +1003,16 @@ async function saveLnWMatch(match) {
          winner_team_id || null, is_complete || false, next_match_id || null, group_id || null, id]
       );
       
-      // Update team records if match is complete
-      if (is_complete && winner_team_id) {
-        const loserTeamId = winner_team_id === team_1_id ? team_2_id : team_1_id;
-        
-        await pool.execute(
-          `UPDATE iff_lnw_tournament_teams 
-           SET wins = wins + 1 
-           WHERE tournament_id = ? AND team_id = ?`,
-          [tournament_id, winner_team_id]
-        );
-        
-        if (loserTeamId) {
-          await pool.execute(
-            `UPDATE iff_lnw_tournament_teams 
-             SET losses = losses + 1 
-             WHERE tournament_id = ? AND team_id = ?`,
-            [tournament_id, loserTeamId]
-          );
-        }
-      }
-      
+      // Recompute the standings from the match table rather than incrementing.
+      //
+      // The counters used to be bumped with `wins = wins + 1` on every save of a
+      // complete match, with no idempotency guard -- while the bracket page
+      // re-PUTs the same completed match on score corrections and again on
+      // winner advancement. Every one of those added a phantom win and loss.
+      // Deriving the totals makes a re-save a no-op and also fixes a score
+      // correction that flips the winner.
+      await recalculateLnWTeamRecords(tournament_id);
+
       return { id, ...match };
     } else {
       // Insert new match
@@ -813,6 +1025,8 @@ async function saveLnWMatch(match) {
          team_1_id || null, team_2_id || null, team_1_score || 0, team_2_score || 0,
          winner_team_id || null, next_match_id || null, is_complete || false, bracket_position || null]
       );
+      // A match can be inserted already complete (e.g. a bye), so recompute here too.
+      await recalculateLnWTeamRecords(tournament_id);
       return { id: result.insertId, ...match };
     }
   } catch (error) {
@@ -849,14 +1063,26 @@ async function getLnWTournamentRankings(tournamentId) {
 async function updateTournamentPlacements(tournamentId, placements) {
   try {
     // placements is an array of { team_id, placement }
-    for (const { team_id, placement } of placements) {
-      await pool.execute(
-        `UPDATE iff_lnw_tournament_teams 
-         SET placement = ? 
-         WHERE tournament_id = ? AND team_id = ?`,
-        [placement, tournamentId, team_id]
-      );
+    // Collapsed into a single CASE update so a full bracket's placements cost one
+    // round-trip instead of one per team.
+    // Last entry wins on a duplicate team_id, matching the old per-row loop.
+    const deduped = new Map();
+    for (const p of placements || []) {
+      if (p && p.team_id != null) deduped.set(p.team_id, p.placement);
     }
+    const rows = [...deduped].map(([team_id, placement]) => ({ team_id, placement }));
+    if (rows.length === 0) return true;
+
+    const cases    = rows.map(() => 'WHEN ? THEN ?').join(' ');
+    const caseArgs = rows.flatMap(({ team_id, placement }) => [team_id, placement]);
+    const teamIds  = rows.map(r => r.team_id);
+
+    await pool.query(
+      `UPDATE iff_lnw_tournament_teams
+       SET placement = CASE team_id ${cases} END
+       WHERE tournament_id = ? AND team_id IN (${teamIds.map(() => '?').join(', ')})`,
+      [...caseArgs, tournamentId, ...teamIds]
+    );
     return true;
   } catch (error) {
     console.error('Error updating tournament placements:', error);
@@ -1087,8 +1313,13 @@ async function getIFF9Matches(weekId) {
   try {
     const [matches] = await pool.execute(
       `      SELECT m.*, 
-              p1.name as db_p1_name, p1.user_id as p1_uid, p1.iff8_ranking as db_p1_rank_raw,
-              p2.name as db_p2_name, p2.user_id as p2_uid, p2.iff8_ranking as db_p2_rank_raw
+              -- p1_uid/p2_uid (iff_players.user_id) used to be selected here and
+              -- read nowhere. That column is also never written: the save
+              -- function does not destructure it and the field whitelist omits
+              -- it, so it is permanently NULL. Dropped rather than left as a
+              -- misleading always-null field.
+              p1.name as db_p1_name, p1.iff8_ranking as db_p1_rank_raw,
+              p2.name as db_p2_name, p2.iff8_ranking as db_p2_rank_raw
        FROM iff9_matches m
        LEFT JOIN iff_players p1 ON m.player_1_id = p1.id
        LEFT JOIN iff_players p2 ON m.player_2_id = p2.id
@@ -1190,7 +1421,18 @@ async function reorderIFF9Matches(order) {
 }
 
 module.exports = {
+  // Canonical default shapes, so callers stop maintaining their own copies.
+  DEFAULT_IFL_DATA,
+  DEFAULT_TAG_TEAM_DATA,
+  DEFAULT_RIB_MATCH_CARDS,
+  DEFAULT_RIB_PLAYER_STATS,
+  DEFAULT_RIB_STREAM_DATA,
   loadIFLData,
+  // Cache control -- call after any write that touches users/tournaments outside
+  // of getOrCreateUser / saveIFLData (start.gg sync, manual edits, deletes).
+  invalidatePlayerCaches,
+  invalidateTournamentCache,
+  isPlayerHistoryStale,
   saveIFLData,
   loadPlayerHistory,
   savePlayerHistory,

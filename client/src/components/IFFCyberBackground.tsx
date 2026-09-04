@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { isOverlayRoute, isIFFRoute } from '../utils/routes';
 
 interface CyberNode {
   id: string;
@@ -24,32 +25,17 @@ const CYBER_NODES: CyberNode[] = [
   // Love & War (Archived events)
   { id: 'lnw',             path: '/iff/love-and-war',                    label: 'Love & War',      archived: true },
   { id: 'lnw-control',     path: '/iff/love-and-war/control',            label: 'Team Mgmt',       archived: true },
-  { id: 'lnw-display',     path: '/iff/love-and-war/display',            label: 'Display Core',    archived: true },
   { id: 'lnw-tournaments', path: '/iff/love-and-war/tournaments',        label: 'Tourneys',        archived: true },
   { id: 'lnw-overlay',     path: '/iff/love-and-war/overlay',            label: 'Team Stats',      archived: true },
 ];
 
-// Overlay routes rendered in OBS — no UI decoration
-const OVERLAY_PREFIXES = [
-  '/iff/unified-overlay',
-  '/iff/single-match-overlay',
-  '/iff/player-stats-overlay',
-  '/iff/part-one-overlay',
-  '/iff/stream-overlay',
-  '/iff/love-and-war/overlay',
-  '/iff/love-and-war/match-overlay',
-  '/iff/love-and-war/unified-overlay',
-  '/iff/iff-9/match-overlay',
-  '/iff/iff-9/match-cards',
-  '/iff/iff-9/unified-overlay',
-];
-
+// Overlay routes rendered in OBS get no UI decoration at all. The list lives in
+// utils/routes.ts so it cannot drift from the route table again -- the local
+// copy of it here missed /iff/player-stats/:polarisId and painted an opaque
+// black field over the player-radar overlay on stream.
 function isIFFPage(pathname: string): boolean {
-  if (OVERLAY_PREFIXES.some(p => pathname.startsWith(p))) return false;
-  return (
-    pathname.startsWith('/dashboard/iff') ||
-    pathname.startsWith('/iff/')
-  );
+  if (isOverlayRoute(pathname)) return false;
+  return isIFFRoute(pathname);
 }
 
 function findActiveNode(pathname: string): CyberNode | undefined {
@@ -82,65 +68,126 @@ interface CyberArtifact {
   delay: number;
   dur: number;
   type: 'line' | 'block' | 'dot' | 'spore' | 'v-rect';
+  style: React.CSSProperties;
 }
 
 const ARTIFACT_COUNT = 800;
+
+// Matches the container's opacity transition, so the artifacts stay mounted
+// long enough to fade out before they are torn down.
+const FADE_MS = 700;
+
+const ARTIFACT_BACKGROUND: Record<CyberArtifact['type'], string> = {
+  line:     '#10b981',
+  dot:      '#34d399',
+  spore:    'radial-gradient(circle, rgba(16,185,129,0.3) 0%, transparent 60%)',
+  block:    '#047857',
+  'v-rect': '#047857',
+};
+
+// The artifact list is generated once and never changes. Building each element's
+// full style object up front means a re-render (every route change, since this
+// component subscribes to the location) reuses the same frozen objects instead of
+// allocating 800 new ones and restarting 800 CSS animations.
+function buildArtifacts(): CyberArtifact[] {
+  const rng = mulberry32(0xc0ffee42);
+  return Array.from({ length: ARTIFACT_COUNT }, (_, i) => {
+    const typeRand = rng();
+    let type: CyberArtifact['type'];
+    if (typeRand < 0.3) type = 'line';
+    else if (typeRand < 0.5) type = 'dot';
+    else if (typeRand < 0.75) type = 'block';
+    else if (typeRand < 0.83) type = 'v-rect'; // Reduced amount
+    else type = 'spore';
+
+    let w, h;
+    if (type === 'line') {
+        w = 20 + rng() * 100;
+        h = 1 + rng() * 3;
+    } else if (type === 'dot') {
+        w = 2;
+        h = 2;
+    } else if (type === 'spore') {
+        w = h = 40 + rng() * 150;
+    } else if (type === 'v-rect') {
+        w = 40 + rng() * 120; // Increased width
+        h = 60 + rng() * 300;
+    } else {
+        w = 10 + rng() * 30;
+        h = 10 + rng() * 30;
+    }
+
+    let delay = rng() * 35;
+    let dur = 6 + rng() * 15;
+
+    if (type === 'v-rect') {
+        delay = rng() * 85; // Reduced appearance rate again (even longer wait between cycles)
+        dur = 10 + rng() * 20;
+    }
+
+    const x = rng() * 100; // percentage VW
+    const y = rng() * 100; // percentage VH
+
+    const style: React.CSSProperties = {
+      position: 'absolute',
+      left: `${x}%`,
+      top: `${y}%`,
+      width: w,
+      height: h,
+      background: ARTIFACT_BACKGROUND[type],
+      borderRadius: type === 'spore' ? '50%' : '0',
+      opacity: 0,
+      mixBlendMode: 'screen',
+      animation: (type === 'block' || type === 'spore' || type === 'v-rect')
+        ? `organic-glitch ${dur}s infinite ${delay}s`
+        : `cyber-glitch ${dur}s infinite ${delay}s`,
+      '--glitch-tx': `${rng() * 10 - 5}px`,
+      '--glitch-ty': `${rng() * 4 - 2}px`,
+    } as React.CSSProperties;
+
+    return { id: i, x, y, w, h, depth: rng(), delay, dur, type, style };
+  });
+}
+
+let cachedArtifacts: CyberArtifact[] | null = null;
+function getArtifacts(): CyberArtifact[] {
+  if (!cachedArtifacts) cachedArtifacts = buildArtifacts();
+  return cachedArtifacts;
+}
 
 export default function IFFCyberBackground() {
   const { pathname } = useLocation();
   const isVisible = isIFFPage(pathname);
   const activeNode = findActiveNode(pathname);
 
-  // Generate artifacts (glitches) once deterministically
-  const artifacts = useMemo<CyberArtifact[]>(() => {
-    const rng = mulberry32(0xc0ffee42);
-    return Array.from({ length: ARTIFACT_COUNT }, (_, i) => {
-      const typeRand = rng();
-      let type: 'line' | 'block' | 'dot' | 'spore' | 'v-rect';
-      if (typeRand < 0.3) type = 'line';
-      else if (typeRand < 0.5) type = 'dot';
-      else if (typeRand < 0.75) type = 'block';
-      else if (typeRand < 0.83) type = 'v-rect'; // Reduced amount
-      else type = 'spore';
-      
-      let w, h;
-      if (type === 'line') {
-          w = 20 + rng() * 100;
-          h = 1 + rng() * 3;
-      } else if (type === 'dot') {
-          w = 2;
-          h = 2;
-      } else if (type === 'spore') {
-          w = h = 40 + rng() * 150;
-      } else if (type === 'v-rect') {
-          w = 40 + rng() * 120; // Increased width
-          h = 60 + rng() * 300;
-      } else {
-          w = 10 + rng() * 30;
-          h = 10 + rng() * 30;
-      }
-      
-      let delay = rng() * 35;
-      let dur = 6 + rng() * 15;
-      
-      if (type === 'v-rect') {
-          delay = rng() * 85; // Reduced appearance rate again (even longer wait between cycles)
-          dur = 10 + rng() * 20;
-      }
+  // The 800 artifacts each run an infinite CSS animation, several of which apply
+  // an SVG feTurbulence/feDisplacementMap filter. Leaving them in the DOM at
+  // opacity 0 still costs style recalc, paint and filter work on every frame --
+  // on overlay routes rendered inside OBS that was pure waste. Mount them only
+  // while the background is on screen, keeping them through the fade-out.
+  const [isMounted, setIsMounted] = useState(isVisible);
+  // Drives the opacity transition. Kept separate from `isMounted` so a freshly
+  // mounted layer paints at 0 for one frame and still fades in, exactly as it
+  // did when the element was permanently in the DOM.
+  const [isOpaque, setIsOpaque] = useState(false);
 
-      return {
-        id: i,
-        x: rng() * 100, // percentage VW
-        y: rng() * 100, // percentage VH
-        w,
-        h,
-        depth: rng(),
-        delay,
-        dur,
-        type
-      };
-    });
-  }, []);
+  useEffect(() => {
+    if (isVisible) {
+      setIsMounted(true);
+      const raf = requestAnimationFrame(() => setIsOpaque(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setIsOpaque(false);
+    const timer = setTimeout(() => setIsMounted(false), FADE_MS);
+    return () => clearTimeout(timer);
+  }, [isVisible]);
+
+  const artifacts = useMemo(() => (isMounted ? getArtifacts() : []), [isMounted]);
+
+  // Once faded out the whole layer is invisible (opacity 0), so skip it entirely
+  // rather than leaving a full-screen fixed element -- and its SVG filter,
+  // scanline layer and CRT flicker -- composited behind every other route.
+  if (!isMounted) return null;
 
   return (
     <div
@@ -154,9 +201,9 @@ export default function IFFCyberBackground() {
           linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px)
         `,
         backgroundSize: '100% 100%, 40px 40px, 40px 40px',
-        opacity: isVisible ? 1 : 0,
+        opacity: isOpaque ? 1 : 0,
         transition: 'opacity 0.7s ease',
-        animation: isVisible ? 'crt-flicker 0.15s infinite' : 'none',
+        animation: isOpaque ? 'crt-flicker 0.15s infinite' : 'none',
       }}
     >
 
@@ -176,29 +223,9 @@ export default function IFFCyberBackground() {
       }} />
       <div className="absolute inset-0">
         {/* Background Glitch Artifacts */}
-        {artifacts.map(art => {
-          return (
-            <div
-              key={art.id}
-              style={{
-                position: 'absolute',
-                left: `${art.x}%`,
-                top: `${art.y}%`,
-                width: art.w,
-                height: art.h,
-                background: art.type === 'line' ? '#10b981' : art.type === 'dot' ? '#34d399' : art.type === 'spore' ? 'radial-gradient(circle, rgba(16,185,129,0.3) 0%, transparent 60%)' : '#047857',
-                borderRadius: art.type === 'spore' ? '50%' : '0',
-                opacity: 0,
-                mixBlendMode: 'screen',
-                animation: (art.type === 'block' || art.type === 'spore' || art.type === 'v-rect') 
-                  ? `organic-glitch ${art.dur}s infinite ${art.delay}s`
-                  : `cyber-glitch ${art.dur}s infinite ${art.delay}s`,
-                '--glitch-tx': `${Math.random() * 10 - 5}px`,
-                '--glitch-ty': `${Math.random() * 4 - 2}px`
-              } as React.CSSProperties}
-            />
-          );
-        })}
+        {artifacts.map(art => (
+          <div key={art.id} style={art.style} />
+        ))}
 
         {/* Active Page Glitching Pixel Name */}
         {activeNode && (

@@ -57,18 +57,26 @@ const queries = {
       }
     `,
 
+    // Paginated: $page/$perPage are driven by a loop in getTournamentParticipants.
+    // These were hardcoded to page 1 / perPage 100 with no loop, so in any event
+    // above 100 entrants every player past the first page never received a
+    // sponsor or a country and their overlay flag stayed blank.
     participants: `
-      query TournamentParticipantsQuery($slug: String!) {
+      query TournamentParticipantsQuery($slug: String!, $page: Int!, $perPage: Int!) {
         tournament(slug: $slug) {
           id
           name
           events {
             id
             name
+            slug
             entrants(query: {
-              page: 1
-              perPage: 100
+              page: $page
+              perPage: $perPage
             }) {
+              pageInfo {
+                totalPages
+              }
               nodes {
                 id
                 name
@@ -129,6 +137,11 @@ const queries = {
             nodes {
               id
               fullRoundText
+              # Signed round number, used when fullRoundText is absent. The
+              # sync's fallback chain reads it, but it was never selected here,
+              # so the value was permanently undefined and every such set
+              # degraded straight to the literal "Unknown Round".
+              round
               displayScore
               winnerId
               completedAt
@@ -434,11 +447,14 @@ const queries = {
       }
     `,
 
+    // Server-side name filter. This is the query the search route uses: the
+    // unfiltered `tournaments` query below can only fetch the most recent N
+    // tournaments on all of start.gg, which almost never contains the target.
     tournamentsByName: `
-      query SearchTerm($term: String!) {
+      query SearchTerm($term: String!, $perPage: Int!) {
         tournaments(query: {
           page: 1
-          perPage: 50
+          perPage: $perPage
           filter: {
             name: $term
           }
@@ -450,6 +466,12 @@ const queries = {
             startAt
             endAt
             numAttendees
+            events {
+              id
+              name
+              slug
+              numEntrants
+            }
           }
         }
       }

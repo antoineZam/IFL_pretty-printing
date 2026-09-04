@@ -1,3 +1,28 @@
 node_modules
 .env
-client/dist/assets/*
+
+# Build output -- regenerate with `npm run build` (or `npm run build --prefix client`).
+# public/source is no longer copied here (see copyPublicDir in vite.config.ts).
+client/dist/
+
+# Vite writes these while resolving a TS config. One was committed in November
+# 2025 and sat there for months embedding absolute paths from another machine.
+*.timestamp-*.mjs
+
+# OS and editor debris
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# Logs and crash reports
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local editor settings
+.vscode/
+.idea/
