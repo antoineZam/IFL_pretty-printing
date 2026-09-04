@@ -47,7 +47,7 @@ const LoveAndWarUnifiedOverlay = () => {
 
     // Socket connection for display mode control
     useEffect(() => {
-        const key = searchParams.get('key');
+        const key = searchParams.get('key') || localStorage.getItem('connectionKey');
         if (!key) return;
 
         const newSocket: Socket = io({ auth: { token: key } });
