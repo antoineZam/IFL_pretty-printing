@@ -57,7 +57,7 @@ const TagTeamOverlayPage = () => {
     }, []);
 
     useEffect(() => {
-        const key = searchParams.get('key');
+        const key = searchParams.get('key') || localStorage.getItem('connectionKey');
         if (!key) {
             setError('No connection key');
             return;
