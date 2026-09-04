@@ -251,11 +251,13 @@ const TagTeamControlPage = () => {
     };
 
     const resetScores = () => {
-        setData(prev => ({
-            ...prev,
-            team1: { ...prev.team1, score: 0 },
-            team2: { ...prev.team2, score: 0 }
-        }));
+        const updatedData: TagTeamData = {
+            ...data,
+            team1: { ...data.team1, score: 0 },
+            team2: { ...data.team2, score: 0 }
+        };
+        setData(updatedData);
+        sendUpdate(updatedData);
     };
     
     return (
