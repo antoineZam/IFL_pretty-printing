@@ -105,11 +105,11 @@ const TagTeamControlPage = () => {
                     ...newData,
                     team1: {
                         ...newData.team1,
-                        players: newData.team1.players?.map(p => ({ ...p, flag: p.flag || '' })) || initialData.team1.players
+                        players: newData.team1.players?.length ? newData.team1.players.map(p => ({ ...p, flag: p.flag || '' })) : initialData.team1.players
                     },
                     team2: {
                         ...newData.team2,
-                        players: newData.team2.players?.map(p => ({ ...p, flag: p.flag || '' })) || initialData.team2.players
+                        players: newData.team2.players?.length ? newData.team2.players.map(p => ({ ...p, flag: p.flag || '' })) : initialData.team2.players
                     }
                 };
                 setData(normalizedData);
