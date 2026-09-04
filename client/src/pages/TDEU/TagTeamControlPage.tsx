@@ -195,16 +195,18 @@ const TagTeamControlPage = () => {
     };
 
     const handleActivePlayerChange = (team: 'team1' | 'team2', playerIndex: number) => {
-        setData(prev => ({
-            ...prev,
+        const updatedData: TagTeamData = {
+            ...data,
             [team]: {
-                ...prev[team],
-                players: prev[team].players.map((p, i) => ({
+                ...data[team],
+                players: data[team].players.map((p, i) => ({
                     ...p,
                     active: i === playerIndex
                 }))
             }
-        }));
+        };
+        setData(updatedData);
+        sendUpdate(updatedData);
     };
 
     const updateScore = (team: 'team1' | 'team2', delta: number) => {
