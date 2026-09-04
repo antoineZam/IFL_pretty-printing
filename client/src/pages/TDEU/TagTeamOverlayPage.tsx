@@ -24,21 +24,21 @@ interface TagTeamData {
 
 // PlayerCard component
 interface PlayerCardProps {
-    player: Player;
+    player?: Player;
     className: string;
     cardId: string;
 }
 const PlayerCard = ({ player, className, cardId }: PlayerCardProps) => {
     const { nameRef, sponsorRef, cardRef } = useDynamicFontSize({
-        name: player.name,
-        sponsor: player.sponsor,
+        name: player?.name || '',
+        sponsor: player?.sponsor || '',
         cardId,
     });
 
     return (
-        <div ref={cardRef} id={cardId} className={`flex flex-row items-baseline gap-2 max-w-[250px] overflow-hidden justify-center ${className} ${!player.active ? 'opacity-50' : ''}`}>
-            <span ref={sponsorRef} className="text-white/50 text-[18px] font-semibold whitespace-nowrap">{player.sponsor}</span>
-            <span ref={nameRef} className="text-[24px] font-bold text-white whitespace-nowrap">{player.name}</span>
+        <div ref={cardRef} id={cardId} className={`flex flex-row items-baseline gap-2 max-w-[250px] overflow-hidden justify-center ${className} ${!player?.active ? 'opacity-50' : ''}`}>
+            <span ref={sponsorRef} className="text-white/50 text-[18px] font-semibold whitespace-nowrap">{player?.sponsor}</span>
+            <span ref={nameRef} className="text-[24px] font-bold text-white whitespace-nowrap">{player?.name}</span>
         </div>
     );
 };
