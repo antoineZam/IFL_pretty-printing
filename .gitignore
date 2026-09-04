@@ -5,12 +5,10 @@ node_modules
 # public/source is no longer copied here (see copyPublicDir in vite.config.ts).
 client/dist/
 
-# deploy.sh builds into dist.new and keeps the outgoing bundle in dist.prev
-# until the new one passes its health check. .deploy holds the lock, the log
-# and the lockfile hashes that let a deploy skip an unnecessary npm ci.
+# deploy.sh builds into dist.new and swaps it in, keeping the outgoing bundle
+# in dist.prev so a bad deploy has something to fall back on.
 client/dist.new/
 client/dist.prev/
-.deploy/
 
 # Vite writes these while resolving a TS config. One was committed in November
 # 2025 and sat there for months embedding absolute paths from another machine.
