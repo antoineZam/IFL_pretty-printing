@@ -44,3 +44,21 @@
 # *.zip  filter=lfs diff=lfs merge=lfs -text
 # *.mp4  filter=lfs diff=lfs merge=lfs -text
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Line endings for scripts
+#
+# core.autocrlf=true on the Windows workstations rewrites LF to CRLF on every
+# checkout. A shell script that makes that trip and is then copied to the
+# server dies on its first compound command:
+#
+#   ./deploy.sh: line 92: syntax error near unexpected token `do'
+#
+# because Linux bash reads the token as `do\r`, which is not the reserved word.
+# Pinning eol here overrides autocrlf for these files specifically.
+#
+# This is NOT the repo-wide `text=auto` the note above warns against: it names
+# two extensions, and every matching file is already LF in the index, so it
+# renormalizes nothing and leaves the binary artwork untouched.
+*.sh    text eol=lf
+*.bat   text eol=crlf
