@@ -1,4 +1,5 @@
 const startgg = require('./startgg');
+const seasons = require('./iflSeasons');
 const dbHelpers = require('./dbHelpers');
 const pool = require('./db');
 
@@ -32,6 +33,11 @@ function getCountryCode(countryName) {
   // Look up in map
   const normalized = countryName.toLowerCase().trim();
   return COUNTRY_CODE_MAP[normalized] || null;
+}
+
+/** "Iron Fist League 3 #1 - ROAD TO EVO FRANCE" -> the slug start.gg would build. */
+function slugifyName(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
 // Map start.gg data to our database schema
@@ -73,7 +79,20 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
     // happened to share a display name. The name lookup is kept as a fallback so
     // rows created before startgg_slug existed are adopted rather than
     // duplicated -- and backfilled below.
-    const cleanSlug = String(slug).replace(/^tournament\//, '');
+
+    // Store the slug start.gg answered with, not the one that was asked for: a
+    // season 3 week is addressed by its short slug (IFL3-W1) but canonically
+    // named iron-fist-league-3-1-..., and keying rows on whichever form the
+    // operator happened to paste would sync the same tournament in twice.
+    const cleanSlug = seasons.normalizeSlug(tournament.slug || slug);
+
+    // Which season this belongs to, read off the slug and falling back to the
+    // name in the same shape start.gg slugifies it into. Every row used to be
+    // stamped 'Season 1' regardless.
+    const seasonNumber = seasons.seasonFromSlug(cleanSlug)
+      ?? seasons.seasonFromSlug(slugifyName(tournament.name));
+    const seasonLabel = seasonNumber ? seasons.seasonLabel(seasonNumber) : null;
+
     let [tournamentRows] = await pool.execute(
       `SELECT tournament_id FROM tournaments
        WHERE startgg_slug = ?
@@ -100,10 +119,10 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
       
       const [result] = await pool.execute(
         'INSERT INTO tournaments (name, startgg_slug, season, start_date, status, game_version) VALUES (?, ?, ?, ?, ?, ?)',
-        [tournament.name, cleanSlug, 'Season 1', startDate, status, 'Tekken 8']
+        [tournament.name, cleanSlug, seasonLabel, startDate, status, 'Tekken 8']
       );
       tournamentId = result.insertId;
-      console.log(`  Created tournament with status: ${status}`);
+      console.log(`  Created tournament with status: ${status}${seasonLabel ? ` (${seasonLabel})` : ''}`);
     } else {
       tournamentId = tournamentRows[0].tournament_id;
       
@@ -119,10 +138,11 @@ async function syncTournamentFromStartGG(slug, eventSlug = null) {
       }
       
       // Backfill startgg_slug on rows that predate the column, so the next sync
-      // matches on the slug rather than on the name.
+      // matches on the slug rather than on the name, and correct the season on
+      // rows written while every tournament was stamped 'Season 1'.
       await pool.execute(
-        'UPDATE tournaments SET status = ?, startgg_slug = ? WHERE tournament_id = ?',
-        [status, cleanSlug, tournamentId]
+        'UPDATE tournaments SET status = ?, startgg_slug = ?, season = COALESCE(?, season) WHERE tournament_id = ?',
+        [status, cleanSlug, seasonLabel, tournamentId]
       );
     }
 
