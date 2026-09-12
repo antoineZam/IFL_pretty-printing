@@ -15,7 +15,11 @@ interface NavItem {
 
 interface TournamentStat {
     tournament_id: number;
+    event_id?: number;
     name: string;
+    event_name?: string;
+    slug?: string;
+    season?: number;
     start_date: string;
     status: string;
     participant_count: number;
@@ -33,12 +37,40 @@ interface LeaderboardPlayer {
 }
 
 // ---------------------------------------------------------------------------
+// Participation chart.
+//
+// One line per season, every season on one shared scale, plotted against each
+// season's own running tournament count -- so week 1 of season 3 sits above week
+// 1 of season 2 and the seasons can be read against each other rather than end
+// to end. The scale is computed over every season and does not move when a
+// season is hidden, so a comparison never silently rescales under the reader.
+//
+// Season 1's editions are numbered from #4 on start.gg, and its first five ran
+// inside a single tournament, which is why the x position is the ordinal within
+// the season and the edition number is carried in the tooltip instead.
+// ---------------------------------------------------------------------------
+
+// Categorical slots, stepped for a dark surface, in fixed order. The colour
+// follows the season, not the series' position on screen, so hiding a season
+// never repaints the ones left behind.
+const SEASON_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500'];
+
+function seasonColor(season: number): string {
+    return SEASON_COLORS[(season - 1) % SEASON_COLORS.length];
+}
+
+interface SeasonSeries {
+    season: number;
+    label: string;
+    color: string;
+    points: TournamentStat[];
+}
+
+interface ChartPoint { x: number; y: number; data: TournamentStat }
+
 // Smooth monotone cubic bezier through a set of points (no overshoot).
 // Each segment uses horizontal control points at the mid-X so the curve
 // stays flat at the endpoints — ideal for a time-series chart.
-// ---------------------------------------------------------------------------
-interface ChartPoint { x: number; y: number; data: TournamentStat }
-
 function smoothPath(pts: ChartPoint[]): string {
     if (pts.length < 2) return '';
     const d: string[] = [`M ${pts[0].x} ${pts[0].y}`];
@@ -58,169 +90,256 @@ function getWeekLabel(tournament: TournamentStat): string {
     return m ? m[1] : '';
 }
 
-const PADDING = { top: 24, right: 20, bottom: 30, left: 36 } as const;
-const W = 500;
-const H = 200;
+function groupBySeason(stats: TournamentStat[]): SeasonSeries[] {
+    const bySeason = new Map<number, TournamentStat[]>();
+
+    for (const stat of stats) {
+        const season = stat.season ?? 0;
+        if (!bySeason.has(season)) bySeason.set(season, []);
+        bySeason.get(season)!.push(stat);
+    }
+
+    return [...bySeason.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([season, points]) => ({
+            season,
+            label: season ? `Season ${season}` : 'Unsorted',
+            color: seasonColor(season || SEASON_COLORS.length),
+            points: [...points].sort((a, b) =>
+                (a.week_number ?? 0) - (b.week_number ?? 0) ||
+                Date.parse(a.start_date || '') - Date.parse(b.start_date || '')),
+        }));
+}
+
+// Axis bounds on round numbers, wide enough to hold every season.
+const TICK_STEPS = [5, 10, 20, 25, 50, 100];
+
+function niceBounds(min: number, max: number): { lo: number; hi: number; step: number } {
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return { lo: 0, hi: 100, step: 25 };
+    // The smallest round step that fits the spread in about four divisions:
+    // a coarser target rounds 37..119 out to a 0..150 axis, leaving the seasons
+    // squashed into the middle half of the chart.
+    const step = TICK_STEPS.find(s => (max - min) / s <= 4) ?? TICK_STEPS[TICK_STEPS.length - 1];
+    const lo = Math.max(0, Math.floor(min / step) * step);
+    const hi = Math.ceil(max / step) * step;
+    return { lo, hi: hi > lo ? hi : lo + step, step };
+}
+
+const PADDING = { top: 18, right: 54, bottom: 30, left: 34 } as const;
+const W = 560;
+const H = 230;
 const CW = W - PADDING.left - PADDING.right;
 const CH = H - PADDING.top - PADDING.bottom;
 
-const LineChart = memo(function LineChart({ data }: { data: TournamentStat[] }) {
-    const chartData = useMemo(() => data.slice(-12), [data]);
+const ParticipationChart = memo(function ParticipationChart({ data }: { data: TournamentStat[] }) {
+    const [hidden, setHidden] = useState<Set<number>>(new Set());
+    const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-    const { points, maxValue, minValue } = useMemo(() => {
-        const max = Math.max(...chartData.map(t => t.participant_count), 1);
-        const min = Math.min(...chartData.map(t => t.participant_count));
-        const span = Math.max(chartData.length - 1, 1);
-        const pts: ChartPoint[] = chartData.map((t, i) => ({
-            x: PADDING.left + (i / span) * CW,
-            y: PADDING.top + CH - ((t.participant_count - min) / (max - min || 1)) * CH,
-            data: t,
-        }));
-        return { points: pts, maxValue: max, minValue: min };
-    }, [chartData]);
+    const series = useMemo(() => groupBySeason(data), [data]);
+    const visible = useMemo(() => series.filter(s => !hidden.has(s.season)), [series, hidden]);
 
-    const linePath = useMemo(() => smoothPath(points), [points]);
+    // Both scales are taken over every season, hidden or not: toggling a season
+    // off is a way to read the chart, not a way to change what it measures.
+    const { lo, hi, step } = useMemo(() => {
+        const counts = data.map(d => d.participant_count).filter(n => Number.isFinite(n));
+        return niceBounds(Math.min(...counts), Math.max(...counts));
+    }, [data]);
 
-    const areaPath = useMemo(() => {
-        if (points.length < 2) return '';
-        const base = PADDING.top + CH;
-        return `${linePath} L ${points[points.length - 1].x} ${base} L ${points[0].x} ${base} Z`;
-    }, [linePath, points]);
+    const columns = useMemo(
+        () => Math.max(...series.map(s => s.points.length), 1),
+        [series]);
 
-    const xLabelSet = useMemo(() => {
-        const step = Math.ceil(chartData.length / 6);
-        const s = new Set<number>();
-        for (let i = 0; i < chartData.length; i += step) s.add(i);
-        s.add(chartData.length - 1);
-        return s;
-    }, [chartData]);
+    const xFor = (index: number) => PADDING.left + (index / Math.max(columns - 1, 1)) * CW;
+    const yFor = (value: number) => PADDING.top + CH - ((value - lo) / (hi - lo || 1)) * CH;
 
-    const last = points[points.length - 1];
-    const lastValue = chartData[chartData.length - 1]?.participant_count;
-    const yMid = Math.round((maxValue + minValue) / 2);
+    const plotted = useMemo(() => visible.map(s => ({
+        ...s,
+        chartPoints: s.points.map((point, i) => ({
+            x: xFor(i),
+            y: yFor(point.participant_count),
+            data: point,
+        })),
+    })), [visible, lo, hi, columns]);
+
+    const ticks = useMemo(() => {
+        const out: number[] = [];
+        for (let v = lo; v <= hi; v += step) out.push(v);
+        return out;
+    }, [lo, hi, step]);
+
+    const xTicks = useMemo(() => {
+        const every = Math.ceil(columns / 8);
+        const out: number[] = [];
+        for (let i = 0; i < columns; i += every) out.push(i);
+        if (out[out.length - 1] !== columns - 1) out.push(columns - 1);
+        return out;
+    }, [columns]);
+
+    // Direct labels at each line's end, nudged apart so two seasons ending at
+    // similar counts do not print on top of each other.
+    const endLabels = useMemo(() => {
+        const labels = plotted
+            .filter(s => s.chartPoints.length > 0)
+            .map(s => {
+                const last = s.chartPoints[s.chartPoints.length - 1];
+                return { season: s.season, color: s.color, x: last.x, y: last.y };
+            })
+            .sort((a, b) => a.y - b.y);
+
+        for (let i = 1; i < labels.length; i++) {
+            if (labels[i].y - labels[i - 1].y < 11) labels[i].y = labels[i - 1].y + 11;
+        }
+        return labels;
+    }, [plotted]);
+
+    const toggleSeason = (season: number) => {
+        setHidden(prev => {
+            const next = new Set(prev);
+            // Never hide the last visible season -- an empty chart is not a view.
+            if (next.has(season)) next.delete(season);
+            else if (visible.length > 1) next.add(season);
+            return next;
+        });
+    };
+
+    const handleMove = (e: React.MouseEvent<SVGRectElement>) => {
+        const box = e.currentTarget.getBoundingClientRect();
+        const ratio = (e.clientX - box.left) / (box.width || 1);
+        const index = Math.round(ratio * Math.max(columns - 1, 1));
+        setHoverIndex(Math.min(Math.max(index, 0), columns - 1));
+    };
+
+    const hovered = hoverIndex === null ? [] : plotted
+        .map(s => ({ series: s, point: s.chartPoints[hoverIndex] }))
+        .filter((row) => Boolean(row.point));
 
     return (
-        <div className="relative">
-            <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
-                <defs>
-                    <linearGradient id="tcLine" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#06b6d4" />
-                        <stop offset="100%" stopColor="#3b82f6" />
-                    </linearGradient>
-                    <linearGradient id="tcArea" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.20" />
-                        <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
-                    </linearGradient>
-                    <filter id="tcGlow" x="-40%" y="-40%" width="180%" height="180%">
-                        <feGaussianBlur stdDeviation="2.5" result="blur" />
-                        <feMerge>
-                            <feMergeNode in="blur" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
-                    {/* clip so the curve never bleeds outside the chart box */}
-                    <clipPath id="tcClip">
-                        <rect x={PADDING.left} y={PADDING.top} width={CW} height={CH} />
-                    </clipPath>
-                </defs>
+        <div>
+            <div className="relative">
+                <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img"
+                    aria-label="Sign-ups per tournament, compared across seasons">
+                    <defs>
+                        <clipPath id="pcClip">
+                            <rect x={PADDING.left} y={PADDING.top} width={CW} height={CH} />
+                        </clipPath>
+                    </defs>
 
-                {/* grid lines */}
-                {[0, 0.5, 1].map((r, i) => (
-                    <line
-                        key={i}
-                        x1={PADDING.left} y1={PADDING.top + CH * r}
-                        x2={W - PADDING.right} y2={PADDING.top + CH * r}
-                        stroke="rgba(255,255,255,0.05)"
-                        strokeDasharray="3,5"
-                    />
-                ))}
+                    {/* grid — hairlines, one shade off the surface */}
+                    {ticks.map(value => (
+                        <line key={`g${value}`}
+                            x1={PADDING.left} y1={yFor(value)}
+                            x2={PADDING.left + CW} y2={yFor(value)}
+                            stroke="rgba(255,255,255,0.06)" strokeWidth="1"
+                        />
+                    ))}
 
-                {/* Y-axis labels */}
-                {[maxValue, yMid, minValue].map((v, i) => (
-                    <text
-                        key={i}
-                        x={PADDING.left - 6}
-                        y={PADDING.top + (i / 2) * CH + 4}
-                        fill="#4b5563" fontSize="9" textAnchor="end"
-                    >
-                        {v}
-                    </text>
-                ))}
-
-                {/* X-axis labels */}
-                {chartData.map((t, i) => {
-                    if (!xLabelSet.has(i)) return null;
-                    const x = PADDING.left + (i / Math.max(chartData.length - 1, 1)) * CW;
-                    const label = getWeekLabel(t);
-                    return label ? (
-                        <text key={t.tournament_id} x={x} y={H - 6}
-                            fill="#4b5563" fontSize="9" textAnchor="middle">
-                            W{label}
+                    {/* Y-axis labels */}
+                    {ticks.map(value => (
+                        <text key={`y${value}`} x={PADDING.left - 6} y={yFor(value) + 3}
+                            fill="#6b7280" fontSize="9" textAnchor="end">
+                            {value}
                         </text>
-                    ) : null;
-                })}
+                    ))}
 
-                {/* area fill */}
-                {points.length > 1 && (
-                    <path d={areaPath} fill="url(#tcArea)" clipPath="url(#tcClip)" />
-                )}
+                    {/* X-axis labels — the nth tournament of each season */}
+                    {xTicks.map(i => (
+                        <text key={`x${i}`} x={xFor(i)} y={H - 12} fill="#6b7280" fontSize="9" textAnchor="middle">
+                            {i + 1}
+                        </text>
+                    ))}
+                    <text x={PADDING.left + CW / 2} y={H - 1} fill="#4b5563" fontSize="8" textAnchor="middle">
+                        nth tournament of the season
+                    </text>
 
-                {/* glow copy of line */}
-                {points.length > 1 && (
-                    <path d={linePath} fill="none"
-                        stroke="url(#tcLine)" strokeWidth="5"
-                        strokeLinecap="round" strokeLinejoin="round"
-                        filter="url(#tcGlow)" opacity="0.45"
-                        clipPath="url(#tcClip)"
-                    />
-                )}
+                    {/* crosshair */}
+                    {hoverIndex !== null && (
+                        <line x1={xFor(hoverIndex)} y1={PADDING.top}
+                            x2={xFor(hoverIndex)} y2={PADDING.top + CH}
+                            stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
+                    )}
 
-                {/* main line */}
-                {points.length > 1 && (
-                    <path d={linePath} fill="none"
-                        stroke="url(#tcLine)" strokeWidth="2"
-                        strokeLinecap="round" strokeLinejoin="round"
-                        clipPath="url(#tcClip)"
-                    />
-                )}
-
-                {/* data points */}
-                {points.map((p, i) => {
-                    const isLast = i === points.length - 1;
-                    return (
-                        <g key={p.data.tournament_id}>
-                            {isLast && (
-                                <circle cx={p.x} cy={p.y} r="9"
-                                    fill="#06b6d4" opacity="0.12" />
+                    {/* one line per season */}
+                    {plotted.map(s => (
+                        <g key={s.season}>
+                            {s.chartPoints.length > 1 && (
+                                <path d={smoothPath(s.chartPoints)} fill="none"
+                                    stroke={s.color} strokeWidth="2"
+                                    strokeLinecap="round" strokeLinejoin="round"
+                                    clipPath="url(#pcClip)" />
                             )}
-                            <circle cx={p.x} cy={p.y}
-                                r={isLast ? 4 : 2.5}
-                                fill={isLast ? '#06b6d4' : '#0c4a5a'}
-                                stroke={isLast ? '#67e8f9' : '#06b6d4'}
-                                strokeWidth={isLast ? 1.5 : 1}
-                            />
+                            {/* a season with a single tournament has no line to draw */}
+                            {s.chartPoints.length === 1 && (
+                                <circle cx={s.chartPoints[0].x} cy={s.chartPoints[0].y} r="3.5"
+                                    fill={s.color} stroke="#000" strokeWidth="2" />
+                            )}
                         </g>
+                    ))}
+
+                    {/* hovered values, ringed in the surface colour so overlapping dots stay apart */}
+                    {hovered.map(({ series: s, point }) => (
+                        <circle key={`h${s.season}`} cx={point.x} cy={point.y} r="4"
+                            fill={s.color} stroke="#000" strokeWidth="2" />
+                    ))}
+
+                    {/* direct labels */}
+                    {endLabels.map(label => (
+                        <g key={`l${label.season}`}>
+                            <circle cx={label.x + 8} cy={label.y} r="2.5" fill={label.color} />
+                            <text x={label.x + 14} y={label.y + 3} fill="#9ca3af" fontSize="9">
+                                S{label.season}
+                            </text>
+                        </g>
+                    ))}
+
+                    {/* hover surface */}
+                    <rect x={PADDING.left} y={PADDING.top} width={CW} height={CH}
+                        fill="transparent" style={{ cursor: 'crosshair' }}
+                        onMouseMove={handleMove}
+                        onMouseLeave={() => setHoverIndex(null)} />
+                </svg>
+
+                {hoverIndex !== null && hovered.length > 0 && (
+                    <div
+                        className="absolute pointer-events-none bg-black/90 border border-white/10 rounded-lg px-2.5 py-2 text-[11px] shadow-xl"
+                        style={{
+                            left: `${(xFor(hoverIndex) / W) * 100}%`,
+                            top: 6,
+                            transform: hoverIndex > columns / 2 ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
+                        }}
+                    >
+                        <p className="text-gray-500 mb-1">Tournament {hoverIndex + 1}</p>
+                        {hovered.map(({ series: s, point }) => (
+                            <div key={`t${s.season}`} className="flex items-center gap-2 whitespace-nowrap">
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                                <span className="text-gray-400">S{s.season}</span>
+                                {getWeekLabel(point.data) && (
+                                    <span className="text-gray-600">#{getWeekLabel(point.data)}</span>
+                                )}
+                                <span className="text-white font-medium ml-auto">{point.data.participant_count}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* legend — identity never rests on colour alone */}
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+                {series.map(s => {
+                    const isHidden = hidden.has(s.season);
+                    return (
+                        <button key={s.season} onClick={() => toggleSeason(s.season)}
+                            className={`flex items-center gap-1.5 text-[11px] transition-opacity ${
+                                isHidden ? 'opacity-35' : 'opacity-100'
+                            }`}
+                            aria-pressed={!isHidden}
+                        >
+                            <span className="w-3 h-[2px] rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                            <span className="text-gray-300">{s.label}</span>
+                            <span className="text-gray-600">{s.points.length}</span>
+                        </button>
                     );
                 })}
-
-                {/* latest-value tooltip */}
-                {last && lastValue != null && (
-                    <g>
-                        <rect
-                            x={last.x - 16} y={last.y - 26}
-                            width="32" height="16" rx="4"
-                            fill="#0e7490" stroke="#06b6d4" strokeWidth="0.5"
-                            opacity="0.92"
-                        />
-                        <text
-                            x={last.x} y={last.y - 14}
-                            fill="#e0f2fe" fontSize="9" fontWeight="600" textAnchor="middle"
-                        >
-                            {lastValue}
-                        </text>
-                    </g>
-                )}
-            </svg>
+            </div>
         </div>
     );
 });
@@ -323,8 +442,15 @@ const TDEUDashboardPage = () => {
         },
     ];
 
-    const maxParticipants = useMemo(
-        () => Math.max(...tournamentStats.map(t => t.participant_count), 0),
+    // Per-season totals under the chart, so the comparison is available as
+    // numbers and not only as three lines.
+    const seasonSummaries = useMemo(
+        () => groupBySeason(tournamentStats).map(s => ({
+            season: s.season,
+            events: s.points.length,
+            average: Math.round(s.points.reduce((sum, t) => sum + t.participant_count, 0) / s.points.length) || 0,
+            peak: Math.max(...s.points.map(t => t.participant_count), 0),
+        })),
         [tournamentStats]
     );
 
@@ -368,7 +494,7 @@ const TDEUDashboardPage = () => {
                                 </div>
                                 <div>
                                     <h2 className="font-medium text-white text-sm">IFL Participation Trend</h2>
-                                    <p className="text-gray-500 text-[10px]">Players per tournament</p>
+                                    <p className="text-gray-500 text-[10px]">Sign-ups per tournament, season against season</p>
                                 </div>
                             </div>
                         </div>
@@ -383,28 +509,26 @@ const TDEUDashboardPage = () => {
                             </div>
                         ) : (
                             <div className="p-4">
-                                <LineChart data={tournamentStats} />
-                                <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-4 gap-4">
-                                    <div>
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider">Events</p>
-                                        <p className="text-xl font-semibold text-white">{tournamentStats.length}</p>
+                                <ParticipationChart data={tournamentStats} />
+                                <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+                                    <div className="grid grid-cols-4 gap-4 text-[10px] text-gray-500 uppercase tracking-wider">
+                                        <span>Season</span>
+                                        <span>Events</span>
+                                        <span>Avg</span>
+                                        <span>Peak</span>
                                     </div>
-                                    <div>
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider">Avg</p>
-                                        <p className="text-xl font-semibold text-white">
-                                            {Math.round(tournamentStats.reduce((sum, t) => sum + t.participant_count, 0) / tournamentStats.length) || 0}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider">Peak</p>
-                                        <p className="text-xl font-semibold text-cyan-400">{maxParticipants}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider">Matches</p>
-                                        <p className="text-xl font-semibold text-white">
-                                            {tournamentStats.reduce((sum, t) => sum + t.match_count, 0)}
-                                        </p>
-                                    </div>
+                                    {seasonSummaries.map(summary => (
+                                        <div key={summary.season} className="grid grid-cols-4 gap-4 items-center">
+                                            <span className="flex items-center gap-1.5 text-sm text-gray-300">
+                                                <span className="w-3 h-[2px] rounded-full shrink-0"
+                                                    style={{ backgroundColor: seasonColor(summary.season) }} />
+                                                S{summary.season}
+                                            </span>
+                                            <span className="text-lg font-semibold text-white">{summary.events}</span>
+                                            <span className="text-lg font-semibold text-white">{summary.average}</span>
+                                            <span className="text-lg font-semibold text-cyan-400">{summary.peak}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
