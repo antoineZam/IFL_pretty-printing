@@ -422,7 +422,7 @@ const IFLTop8ControlPage = () => {
                             <CyberInput
                                 id="tournamentSlug"
                                 label=""
-                                placeholder="e.g., iron-fist-league-2-week-1"
+                                placeholder="e.g., IFL3-W1 or a start.gg link"
                                 value={tournamentSlug}
                                 onChange={(e) => setTournamentSlug(e.target.value)}
                                 className="flex-1"

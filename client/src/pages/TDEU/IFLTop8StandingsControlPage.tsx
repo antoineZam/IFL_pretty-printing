@@ -87,7 +87,11 @@ const IFLTop8StandingsControlPage = () => {
     const loadIFLTournaments = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/startgg/league/IFL2/tournaments?limit=20');
+            // Follow whichever season is running rather than the season this
+            // page was written during.
+            const seasonRes = await fetch('/api/startgg/seasons');
+            const { currentSeason } = await seasonRes.json();
+            const res = await fetch(`/api/startgg/league/${currentSeason}/tournaments?limit=20`);
             if (res.ok) {
                 const data = await res.json();
                 setTournaments(data.tournaments || []);
