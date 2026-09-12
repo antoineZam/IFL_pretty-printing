@@ -581,15 +581,22 @@ async function findTournamentsByTerm(searchTerm) {
       return [];
     }
 
-    return data.tournaments.nodes.map(t => ({
-      id: t.id,
-      name: t.name,
+    return data.tournaments.nodes.map(t => {
       // Strip "tournament/" prefix if present - start.gg returns full path slugs
-      slug: t.slug ? t.slug.replace(/^tournament\//, '') : t.slug,
-      startAt: t.startAt ? new Date(t.startAt * 1000) : null,
-      endAt: t.endAt ? new Date(t.endAt * 1000) : null,
-      events: t.events || []
-    }));
+      const slug = seasons.normalizeSlug(t.slug) || t.slug;
+      return {
+        id: t.id,
+        name: t.name,
+        slug,
+        // A name search returns tournaments from all over start.gg, so the
+        // season is whatever the slug says it is -- usually nothing.
+        season: t.season ?? seasons.seasonFromSlug(slug) ?? null,
+        weekNumber: t.weekNumber ?? seasons.weekFromSlug(slug) ?? null,
+        startAt: t.startAt ? new Date(t.startAt * 1000) : null,
+        endAt: t.endAt ? new Date(t.endAt * 1000) : null,
+        events: t.events || []
+      };
+    });
   } catch (error) {
     console.error('Error searching tournaments:', error);
     throw error;

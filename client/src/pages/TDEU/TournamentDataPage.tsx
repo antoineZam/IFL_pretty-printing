@@ -39,7 +39,15 @@ interface StartGGTournament {
     slug: string;
     startAt: number | string | null;
     endAt: number | string | null;
+    season?: number;
+    weekNumber?: number | null;
     events?: { id: number; name: string; slug: string }[];
+}
+
+interface SeasonInfo {
+    season: number;
+    label: string;
+    name: string;
 }
 
 interface Player {
@@ -84,7 +92,9 @@ const TournamentDataPage = () => {
     const [loadingMatches, setLoadingMatches] = useState(false);
     
     // start.gg state
-    const [searchTerm, setSearchTerm] = useState('iron-fist-league');
+    const [seasonList, setSeasonList] = useState<SeasonInfo[]>([]);
+    const [season, setSeason] = useState<number | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const [startggResults, setStartggResults] = useState<StartGGTournament[]>([]);
     const [searchingStartgg, setSearchingStartgg] = useState(false);
     const [syncingSlug, setSyncingSlug] = useState<string | null>(null);
@@ -119,7 +129,21 @@ const TournamentDataPage = () => {
 
     useEffect(() => {
         loadTournaments();
+        loadSeasons();
     }, []);
+
+    // The season list and the season currently running both come from the
+    // server, so a new season only has to be declared in one place.
+    const loadSeasons = async () => {
+        try {
+            const res = await fetch('/api/startgg/seasons');
+            const data = await res.json();
+            setSeasonList(data.seasons || []);
+            setSeason((current) => current ?? data.currentSeason ?? null);
+        } catch (error) {
+            console.error('Error loading seasons:', error);
+        }
+    };
 
     const loadTournaments = async () => {
         setLoadingTournaments(true);
@@ -174,11 +198,15 @@ const TournamentDataPage = () => {
     };
 
     const searchStartGG = async () => {
-        if (!searchTerm.trim()) return;
+        // An empty box searches the selected season: the server reads "IFL3" as
+        // a whole season, the same way it reads a pasted tournament link as one
+        // tournament.
+        const term = searchTerm.trim() || `IFL${season ?? ''}`;
+        if (!term) return;
         setSearchingStartgg(true);
         setSyncResult(null);
         try {
-            const res = await fetch(`/api/startgg/search?term=${encodeURIComponent(searchTerm)}`);
+            const res = await fetch(`/api/startgg/search?term=${encodeURIComponent(term)}`);
             const data = await res.json();
             setStartggResults(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -583,19 +611,46 @@ const TournamentDataPage = () => {
                 {/* start.gg Tab */}
                 {activeTab === 'startgg' && (
                     <div className="space-y-6">
+                        {/* Season selector */}
+                        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-5">
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="font-medium text-white text-sm">Season</h3>
+                                    <p className="text-gray-500 text-xs mt-1">Which season Find All, Sync All and an empty search look in</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {seasonList.map((s) => (
+                                        <button
+                                            key={s.season}
+                                            onClick={() => setSeason(s.season)}
+                                            className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                                                season === s.season
+                                                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                                                    : 'bg-black/40 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                                            }`}
+                                        >
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Quick Sync */}
                         <div className="bg-black/50 backdrop-blur-md border border-amber-500/20 rounded-xl p-5">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <h3 className="font-medium text-amber-400 text-sm">Quick Sync</h3>
-                                    <p className="text-gray-500 text-xs mt-1">Find and sync all Iron Fist League tournaments</p>
+                                    <p className="text-gray-500 text-xs mt-1">
+                                        Find and sync every {seasonList.find(s => s.season === season)?.name ?? 'Iron Fist League'} tournament
+                                    </p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={async () => {
                                             setSearchingStartgg(true);
                                             try {
-                                                const res = await fetch('/api/startgg/ifl/tournaments');
+                                                const res = await fetch(`/api/startgg/ifl/tournaments?season=${season ?? ''}`);
                                                 const data = await res.json();
                                                 setStartggResults(Array.isArray(data) ? data : []);
                                             } catch (error) {
@@ -617,7 +672,8 @@ const TournamentDataPage = () => {
                                             try {
                                                 const res = await fetch('/api/startgg/ifl/sync-all', {
                                                     method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' }
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ season })
                                                 });
                                                 const data = await res.json();
                                                 if (!res.ok) {
@@ -627,7 +683,7 @@ const TournamentDataPage = () => {
                                                 const totalUpdated = data.results
                                                     .filter((r: { success: boolean }) => r.success)
                                                     .reduce((sum: number, r: { matchesUpdated?: number }) => sum + (r.matchesUpdated || 0), 0);
-                                                let message = `Synced ${data.synced}/${data.totalFound} tournaments.`;
+                                                let message = `Synced ${data.synced}/${data.totalFound} season ${data.season} tournaments.`;
                                                 if (totalUpdated > 0) {
                                                     message += ` ${totalUpdated} matches updated.`;
                                                 }
@@ -682,14 +738,18 @@ const TournamentDataPage = () => {
 
                         {/* Search */}
                         <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-5">
-                            <h3 className="font-medium text-white text-sm mb-4">Search start.gg</h3>
+                            <h3 className="font-medium text-white text-sm">Search start.gg</h3>
+                            <p className="text-gray-500 text-xs mt-1 mb-4">
+                                Paste a tournament link (https://www.start.gg/IFL3-W1), type a slug or a name, or leave it
+                                empty to list the selected season.
+                            </p>
                             <div className="flex gap-3">
                                 <input
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && searchStartGG()}
-                                    placeholder="Tournament name or slug..."
+                                    placeholder={`Tournament link, slug or name — empty lists ${seasonList.find(s => s.season === season)?.label ?? 'the season'}`}
                                     className="flex-1 px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-600 focus:border-white/20 focus:outline-none"
                                 />
                                 <button
@@ -726,6 +786,14 @@ const TournamentDataPage = () => {
                                             <div className="min-w-0 flex-1">
                                                 <h4 className="font-medium text-white text-sm truncate">{tournament.name}</h4>
                                                 <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                                                    {tournament.season && (
+                                                        <>
+                                                            <span className="text-amber-400/80">
+                                                                S{tournament.season}{tournament.weekNumber ? ` W${tournament.weekNumber}` : ''}
+                                                            </span>
+                                                            <span className="text-gray-700">•</span>
+                                                        </>
+                                                    )}
                                                     <span>{tournament.startAt ? formatDate(tournament.startAt) : 'Date TBD'}</span>
                                                     <span className="text-gray-700">•</span>
                                                     <span className="truncate">{tournament.slug}</span>
