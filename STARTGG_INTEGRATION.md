@@ -38,6 +38,31 @@ Tournament slugs are unique identifiers in start.gg URLs. For example:
 - URL: `https://www.start.gg/tournament/iron-fist-league-2024`
 - Slug: `iron-fist-league-2024`
 
+Anywhere a slug is accepted you can paste the whole link instead, in either of
+the forms start.gg hands out — the short one it shares
+(`https://www.start.gg/IFL3-W1`) or the canonical one
+(`https://www.start.gg/tournament/iron-fist-league-3-1-road-to-evo-france-qualifier`).
+
+#### IFL seasons
+
+Each season is published under its own slug convention, all of them described in
+one place, `iflSeasons.js`:
+
+| Season | League slug | Tournament slugs |
+|---|---|---|
+| 1 | `iron-fist-league` | `iron-fist-league-9`, `iron-fist-league-4-8` (five editions in one tournament) |
+| 2 | `IFL2` | `iron-fist-league-2-week-1` … `-week-22` |
+| 3 | `IFL3` | `IFL3-W1` → `iron-fist-league-3-1-road-to-evo-france-qualifier` |
+
+Endpoints that act on a season take `?season=` (`/api/startgg/ifl/tournaments`,
+`/api/startgg/ifl/sync-all`, `/api/db/tournaments/stats`,
+`/api/db/league/standings`) and default to the season currently running.
+`GET /api/startgg/seasons` lists them.
+
+A season's league object is created part-way into the season, so season 3 is
+discovered by walking its week slugs (`IFL3-W1`, `IFL3-W2`, …) until they stop
+resolving. Nothing needs to be reconfigured when the league appears.
+
 ## API Endpoints
 
 ### Search Tournaments
