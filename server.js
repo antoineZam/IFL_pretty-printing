@@ -10,6 +10,7 @@ const pool       = require('./db');
 const dbHelpers  = require('./dbHelpers');
 const startggSync = require('./startggSync');
 const startgg    = require('./startgg');
+const seasons    = require('./iflSeasons');
 
 // ============================================================
 // CONFIGURATION
@@ -571,8 +572,17 @@ startggRouter.get('/search', asyncRoute(async (req, res) => {
     res.json(await startggSync.findTournamentsByTerm(term));
 }));
 
+// The season to act on: ?season=2, defaulting to the one currently running.
+function requestedSeason(req) {
+    return seasons.parseSeason(req.query.season ?? req.body?.season) ?? seasons.CURRENT_SEASON;
+}
+
+startggRouter.get('/seasons', (req, res) => {
+    res.json({ seasons: seasons.listSeasons(), currentSeason: seasons.CURRENT_SEASON });
+});
+
 startggRouter.get('/ifl/tournaments', asyncRoute(async (req, res) => {
-    res.json(await startgg.searchIronFistLeagueTournaments(50));
+    res.json(await startgg.getSeasonTournaments(requestedSeason(req), 50));
 }));
 
 // Long-running by nature: each tournament is a few thousand sequential queries
@@ -590,8 +600,9 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
     res.setTimeout(0);
     const deadline = Date.now() + SYNC_ALL_DEADLINE_MS;
 
-    const tournaments = await startgg.searchIronFistLeagueTournaments(50);
-    console.log(`[Sync] sync-all starting: ${tournaments.length} tournaments found.`);
+    const season = requestedSeason(req);
+    const tournaments = await startgg.getSeasonTournaments(season, 50);
+    console.log(`[Sync] sync-all starting for season ${season}: ${tournaments.length} tournaments found.`);
     const results = [];
     let timedOut = false;
     for (const t of tournaments) {
@@ -629,6 +640,7 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
     if (playersRemoved > 0) console.log(`[Sync] Cleaned up ${playersRemoved} players with 0 matches`);
 
     res.json({
+        season,
         totalFound: tournaments.length,
         synced,
         failed: tournaments.length - synced,
@@ -690,9 +702,14 @@ startggRouter.get('/event/:eventSlug/bracket', asyncRoute(async (req, res) => {
     res.json(bracket);
 }));
 
+// :slug is read as a season -- 3, IFL3 or iron-fist-league all name one -- so
+// the links that predate seasons keep resolving.
 startggRouter.get('/league/:slug/tournaments', asyncRoute(async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
-    res.json({ tournaments: await startgg.getLeagueTournaments(req.params.slug, limit) });
+    const season = seasons.seasonFromSlug(req.params.slug)
+        ?? seasons.parseSeason(req.params.slug)
+        ?? seasons.CURRENT_SEASON;
+    res.json({ season, tournaments: await startgg.getSeasonTournaments(season, limit) });
 }));
 
 startggRouter.get('/player/:slug', asyncRoute(async (req, res) => {
@@ -782,15 +799,22 @@ dbRouter.get('/tournaments', asyncRoute(async (req, res) => {
     res.json({ tournaments });
 }));
 
+// Participation stats. Every season by default, so the trend chart can put them
+// on one scale; ?season=2 narrows it to one.
 dbRouter.get('/tournaments/stats', asyncRoute(async (req, res) => {
-    const stats = await startgg.getLeagueTournamentStats(startgg.IFL_LEAGUE_SLUG, 20);
-    res.json({ stats });
+    const season = seasons.parseSeason(req.query.season);
+    const stats = season
+        ? await startgg.getSeasonTournamentStats(season)
+        : await startgg.getAllSeasonsTournamentStats();
+    res.json({ stats, seasons: seasons.listSeasons(), currentSeason: seasons.CURRENT_SEASON });
 }));
 
 dbRouter.get('/league/standings', asyncRoute(async (req, res) => {
     const limit = parseInt(req.query.limit) || 8;
-    const raw = await startgg.getLeagueStandings(startgg.IFL_LEAGUE_SLUG, limit);
+    const requested = seasons.parseSeason(req.query.season) ?? seasons.CURRENT_SEASON;
+    const { season, standings: raw } = await startgg.getLeagueStandings(requested, limit);
     res.json({
+        season,
         standings: raw.map(p => ({
             rank: p.rank, user_id: p.playerId, username: p.username,
             sponsor: p.sponsor, country: p.country,

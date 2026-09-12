@@ -1,5 +1,6 @@
 const axios = require('axios');
 const queries = require('./startggQueries');
+const seasons = require('./iflSeasons');
 
 // start.gg API configuration
 const STARTGG_API_URL = 'https://api.start.gg/gql/alpha';
@@ -139,9 +140,13 @@ async function executeStartGGQuery(query, variables) {
   throw lastError;
 }
 
-// Get tournament by slug
+// Get tournament by slug.
+//
+// The slug is normalised first, so a link pasted straight from the browser
+// (https://www.start.gg/IFL3-W1) works as well as a bare slug. start.gg resolves
+// the short form itself and answers with the canonical one.
 async function getTournamentBySlug(slug) {
-  return await queryStartGG(queries.tournament.bySlug, { slug });
+  return await queryStartGG(queries.tournament.bySlug, { slug: seasons.normalizeSlug(slug) || slug });
 }
 
 /**
@@ -310,6 +315,26 @@ async function getTournamentSeries(slug, upcoming = true, past = true) {
   return await queryStartGG(queries.tournament.series, { slug });
 }
 
+/**
+ * Resolves a search term that is really a tournament address.
+ *
+ * Accepts a full start.gg link or a bare slug in any of its forms; returns the
+ * tournament, or null when the term is a name rather than an address or when
+ * nothing lives at that slug.
+ */
+async function resolveTournamentSlug(term) {
+  const slug = seasons.normalizeSlug(term);
+  // Slugs never contain spaces; anything that does is a name to be searched.
+  if (!slug || /\s/.test(slug)) return null;
+
+  try {
+    const data = await queryStartGG(queries.tournament.seasonWeek, { slug });
+    return data?.tournament ?? null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Search for tournaments by name/term.
 //
 // This used to run the unfiltered `search.tournaments` query -- which accepts
@@ -325,6 +350,22 @@ async function searchTournaments(searchTerm, perPage = 50) {
   try {
     const term = searchTerm.trim();
     if (!term) return { tournaments: { nodes: [] } };
+
+    // A season's own slug -- IFL3, IFL2, iron-fist-league -- asks for the whole
+    // season. This is checked before the slug is resolved, because season 2's
+    // league slug also resolves to a tournament, and answering a search for
+    // "IFL2" with one row instead of twenty-two is not what was asked.
+    const season = seasons.seasonFromSlug(term);
+    if (season && seasons.weekFromSlug(term) === null) {
+      return { tournaments: { nodes: await getSeasonTournaments(season, perPage) } };
+    }
+
+    // A pasted link or a slug names one tournament exactly, so resolve it
+    // instead of guessing at it by name. This is the only thing that finds a
+    // season 3 week, whose short slug (IFL3-W1) shares no words with its own
+    // name and whose canonical slug carries an unguessable marketing suffix.
+    const direct = await resolveTournamentSlug(term);
+    if (direct) return { tournaments: { nodes: [direct] } };
 
     // start.gg's name filter does not understand hyphenated slugs; try the term
     // as typed first, then its spaced form.
@@ -347,75 +388,202 @@ async function searchTournaments(searchTerm, perPage = 50) {
   }
 }
 
-// Search for Iron Fist League Season 2 tournaments specifically
-// ONLY returns tournaments where slug starts with 'iron-fist-league-2'
-function searchIronFistLeagueTournaments(maxResults = 50) {
-  return withCache(`ifl-search:${maxResults}`, TTL.LISTING, () =>
-    searchIronFistLeagueTournamentsUncached(maxResults));
-}
+// ============================================================
+// SEASON DISCOVERY
+//
+// Listing a season's tournaments used to mean running three fuzzy name searches
+// ("Iron Fist League", "IFL", "iron fist") and keeping whatever came back with a
+// season 2 slug. start.gg's name filter ranks across the whole site, so the IFL
+// does not reliably appear in its own search results at all -- and nothing but
+// season 2 could ever be found.
+//
+// Two sources replace it, both exact:
+//
+//   * the season's league, one query for the whole season;
+//   * a walk over the season's week slugs, for weeks the league has not picked
+//     up yet -- which for a season published short-slug-first (IFL3-W1) and with
+//     no league object created is, at the start of a season, all of them.
+// ============================================================
 
-async function searchIronFistLeagueTournamentsUncached(maxResults = 50) {
-  const allTournaments = [];
-  const seenIds = new Set();
+// How far past the last known week the walk looks before giving up, and the
+// ceiling that stops it running away if start.gg starts answering everything.
+const WEEK_PROBE_MISS_TOLERANCE = 2;
+const WEEK_PROBE_MAX = 40;
 
-  // Search with multiple terms to find all potential matches.
-  // The three searches are independent, so they run together rather than
-  // stacking three sequential round-trips.
-  const searchTerms = ['Iron Fist League', 'IFL', 'iron fist'];
-
-  const responses = await Promise.all(searchTerms.map(term =>
-    queryStartGG(queries.search.tournamentsByName, { term })
-      .catch(e => {
-        console.error(`  Error searching "${term}":`, e.message);
-        return null;
-      })
-  ));
-
-  for (const data of responses) {
-    if (!data?.tournaments?.nodes) continue;
-    for (const t of data.tournaments.nodes) {
-      // STRICT FILTER: slug MUST start with 'iron-fist-league-2' (Season 2 tournaments)
-      const slugLower = t.slug ? t.slug.toLowerCase() : '';
-      const slugMatch = slugLower.startsWith(`tournament/${IFL_TOURNAMENT_BASE}`) ||
-                       slugLower.startsWith(IFL_TOURNAMENT_BASE) ||
-                       slugLower.includes(`/${IFL_TOURNAMENT_BASE}`);
-
-      if (slugMatch && !seenIds.has(t.id)) {
-        seenIds.add(t.id);
-        allTournaments.push(t);
-      }
-    }
-  }
-
-
-  // Sort by startAt descending (most recent first)
-  allTournaments.sort((a, b) => (b.startAt || 0) - (a.startAt || 0));
-
-  return allTournaments;
-}
-
-// Get IFL Season 2 tournament by week/event identifier
-// Examples: iron-fist-league-2-week-1, iron-fist-league-2-finals
-async function getIFLTournamentByNumber(identifier, suffix = '') {
-  // Build slug using Season 2 base
-  const slugPatterns = [
-    `${IFL_TOURNAMENT_BASE}-week-${identifier}${suffix ? `-${suffix}` : ''}`,
-    `${IFL_TOURNAMENT_BASE}-${identifier}${suffix ? `-${suffix}` : ''}`
-  ];
-  
-  for (const slug of slugPatterns) {
+/** One start.gg tournament, by any of its week slugs. Null when none resolve. */
+async function fetchSeasonWeek(season, week) {
+  for (const slug of seasons.weekSlugCandidates(season, week)) {
     try {
-      const result = await getTournamentBySlug(slug);
-      if (result && result.tournament) {
-        console.log(`  ✓ Found IFL tournament with slug: ${slug}`);
-        return result;
-      }
-    } catch (error) {
+      const data = await queryStartGG(queries.tournament.seasonWeek, { slug });
+      if (data?.tournament) return data.tournament;
+    } catch (e) {
+      // A miss is the normal case while walking past the end of a season.
       console.log(`  ✗ Not found: ${slug}`);
     }
   }
-  
-  console.error(`Tournament not found with any pattern for identifier: ${identifier}`);
+  return null;
+}
+
+/**
+ * Walks a season's weeks from `fromWeek` upward, stopping once enough
+ * consecutive weeks fail to resolve.
+ */
+async function walkSeasonWeeks(season, fromWeek) {
+  const found = [];
+  let misses = 0;
+
+  for (let week = fromWeek; week <= WEEK_PROBE_MAX && misses <= WEEK_PROBE_MISS_TOLERANCE; week++) {
+    const tournament = await fetchSeasonWeek(season, week);
+    if (tournament) {
+      found.push({ tournament, week });
+      misses = 0;
+    } else {
+      misses++;
+    }
+  }
+
+  return found;
+}
+
+/** The events a season's league lists, or [] when the league does not exist yet. */
+async function fetchLeagueEvents(leagueSlug) {
+  try {
+    const data = await queryStartGG(queries.league.eventsLight, { slug: leagueSlug });
+    return data?.league?.events?.nodes ?? [];
+  } catch (e) {
+    console.error(`Error fetching league "${leagueSlug}":`, e.message);
+    return [];
+  }
+}
+
+/**
+ * Every event of a season, as flat rows.
+ *
+ * The event -- not the tournament -- is the unit of an IFL edition. Season 1 ran
+ * editions #4 to #8 inside a single start.gg tournament whose attendee count is
+ * the sum of all five, so counting tournaments there would collapse five weeks
+ * into one point five times too tall.
+ */
+function getSeasonEvents(season) {
+  return withCache(`season-events:${season}`, TTL.LISTING, () => getSeasonEventsUncached(season));
+}
+
+async function getSeasonEventsUncached(season) {
+  const entry = seasons.getSeason(season);
+  if (!entry) return [];
+
+  const rows = [];
+  const seenEvents = new Set();
+
+  const addRow = (row) => {
+    const key = row.eventSlug || `${row.slug}#${row.id}`;
+    if (seenEvents.has(key)) return;
+    seenEvents.add(key);
+    rows.push(row);
+  };
+
+  for (const event of await fetchLeagueEvents(entry.leagueSlug)) {
+    const tournament = event.tournament;
+    const tournamentSlug = seasons.normalizeSlug(tournament?.slug || event.slug.split('/event/')[0]);
+    addRow({
+      id: tournament?.id || event.id,
+      eventId: event.id,
+      name: tournament?.name || event.name,
+      eventName: event.name,
+      slug: tournamentSlug,
+      eventSlug: event.slug,
+      numEntrants: event.numEntrants || 0,
+      numAttendees: tournament?.numAttendees || event.numEntrants || 0,
+      startAt: tournament?.startAt || event.startAt || 0,
+      season,
+      weekNumber: seasons.weekNumberOf({
+        eventName: event.name,
+        eventSlug: event.slug,
+        tournamentName: tournament?.name,
+        tournamentSlug,
+      }),
+    });
+  }
+
+  // Past seasons are fully described by their league. The current one is walked
+  // past whatever the league knows, because a week is published as a tournament
+  // days before it is attached to the league -- if it ever is.
+  const knownWeeks = rows.map(r => r.weekNumber).filter(Number.isFinite);
+  const shouldWalk = rows.length === 0 || season === seasons.CURRENT_SEASON;
+
+  if (shouldWalk) {
+    const fromWeek = knownWeeks.length ? Math.max(...knownWeeks) + 1 : 1;
+    for (const { tournament, week } of await walkSeasonWeeks(season, fromWeek)) {
+      const tournamentSlug = seasons.normalizeSlug(tournament.slug);
+      for (const event of tournament.events ?? []) {
+        addRow({
+          id: tournament.id,
+          eventId: event.id,
+          name: tournament.name,
+          eventName: event.name,
+          slug: tournamentSlug,
+          eventSlug: event.slug,
+          numEntrants: event.numEntrants || 0,
+          numAttendees: tournament.numAttendees || event.numEntrants || 0,
+          startAt: tournament.startAt || 0,
+          season,
+          weekNumber: seasons.weekNumberOf({
+            eventName: event.name,
+            eventSlug: event.slug,
+            tournamentName: tournament.name,
+            tournamentSlug,
+          }) ?? week,
+        });
+      }
+    }
+  }
+
+  // Oldest first: the participation chart reads left to right, and every other
+  // caller sorts for itself.
+  rows.sort((a, b) => (a.weekNumber ?? 0) - (b.weekNumber ?? 0) || (a.startAt || 0) - (b.startAt || 0));
+
+  return rows;
+}
+
+/**
+ * A season's tournaments, most recent first -- one row per start.gg tournament,
+ * which is what the sync and the tournament pickers address.
+ */
+async function getSeasonTournaments(season, maxResults = 50) {
+  const bySlug = new Map();
+
+  for (const row of await getSeasonEvents(season)) {
+    const existing = bySlug.get(row.slug);
+    if (existing) {
+      existing.events.push({ id: row.eventId, name: row.eventName, slug: row.eventSlug });
+      continue;
+    }
+    bySlug.set(row.slug, {
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      startAt: row.startAt,
+      season: row.season,
+      weekNumber: row.weekNumber,
+      numAttendees: row.numAttendees,
+      events: [{ id: row.eventId, name: row.eventName, slug: row.eventSlug }],
+    });
+  }
+
+  return [...bySlug.values()]
+    .sort((a, b) => (b.startAt || 0) - (a.startAt || 0))
+    .slice(0, maxResults);
+}
+
+// Get an IFL tournament by its week/edition number within a season.
+async function getIFLTournamentByNumber(identifier, season = seasons.CURRENT_SEASON) {
+  const tournament = await fetchSeasonWeek(season, identifier);
+  if (tournament) {
+    console.log(`  ✓ Found IFL tournament with slug: ${tournament.slug}`);
+    return { tournament };
+  }
+
+  console.error(`Tournament not found for season ${season}, week ${identifier}`);
   return null;
 }
 
@@ -466,24 +634,43 @@ async function getAllTournamentSets(slug, eventSlug = null) {
   return allSets;
 }
 
-// IFL Configuration
-const IFL_LEAGUE_SLUG = 'IFL2';  // Short slug for the league (https://www.start.gg/IFL2)
-const IFL_TOURNAMENT_BASE = 'iron-fist-league-2';  // Season 2 base slug for all tournaments
-
-// Get league standings from start.gg (includes rank and points)
-function getLeagueStandings(leagueSlug = IFL_LEAGUE_SLUG, limit = 8) {
-  return withCache(`league-standings:${leagueSlug}:${limit}`, TTL.LIVE, () =>
-    getLeagueStandingsUncached(leagueSlug, limit));
+/**
+ * Get league standings from start.gg (includes rank and points).
+ *
+ * A season's league object is created some way into the season, so the current
+ * season has no standings to serve for a while. Rather than show an empty
+ * leaderboard, the lookup falls back to the most recent season that does have
+ * one, and reports which season the returned standings are actually from.
+ *
+ * @returns {Promise<{ season: number|null, standings: object[] }>}
+ */
+function getLeagueStandings(season = seasons.CURRENT_SEASON, limit = 8) {
+  return withCache(`league-standings:${season}:${limit}`, TTL.LIVE, () =>
+    getLeagueStandingsUncached(season, limit));
 }
 
-async function getLeagueStandingsUncached(leagueSlug, limit) {
+async function getLeagueStandingsUncached(season, limit) {
+  const candidates = seasons.SEASON_NUMBERS
+    .filter(n => n <= Number(season))
+    .sort((a, b) => b - a);
+
+  for (const candidate of candidates) {
+    const standings = await fetchLeagueStandings(seasons.getSeason(candidate).leagueSlug, limit);
+    if (standings.length > 0) return { season: candidate, standings };
+    console.log(`No standings for season ${candidate}; falling back to the previous season.`);
+  }
+
+  return { season: null, standings: [] };
+}
+
+async function fetchLeagueStandings(leagueSlug, limit) {
   try {
-    const data = await queryStartGG(queries.league.standings, { 
-      slug: leagueSlug, 
-      page: 1, 
-      perPage: limit 
+    const data = await queryStartGG(queries.league.standings, {
+      slug: leagueSlug,
+      page: 1,
+      perPage: limit
     });
-    
+
     if (!data || !data.league || !data.league.standings) {
       console.log('No standings data found for league:', leagueSlug);
       return [];
@@ -684,74 +871,43 @@ async function getEventBracketUncached(eventSlug, page, perPage) {
   }
 }
 
-// Get all tournaments/events in a league with participant counts
-function getLeagueTournaments(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
-  return withCache(`league-tournaments:${leagueSlug}:${limit}`, TTL.LISTING, () =>
-    getLeagueTournamentsUncached(leagueSlug, limit));
-}
+/**
+ * Participation stats for one season, oldest week first.
+ *
+ * `participant_count` is the event's entrant count rather than the tournament's
+ * attendee count: they are the same number for seasons 2 and 3, but season 1 ran
+ * several editions per tournament, where the attendee count is their sum.
+ */
+async function getSeasonTournamentStats(season, limit = 50) {
+  const events = await getSeasonEvents(season);
 
-async function getLeagueTournamentsUncached(leagueSlug, limit) {
-  try {
-    const data = await queryStartGG(queries.league.eventsLight, { slug: leagueSlug });
-    
-    if (!data || !data.league || !data.league.events) {
-      console.log('No events found for league:', leagueSlug);
-      return [];
-    }
-
-    // Extract unique tournaments from events, keeping participant counts
-    const tournamentsMap = new Map();
-    
-    for (const event of data.league.events.nodes) {
-      const tournament = event.tournament;
-      const tournamentSlug = tournament?.slug || event.slug.split('/event/')[0];
-      const tournamentId = tournament?.id || event.id;
-      
-      if (!tournamentsMap.has(tournamentSlug)) {
-        // Extract week number from tournament name or slug
-        const weekMatch = (tournament?.name || event.name).match(/\[Week\s*(\d+)\]/i) ||
-                         tournamentSlug.match(/-week-(\d+)/i) ||
-                         (tournament?.name || event.name).match(/Week\s*(\d+)/i);
-        const weekNumber = weekMatch ? parseInt(weekMatch[1]) : null;
-        
-        tournamentsMap.set(tournamentSlug, {
-          id: tournamentId,
-          name: tournament?.name || event.name,
-          slug: tournamentSlug,
-          eventSlug: event.slug,
-          numAttendees: tournament?.numAttendees || event.numEntrants || 0,
-          numEntrants: event.numEntrants || 0,
-          startAt: tournament?.startAt || event.startAt || 0,
-          weekNumber: weekNumber
-        });
-      }
-    }
-
-    // Sort by startAt (oldest first for chart display)
-    const tournaments = Array.from(tournamentsMap.values())
-      .sort((a, b) => (a.startAt || 0) - (b.startAt || 0))
-      .slice(0, limit);
-
-    return tournaments;
-  } catch (error) {
-    console.error('Error fetching league tournaments:', error.message);
-    throw error;
-  }
-}
-
-// Get league tournament stats for participation chart
-async function getLeagueTournamentStats(leagueSlug = IFL_LEAGUE_SLUG, limit = 20) {
-  const tournaments = await getLeagueTournaments(leagueSlug, limit);
-  
-  return tournaments.map(t => ({
-    tournament_id: t.id,
-    name: t.name,
-    start_date: t.startAt ? new Date(t.startAt * 1000).toISOString() : null,
+  return events.slice(0, limit).map(e => ({
+    tournament_id: e.id,
+    event_id: e.eventId,
+    name: e.name,
+    event_name: e.eventName,
+    slug: e.slug,
+    season: e.season,
+    start_date: e.startAt ? new Date(e.startAt * 1000).toISOString() : null,
     status: 'completed',
-    participant_count: t.numAttendees || t.numEntrants || 0,
+    participant_count: e.numEntrants || e.numAttendees || 0,
     match_count: 0,
-    week_number: t.weekNumber
+    week_number: e.weekNumber,
   }));
+}
+
+/** The same stats for every season, fetched together. */
+async function getAllSeasonsTournamentStats(limit = 50) {
+  const perSeason = await Promise.all(
+    seasons.SEASON_NUMBERS.map(season =>
+      getSeasonTournamentStats(season, limit).catch(e => {
+        console.error(`Error fetching stats for season ${season}:`, e.message);
+        return [];
+      })
+    )
+  );
+
+  return perSeason.flat();
 }
 
 // Get player's placements across tournaments in a league
@@ -797,10 +953,6 @@ async function getPlayerLeaguePlacements(leagueSlug, playerName, limit = 20) {
 }
 
 module.exports = {
-  // Constants
-  IFL_LEAGUE_SLUG,
-  IFL_TOURNAMENT_BASE,
-  // Functions
   getTournamentBySlug,
   getTournamentEvents,
   getEventSetsByEventId,
@@ -808,12 +960,13 @@ module.exports = {
   getTournamentParticipants,
   getTournamentSeries,
   searchTournaments,
-  searchIronFistLeagueTournaments,
+  getSeasonEvents,
+  getSeasonTournaments,
   getIFLTournamentByNumber,
   getAllTournamentSets,
   getLeagueStandings,
-  getLeagueTournaments,
-  getLeagueTournamentStats,
+  getSeasonTournamentStats,
+  getAllSeasonsTournamentStats,
   getEventStandings,
   getEventBracket,
   getPlayerLeaguePlacements,

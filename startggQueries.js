@@ -57,6 +57,29 @@ const queries = {
       }
     `,
 
+    // Used to walk a season week by week, by short slug (IFL3-W1). Carries both
+    // attendee counts so the participation chart has a fallback when an event
+    // reports no entrants. Resolves short slugs to their canonical form, which
+    // is why `slug` is selected.
+    seasonWeek: `
+      query SeasonWeekQuery($slug: String!) {
+        tournament(slug: $slug) {
+          id
+          name
+          slug
+          startAt
+          endAt
+          numAttendees
+          events {
+            id
+            name
+            slug
+            numEntrants
+          }
+        }
+      }
+    `,
+
     // Paginated: $page/$perPage are driven by a loop in getTournamentParticipants.
     // These were hardcoded to page 1 / perPage 100 with no loop, so in any event
     // above 100 entrants every player past the first page never received a
