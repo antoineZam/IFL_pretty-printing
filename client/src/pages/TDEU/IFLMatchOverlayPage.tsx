@@ -143,7 +143,7 @@ const IFLMatchOverlayPage = () => {
                 {/* Player 1 Info */}
                 <div className="absolute top-[22px] left-[240px] text-[28px] flex items-baseline text-shadow">
                     {data.p1Team && (
-                        <span className="font-archivo-extra-condensed-light uppercase opacity-50" style={{ fontSize: '82%' }}>{data.p1Team}</span>
+                        <span className="font-archivo-extra-condensed-light uppercase" style={{ fontSize: '82%', color: '#56B6C1' }}>{data.p1Team}</span>
                     )}
                     {data.p1Team && <span className="mx-[5px] opacity-50"></span>}
                     <span className="font-archivo-semi-condensed-bold">{data.p1Loser ? `(L) ${data.p1Name}` : data.p1Name}</span>
@@ -180,7 +180,7 @@ const IFLMatchOverlayPage = () => {
                     <span className="font-archivo-semi-condensed-bold">{data.p2Loser ? `(L) ${data.p2Name}` : data.p2Name}</span>
                     {data.p2Team && <span className="mx-[5px] opacity-50"></span>}
                     {data.p2Team && (
-                        <span className="font-archivo-extra-condensed-light uppercase opacity-50" style={{ fontSize: '82%' }}>{data.p2Team}</span>
+                        <span className="font-archivo-extra-condensed-light uppercase" style={{ fontSize: '82%', color: '#56B6C1' }}>{data.p2Team}</span>
                     )}
                 </div>
                 {/* Player 2 Score - Archivo Expanded Bold, 33% smaller than player name */}
