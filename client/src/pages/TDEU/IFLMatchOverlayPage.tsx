@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import LogoCarousel from '../../components/LogoCarousel';
 
 
 interface PlayerData {
@@ -41,8 +42,6 @@ const IFLMatchOverlayPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
     const [isFading, setIsFading] = useState(false);
-    const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
-    const [isLogoFading, setIsLogoFading] = useState(false);
 
     // Rotate through link assets every 10 seconds with fade animation
     useEffect(() => {
@@ -56,20 +55,6 @@ const IFLMatchOverlayPage = () => {
 
         return () => clearInterval(interval);
     }, []);
-
-    // Rotate through logo assets every 10 seconds with fade animation
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setIsLogoFading(true);
-            setTimeout(() => {
-                setCurrentLogoIndex((prev) => (prev + 1) % LOGO_ASSETS.length);
-                setIsLogoFading(false);
-            }, 500); // Fade out duration
-        }, 10000); // 10 second delay
-
-        return () => clearInterval(interval);
-    }, []);
-
 
     useEffect(() => {
         document.body.style.backgroundColor = 'transparent';
@@ -210,15 +195,8 @@ const IFLMatchOverlayPage = () => {
                     <span className="font-archivo-condensed-black-italic opacity-50 ml-2">WEEK #{data.eventNumber}</span>
                 </div>
                 
-                {/* Logo Carousel - IFL logo / Tekkendojo logo (same pattern as LINK_ASSETS) */}
-                <div className="absolute">
-                    <img
-                        src={LOGO_ASSETS[currentLogoIndex]}
-                        alt="logo"
-                        className="w-auto object-contain transition-opacity duration-500"
-                        style={{ opacity: isLogoFading ? 0 : 1 }}
-                    />
-                </div>
+                {/* Logo Carousel - IFL logo / Tekkendojo logo */}
+                <LogoCarousel logos={LOGO_ASSETS} />
             </div>
         </div>
     );
