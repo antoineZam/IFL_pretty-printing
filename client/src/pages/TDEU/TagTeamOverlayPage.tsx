@@ -103,20 +103,20 @@ const TagTeamOverlayPage = () => {
                 <div className="absolute top-0 left-0 w-full h-full bg-no-repeat bg-contain bg-center" style={{ backgroundImage: "url('/source/overlay/tag_tournament/center_plate.png')" }} />
 
                 {/* Team 1 */}
-                <div className="absolute top-0.5 w-full h-[100px] text-shadow">
+                <div className="absolute top-[10px] w-full h-[100px] text-shadow">
                      <PlayerCard player={team1.players[0]} className="absolute left-[195px] right-[calc(100%-415px)]" cardId="t1-p1-card" />
                      <div className="absolute top-7 left-[427px] w-0.5 h-[30px] bg-yellow-400 opacity-0" />
                      <PlayerCard player={team1.players[1]} className="absolute left-[432px] w-[258px]" cardId="t1-p2-card" />
                 </div>
-                <div className="absolute top-0 left-[690px] text-[27px] w-[100px] text-center font-bold font-archivo-expanded-regular">{team1.score}</div>
+                <div className="absolute top-[-3px] left-[700px] text-[27px] w-[100px] text-center font-bold font-archivo-expanded-regular">{team1.score}</div>
 
                 {/* Team 2 */}
-                <div className="absolute top-0.5 w-full h-[100px] text-shadow">
+                <div className="absolute top-[10px] w-full h-[100px] text-shadow">
                     <PlayerCard player={team2.players[0]} className="absolute right-[195px] left-[calc(100%-410px)]" cardId="t2-p1-card" />
                     <div className="absolute top-7 right-[423px] w-0.5 h-[30px] bg-yellow-400 opacity-0" />
                     <PlayerCard player={team2.players[1]} className="absolute right-[428px] w-[262px]" cardId="t2-p2-card" />
                 </div>
-                <div className="absolute top-0 right-[690px] text-[27px] w-[100px] text-center font-bold font-archivo-expanded-regular">{team2.score}</div>
+                <div className="absolute top-[-3px] right-[700px] text-[27px] w-[100px] text-center font-bold font-archivo-expanded-regular">{team2.score}</div>
                 
                 {/* Round */}
                 <div className="absolute top-1 left-1/2 -translate-x-1/2 text-base text-center w-[600px] tracking-[2px] font-semibold">{round}</div>
