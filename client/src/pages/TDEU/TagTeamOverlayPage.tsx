@@ -84,11 +84,11 @@ const TagTeamOverlayPage = () => {
         if (!data) return '';
         const t1Active = data.team1.players.findIndex(p => p.active);
         const t2Active = data.team2.players.findIndex(p => p.active);
-        let imgNum = 1;
-        if (t1Active === 0 && t2Active === 0) imgNum = 4;
-        else if (t1Active === 1 && t2Active === 0) imgNum = 3;
-        else if (t1Active === 0 && t2Active === 1) imgNum = 2;
-        return `/source/overlay/tag_tournament/team${imgNum}.png`;
+        let activePair = 't1p2-t2p2';
+        if (t1Active === 0 && t2Active === 0) activePair = 't1p1-t2p1';
+        else if (t1Active === 1 && t2Active === 0) activePair = 't1p2-t2p1';
+        else if (t1Active === 0 && t2Active === 1) activePair = 't1p1-t2p2';
+        return `/source/overlay/tag_tournament/${activePair}.png`;
     }, [data]);
     
     if (error) return <div className="w-[1920px] h-[1080px] flex items-center justify-center bg-transparent text-red-500 text-4xl">{error}</div>;
