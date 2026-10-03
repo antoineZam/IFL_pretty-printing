@@ -2,6 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useConnectionKey } from '../../hooks/useConnectionKey';
 import useDynamicFontSize from '../../hooks/useDynamicFontSize';
+import LogoCarousel from '../../components/LogoCarousel';
+
+const LOGO_ASSETS = [
+    '/source/overlay/ifl/IFL_logo.png',
+    '/source/overlay/ifl/tekkendojo_logo.png',
+    '/source/overlay/tag_tournament/logo.png',
+];
 
 // Data interfaces
 interface Player {
@@ -113,6 +120,9 @@ const TagTeamOverlayPage = () => {
                 
                 {/* Round */}
                 <div className="absolute top-1 left-1/2 -translate-x-1/2 text-base text-center w-[600px] tracking-[2px] font-semibold">{round}</div>
+
+                {/* Logo Carousel - IFL logo / Tekkendojo logo / Tag team logo */}
+                <LogoCarousel logos={LOGO_ASSETS} />
             </div>
         </div>
     );
