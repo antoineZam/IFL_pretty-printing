@@ -93,7 +93,8 @@ const TagTeamOverlayPage = () => {
         <div className="w-[1920px] h-[1080px] bg-transparent text-white uppercase font-archivo-extra-condensed-bold overflow-hidden">
             <div className="relative w-full h-full">
                 <div className="absolute top-0 left-0 w-full h-full bg-no-repeat bg-contain bg-center transition-all" style={{ backgroundImage: `url('${overlayImage}')` }} />
-                
+                <div className="absolute top-0 left-0 w-full h-full bg-no-repeat bg-contain bg-center" style={{ backgroundImage: "url('/source/overlay/tag_tournament/center_plate.png')" }} />
+
                 {/* Team 1 */}
                 <div className="absolute top-0.5 w-full h-[100px] text-shadow">
                      <PlayerCard player={team1.players[0]} className="absolute left-[195px] right-[calc(100%-415px)]" cardId="t1-p1-card" />
