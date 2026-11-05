@@ -88,11 +88,17 @@ const LoveAndWarRankingsPage = () => {
     const handleSavePlacements = async () => {
         setIsSaving(true);
         try {
-            await fetch(`/api/iff/love-and-war/tournament/${tournamentId}/placements`, {
-                method: 'PUT',
+            // The server takes an array of { team_id, placement } on a POST route.
+            const placements = Object.entries(editingPlacements).map(([teamId, placement]) => ({
+                team_id: Number(teamId),
+                placement,
+            }));
+            const response = await fetch(`/api/iff/love-and-war/tournament/${tournamentId}/placements`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ placements: editingPlacements })
+                body: JSON.stringify({ placements })
             });
+            if (!response.ok) throw new Error(`Saving placements failed (${response.status})`);
             setSaved(true);
             setTimeout(() => setSaved(false), 2000);
             await loadRankings();

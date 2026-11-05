@@ -27,8 +27,13 @@ export function readStoredKey(): string | null {
     }
 }
 
-/** The IFF section uses its own separate access key. */
+/**
+ * The IFF section uses its own separate access key. Like the connection key,
+ * an OBS source can carry it in the query string (?iffKey=…).
+ */
 export function readIffKey(): string | null {
+    const fromUrl = new URLSearchParams(window.location.search).get('iffKey');
+    if (fromUrl) return fromUrl;
     try {
         return localStorage.getItem('ribAccessKey');
     } catch {

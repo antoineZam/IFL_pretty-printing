@@ -5,6 +5,7 @@ import {
     ArrowUp, ArrowDown, Star, RotateCcw, Calendar, ArrowLeftRight
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { readIffKey } from '../../hooks/useConnectionKey';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import type {
     IFF9Match, IFF9Week, IFF9MatchData, IFF9Lineup, IFF9DisplayMode, IFF9MatchType
@@ -65,7 +66,7 @@ const IFF9MatchControlPage = () => {
     const skipLiveRef = useRef(true);
 
     useEffect(() => {
-        const newSocket = io({ auth: { token: key } });
+        const newSocket = io({ auth: { token: key, iffKey: readIffKey() } });
         setSocket(newSocket);
         return () => { newSocket.disconnect(); };
     }, [key]);

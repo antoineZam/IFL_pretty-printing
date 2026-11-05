@@ -150,7 +150,8 @@ let ribStreamData  = null;
 
 let ribOverlayState = {
     showMatchCard: false, showPlayerStats: false, showPartOne: false,
-    showStreamOverlay: false, selectedMatchIndex: 0, selectedPlayerIndex: 0, animationTrigger: 0,
+    showStreamOverlay: false, showIntroVideo: false, introVideoUrl: '',
+    selectedMatchIndex: 0, selectedPlayerIndex: 0, animationTrigger: 0,
 };
 let loveAndWarDisplayState = { teamId: null, visible: false };
 let lnwDisplayMode  = { mode: 'idle', teamId: null, visible: false };
@@ -158,6 +159,9 @@ let lnwMatchData = {
     team1: { name: 'Team 1', players: [{ name: 'Player 1', active: true }, { name: 'Player 2', active: false }], score: 0 },
     team2: { name: 'Team 2', players: [{ name: 'Player 1', active: true }, { name: 'Player 2', active: false }], score: 0 },
     round: 'Round 1',
+    // 'team' (FT4 by default) or '1v1' (FT3 by default); both overlays read these.
+    match_mode: 'team',
+    win_score: 4,
 };
 
 // IFF9 in-memory state (resilient to DB outages, like lnwMatchData).
@@ -185,6 +189,9 @@ let iff9MatchData = {
     player_2_rank: null,
     win_score: 3,
 };
+// Last Top 8 pushes, replayed to overlays on connect (memory only).
+let top8Data          = null;
+let top8StandingsData = null;
 let iff9Lineup = { week_name: 'IFF9 Qualifiers', week_number: 1, event_date: null, matches: [] };
 
 // ============================================================
@@ -651,7 +658,9 @@ startggRouter.post('/ifl/sync-all', asyncRoute(async (req, res) => {
 }));
 
 startggRouter.get('/ifl/:number', asyncRoute(async (req, res) => {
-    const data = await startgg.getIFLTournamentByNumber(req.params.number, req.query.suffix || '');
+    // Second argument is the SEASON (?season=, defaulting to the current one).
+    // It used to receive ?suffix, which is not a season, so every lookup missed.
+    const data = await startgg.getIFLTournamentByNumber(req.params.number, requestedSeason(req));
     if (!data) return res.status(404).json({ error: 'Tournament not found' });
     res.json(data);
 }));
@@ -1226,8 +1235,19 @@ iffRouter.post('/love-and-war/tournament/:id/groups', asyncRoute(async (req, res
 }));
 
 iffRouter.put('/love-and-war/group/:id', asyncRoute(async (req, res) => {
-    const { name, group_order, status, tournament_id } = req.body;
-    const group = await dbHelpers.saveLnWGroup({ id: parseInt(req.params.id), name, group_order, status, tournament_id });
+    // Partial update: the bracket page sends only { status }. Fields left out
+    // keep their stored value -- passing them through as undefined made mysql2
+    // reject the UPDATE, so the group never left 'setup'.
+    const existing = await dbHelpers.getLnWGroup(parseInt(req.params.id));
+    if (!existing) return res.status(404).json({ error: 'Group not found' });
+    const pick = key => (req.body[key] !== undefined ? req.body[key] : existing[key]);
+    const group = await dbHelpers.saveLnWGroup({
+        id: existing.id,
+        tournament_id: existing.tournament_id,
+        name: pick('name'),
+        group_order: pick('group_order'),
+        status: pick('status'),
+    });
     io.emit('lnw-bracket-update', { tournament_id: group.tournament_id });
     res.json({ group });
 }));
@@ -1320,13 +1340,30 @@ async function runOverlayPersist() {
 // ============================================================
 
 io.use((socket, next) => {
-    socket.handshake.auth.token === CONNECTION_KEY
-        ? next()
-        : next(new Error('Invalid connection key'));
+    if (socket.handshake.auth.token !== CONNECTION_KEY) {
+        return next(new Error('Invalid connection key'));
+    }
+    // The REST side gates /api/iff and /api/rib behind IFF_ACCESS_KEY, but the
+    // socket only checked CONNECTION_KEY, so anyone with the general key could
+    // still drive the IFF overlays. Overlays keep READING IFF state with the
+    // general key alone (OBS sources stay as they are); only the IFF write
+    // events below require the IFF key in the handshake.
+    socket.data.iffAuthorized = !IFF_ACCESS_KEY
+        || safeEqual(socket.handshake.auth.iffKey, IFF_ACCESS_KEY);
+    next();
 });
 
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
+
+    // Registers a handler for an IFF write event, refused without the IFF key.
+    const onIff = (event, handler) => socket.on(event, (...args) => {
+        if (!socket.data.iffAuthorized) {
+            socket.emit('persist-error', { what: event, message: 'IFF access key required for this action.' });
+            return;
+        }
+        handler(...args);
+    });
 
     // Push the full current state to the newly connected client immediately.
     socket.emit('data-update',               overlayData);
@@ -1341,6 +1378,8 @@ io.on('connection', (socket) => {
     socket.emit('iff9-match-data',           iff9MatchData);
     socket.emit('iff9-lineup',               iff9Lineup);
     socket.emit('iff9-display-mode',         iff9DisplayMode);
+    if (top8Data)          socket.emit('top8-data',           top8Data);
+    if (top8StandingsData) socket.emit('top8-standings-data', top8StandingsData);
 
     socket.on('update-data', (data) => {
         // Overlays get the new scoreboard on this tick. Persistence used to run
@@ -1361,50 +1400,58 @@ io.on('connection', (socket) => {
         persistState('tag-team', socket, () => dbHelpers.saveTagTeamData(tagTeamData));
     });
 
-    // Pass-through relay events — no persistence needed.
-    socket.on('top8-data',           data => io.emit('top8-data', data));
+    // Top 8 pushes are kept in memory (not in the database) so an overlay that
+    // reloads -- an OBS scene switch, a source refresh -- gets the last push on
+    // connect instead of staying blank until the operator pushes again.
+    socket.on('top8-data', data => {
+        top8Data = data;
+        io.emit('top8-data', data);
+    });
     socket.on('top8-refresh',        data => io.emit('top8-refresh', data));
-    socket.on('top8-standings-data', data => io.emit('top8-standings-data', data));
+    socket.on('top8-standings-data', data => {
+        top8StandingsData = data;
+        io.emit('top8-standings-data', data);
+    });
 
-    socket.on('rib-match-cards-update', (data) => {
+    onIff('rib-match-cards-update', (data) => {
         ribMatchCards = data;
         io.emit('rib-match-cards-update', ribMatchCards);
         persistState('rib-match-cards-update', socket, () => dbHelpers.saveRIBMatchCards(ribMatchCards));
     });
 
-    socket.on('rib-player-stats-update', (data) => {
+    onIff('rib-player-stats-update', (data) => {
         ribPlayerStats = data;
         io.emit('rib-player-stats-update', ribPlayerStats);
         persistState('rib-player-stats-update', socket, () => dbHelpers.saveRIBPlayerStats(ribPlayerStats));
     });
 
-    socket.on('rib-stream-data-update', (data) => {
+    onIff('rib-stream-data-update', (data) => {
         ribStreamData = data;
         io.emit('rib-stream-data-update', ribStreamData);
         persistState('rib-stream-data-update', socket, () => dbHelpers.saveRIBStreamData(ribStreamData));
     });
 
-    socket.on('rib-overlay-state-update', data => {
+    onIff('rib-overlay-state-update', data => {
         ribOverlayState = patchState(ribOverlayState, data, 'ribOverlayState');
         io.emit('rib-overlay-state-update', ribOverlayState);
     });
 
-    socket.on('love-and-war-display-select', data => {
+    onIff('love-and-war-display-select', data => {
         loveAndWarDisplayState = patchState(loveAndWarDisplayState, data, 'loveAndWarDisplayState');
         io.emit('love-and-war-display-update', loveAndWarDisplayState);
     });
 
-    socket.on('lnw-match-update', data => {
+    onIff('lnw-match-update', data => {
         lnwMatchData = patchState(lnwMatchData, data, 'lnwMatchData');
         io.emit('lnw-match-data', lnwMatchData);
     });
 
-    socket.on('lnw-display-mode', data => {
+    onIff('lnw-display-mode', data => {
         lnwDisplayMode = patchState(lnwDisplayMode, data, 'lnwDisplayMode');
         io.emit('lnw-display-mode', lnwDisplayMode);
     });
 
-    socket.on('lnw-refresh-overlay', () => {
+    onIff('lnw-refresh-overlay', () => {
         io.emit('lnw-refresh-overlay');
         setTimeout(() => {
             io.emit('lnw-match-data',   lnwMatchData);
@@ -1413,22 +1460,22 @@ io.on('connection', (socket) => {
     });
 
     // --- IFF9 ---
-    socket.on('iff9-match-update', data => {
+    onIff('iff9-match-update', data => {
         iff9MatchData = patchState(iff9MatchData, data, 'iff9MatchData');
         io.emit('iff9-match-data', iff9MatchData);
     });
 
-    socket.on('iff9-lineup-update', data => {
+    onIff('iff9-lineup-update', data => {
         iff9Lineup = data || iff9Lineup;
         io.emit('iff9-lineup', iff9Lineup);
     });
 
-    socket.on('iff9-display-mode', data => {
+    onIff('iff9-display-mode', data => {
         iff9DisplayMode = patchState(iff9DisplayMode, data, 'iff9DisplayMode');
         io.emit('iff9-display-mode', iff9DisplayMode);
     });
 
-    socket.on('iff9-refresh-overlay', () => {
+    onIff('iff9-refresh-overlay', () => {
         io.emit('iff9-refresh-overlay');
         setTimeout(() => {
             io.emit('iff9-match-data',   iff9MatchData);

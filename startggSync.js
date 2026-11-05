@@ -492,18 +492,30 @@ async function withTransaction(fn) {
  * `db` is a pooled connection when called inside a transaction, the pool itself
  * otherwise.
  */
-async function findOrCreateUserId(gamerTag, db = pool) {
+async function findOrCreateUserId(entrantName, db = pool) {
+  // Set slots carry entrant.name, which start.gg renders as "SPONSOR | tag" for a
+  // sponsored player. The participant sync stores the bare tag (sponsor in its
+  // own column), so looking up the full display name missed that row and
+  // inserted a second "SPONSOR | tag" user. Resolve on the bare tag first.
+  const gamerTag = stripSponsorPrefix(entrantName);
   const [rows] = await db.execute(
     `SELECT user_id FROM users
-     WHERE username = ? OR username LIKE ?
+     WHERE username = ? OR username = ? OR username LIKE ?
      ORDER BY (username = ?) DESC
      LIMIT 1`,
-    [gamerTag, `% | ${gamerTag}`, gamerTag]
+    [gamerTag, entrantName, `% | ${gamerTag}`, gamerTag]
   );
   if (rows.length > 0) return rows[0].user_id;
 
   const [result] = await db.execute('INSERT INTO users (username) VALUES (?)', [gamerTag]);
   return result.insertId;
+}
+
+/** "SPONSOR | tag" -> "tag"; a name without the separator is returned as is. */
+function stripSponsorPrefix(name) {
+  const text = String(name || '').trim();
+  const sep = text.lastIndexOf(' | ');
+  return sep >= 0 ? text.slice(sep + 3).trim() || text : text;
 }
 
 // Sync player information from start.gg

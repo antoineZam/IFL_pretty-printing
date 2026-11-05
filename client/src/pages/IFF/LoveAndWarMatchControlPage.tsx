@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { debugLog } from '../../utils/debug';
 import { ChevronLeft, Users, Minus, Plus, RotateCcw, Eye, Send, Tv, Image, PlayCircle, Zap, ArrowLeftRight, User } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { readIffKey } from '../../hooks/useConnectionKey';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 import type { AvailableTeam } from '../../types/loveAndWar';
@@ -74,7 +75,7 @@ const LoveAndWarMatchControlPage = () => {
         loadTeams();
         loadMatchData();
 
-        const newSocket = io({ auth: { token: key } });
+        const newSocket = io({ auth: { token: key, iffKey: readIffKey() } });
         setSocket(newSocket);
 
         newSocket.on('connect', () => {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { readIffKey } from '../../hooks/useConnectionKey';
 import { useNavigate } from 'react-router-dom';
 import IFFBurgerMenu from '../../components/IFFBurgerMenu';
 import { 
@@ -144,7 +145,7 @@ export default function RIBMatchControlPage() {
         }
 
         const newSocket = io({
-            auth: { token: connectionKey }
+            auth: { token: connectionKey, iffKey: readIffKey() }
         });
 
         newSocket.on('connect', () => setConnected(true));

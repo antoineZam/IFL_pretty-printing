@@ -9,6 +9,7 @@ import TDEUBurgerMenu from '../../components/TDEUBurgerMenu';
 
 import { Autocomplete } from '../../components/ui/Autocomplete';
 import { TEKKEN_8_CHARACTERS } from '../../utils/characters';
+import { weekFromName } from '../../utils/iflWeek';
 
 interface Tournament {
     id: number;
@@ -167,9 +168,9 @@ const IFLTop8StandingsControlPage = () => {
         loadTournamentEvents(tournament.slug);
         
         // Extract week number from tournament name
-        const weekMatch = tournament.name.match(/#(\d+)/);
-        if (weekMatch) {
-            setWeekNumber(weekMatch[1].padStart(2, '0'));
+        const week = weekFromName(tournament.name);
+        if (week !== null) {
+            setWeekNumber(String(week).padStart(2, '0'));
         }
     };
 

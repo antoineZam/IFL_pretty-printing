@@ -242,7 +242,7 @@ const TournamentDataPage = () => {
                 setSyncResult({ success: true, message: `${data.playersSynced} players${playerUpdatedMsg}, ${data.matchesSynced} matches added${matchUpdatedMsg}${cleanedMsg}` });
                 loadTournaments();
             } else {
-                setSyncResult({ success: false, message: data.error || 'Sync failed' });
+                setSyncResult({ success: false, message: data.message || data.error || 'Sync failed' });
             }
         } catch (error) {
             console.error('[syncTournament] Error:', error);
